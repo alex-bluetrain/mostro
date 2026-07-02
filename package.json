@@ -17,6 +17,7 @@
     "node": ">=22.13.0"
   },
   "dependencies": {
+    "@chat-adapter/telegram": "^4.32.0",
     "@mastra/core": "^1.48.0",
     "@mastra/duckdb": "^1.5.0",
     "@mastra/evals": "^1.5.1",
