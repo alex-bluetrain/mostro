@@ -25,6 +25,7 @@
     "@mastra/loggers": "^1.2.0",
     "@mastra/memory": "^1.22.0",
     "@mastra/observability": "^1.15.2",
+    "@ngrok/ngrok": "^1.7.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
