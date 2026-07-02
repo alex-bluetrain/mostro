@@ -47,7 +47,10 @@ Use the weatherTool to fetch current weather data.`,
   memory: new Memory(),
   channels: {
     adapters: {
-      telegram: createTelegramAdapter(),
+      telegram: {
+        adapter: createTelegramAdapter(),
+        streaming: true,
+      },
     },
   },
 });
