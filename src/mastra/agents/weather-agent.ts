@@ -1,12 +1,12 @@
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
-import { createTelegramAdapter } from '@chat-adapter/telegram';
 import { weatherTool } from '../tools/weather-tool';
 import { scorers } from '../scorers/weather-scorer';
 
 export const weatherAgent = new Agent({
   id: 'weather-agent',
   name: 'Weather Agent',
+  description: 'Provides current weather details for a location (temperature, humidity, wind, precipitation) and suggests activities based on the forecast. Returns a concise text summary.',
   instructions: `You are a helpful weather assistant that provides accurate weather information and can help planning activities based on the weather.
 
 Your primary function is to help users get weather details for specific locations. When responding:
@@ -45,12 +45,4 @@ Use the weatherTool to fetch current weather data.`,
     },
   },
   memory: new Memory(),
-  channels: {
-    adapters: {
-      telegram: {
-        adapter: createTelegramAdapter(),
-        streaming: true,
-      },
-    },
-  },
 });

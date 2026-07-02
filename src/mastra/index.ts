@@ -7,6 +7,7 @@ import { MastraCompositeStore } from '@mastra/core/storage';
 import { Observability, MastraStorageExporter, MastraPlatformExporter, SensitiveDataFilter } from '@mastra/observability';
 import { weatherWorkflow } from './workflows/weather-workflow';
 import { weatherAgent } from './agents/weather-agent';
+import { mostroSupervisor } from './agents/mostro-supervisor';
 import { toolCallAppropriatenessScorer, completenessScorer, translationScorer } from './scorers/weather-scorer';
 import { startNgrokTunnel } from './ngrok';
 
@@ -25,7 +26,7 @@ export const mastra = new Mastra({
             : undefined,
     },
     workflows: { weatherWorkflow },
-    agents: { weatherAgent },
+    agents: { weatherAgent, mostroSupervisor },
     scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer },
     storage: new MastraCompositeStore({
         id: 'composite-storage',
