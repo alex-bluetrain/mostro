@@ -12,9 +12,10 @@ import { mostroSupervisor } from './agents/mostro-supervisor';
 import { toolCallAppropriatenessScorer, completenessScorer, translationScorer } from './scorers/weather-scorer';
 import { startNgrokTunnel } from './ngrok';
 import { webhookDiapersRoute } from './routes/webhook-diapers.route';
+import { appConfig } from './config/app.config';
 
-const port = Number(process.env.PORT ?? 4111);
-const ngrokOrigin = process.env.NGROK_DOMAIN ? `https://${process.env.NGROK_DOMAIN}` : undefined;
+const port = appConfig.PORT;
+const ngrokOrigin = appConfig.NGROK_DOMAIN ? `https://${appConfig.NGROK_DOMAIN}` : undefined;
 
 await startNgrokTunnel(port);
 
