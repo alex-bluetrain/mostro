@@ -1,8 +1,11 @@
 import { createWorkflow, createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { listSubscribers } from '../lib/diapers-subscribers'
+import { appConfig } from '../config/app.config'
 
-export const DIAPERS_RUN_ID = 'diapers-current'
+export function getDiapersRunId(yearMonth: string) {
+    return `diapers-${yearMonth}`
+}
 
 export const diapersStateSchema = z.object({
     status: z.enum([
@@ -28,35 +31,45 @@ const requestDiapersStep = createStep({
     }),
     outputSchema: z.object({}),
     stateSchema: diapersStateSchema,
+    execute: async ({ inputData, state, setState }) => {
+        await setState({
+            ...state,
+            status: 'diapers_requested',
+            diaperType: inputData.diaperType,
+            quantity: inputData.quantity,
+            requestedAt: new Date().toISOString(),
+        })
+
+        const messagingUrl = appConfig.DIAPERS_MESSAGING_URL
+        if (messagingUrl) {
+            await fetch(messagingUrl, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    type: inputData.diaperType,
+                    quantity: inputData.quantity,
+                }),
+            })
+        } else {
+            console.log('[diapers-workflow] DIAPERS_MESSAGING_URL not set, skipping messaging call')
+        }
+
+        return {}
+    },
+})
+
+const waitForDeliveryConfirmationStep = createStep({
+    id: 'wait-for-delivery-confirmation',
+    inputSchema: z.object({}),
+    outputSchema: z.object({}),
+    stateSchema: diapersStateSchema,
     resumeSchema: z.object({
         // Payload del webhook de la farmacia
         deliveryDate: z.string(),
         deliveryAddress: z.string(),
     }),
-    execute: async ({ inputData, state, setState, suspend, resumeData }) => {
+    execute: async ({ state, setState, suspend, resumeData }) => {
         if (!resumeData) {
-            await setState({
-                ...state,
-                status: 'diapers_requested',
-                diaperType: inputData.diaperType,
-                quantity: inputData.quantity,
-                requestedAt: new Date().toISOString(),
-            })
-
-            const messagingUrl = process.env.DIAPERS_MESSAGING_URL
-            if (messagingUrl) {
-                await fetch(messagingUrl, {
-                    method: 'POST',
-                    headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({
-                        type: inputData.diaperType,
-                        quantity: inputData.quantity,
-                    }),
-                })
-            } else {
-                console.log('[diapers-workflow] DIAPERS_MESSAGING_URL not set, skipping messaging call')
-            }
-
             await suspend({})
             return {}
         }
@@ -72,8 +85,8 @@ const requestDiapersStep = createStep({
     },
 })
 
-const notifyUsersStep = createStep({
-    id: 'notify-users',
+const notifyRequestersStep = createStep({
+    id: 'notify-requesters',
     inputSchema: z.object({}),
     outputSchema: z.object({ notifiedCount: z.number() }),
     stateSchema: diapersStateSchema,
@@ -122,5 +135,6 @@ export const diapersWorkflow = createWorkflow({
     stateSchema: diapersStateSchema,
 })
     .then(requestDiapersStep)
-    .then(notifyUsersStep)
+    .then(waitForDeliveryConfirmationStep)
+    .then(notifyRequestersStep)
     .commit()
