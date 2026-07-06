@@ -1,7 +1,7 @@
 import type { Mastra } from '@mastra/core/mastra'
 import { createWorkflowStateReader } from '@mastra/core/workflows'
 import type { WorkflowStateStepResult } from '@mastra/core/workflows'
-import { getMedsRunId } from '../workflows/meds-workflow'
+import { getMedsRunId } from '../workflows/meds/utils/meds.utils';
 import { getCurrentYearMonth } from './date-scope'
 
 function getMedsWorkflow(mastra: Mastra) {
