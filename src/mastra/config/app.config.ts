@@ -8,6 +8,7 @@ const envSchema = z.object({
   NGROK_AUTHTOKEN: z.string().min(1).optional(),
   NGROK_DOMAIN: z.string().min(1).optional(),
   DIAPERS_MESSAGING_URL: z.string().min(1).optional(),
+  MEDS_MESSAGING_URL: z.string().min(1).optional(),
   PORT: z.coerce.number().default(4111),
 });
 

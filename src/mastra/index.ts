@@ -6,12 +6,15 @@ import { MastraCompositeStore } from '@mastra/core/storage';
 import { Observability, MastraStorageExporter, MastraPlatformExporter, SensitiveDataFilter } from '@mastra/observability';
 import { weatherWorkflow } from './workflows/weather-workflow';
 import { diapersWorkflow } from './workflows/diapers-workflow';
+import { medsWorkflow } from './workflows/meds-workflow';
 import { weatherAgent } from './agents/weather-agent';
 import { diapersAgent } from './agents/diapers-agent';
+import { medsAgent } from './agents/meds-agent';
 import { mostroSupervisor } from './agents/mostro-supervisor';
 import { toolCallAppropriatenessScorer, completenessScorer, translationScorer } from './scorers/weather-scorer';
 import { startNgrokTunnel } from './ngrok';
 import { webhookDiapersRoute } from './routes/webhook-diapers.route';
+import { webhookMedsAckRoute, webhookMedsConfirmRoute } from './routes/webhook-meds.route';
 import { appConfig } from './config/app.config';
 
 const port = appConfig.PORT;
@@ -23,6 +26,8 @@ export const mastra = new Mastra({
     server: {
         apiRoutes: [
             webhookDiapersRoute,
+            webhookMedsAckRoute,
+            webhookMedsConfirmRoute,
         ],
         cors: ngrokOrigin
             ? {
@@ -31,8 +36,8 @@ export const mastra = new Mastra({
             }
             : undefined,
     },
-    workflows: { weatherWorkflow, diapersWorkflow },
-    agents: { weatherAgent, diapersAgent, mostroSupervisor },
+    workflows: { weatherWorkflow, diapersWorkflow, medsWorkflow },
+    agents: { weatherAgent, diapersAgent, medsAgent, mostroSupervisor },
     scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer },
     storage: new MastraCompositeStore({
         id: 'composite-storage',

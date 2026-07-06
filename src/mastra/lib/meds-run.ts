@@ -1,11 +1,11 @@
 import type { Mastra } from '@mastra/core/mastra'
 import { createWorkflowStateReader } from '@mastra/core/workflows'
 import type { WorkflowStateStepResult } from '@mastra/core/workflows'
-import { getDiapersRunId } from '../workflows/diapers-workflow'
+import { getMedsRunId } from '../workflows/meds-workflow'
 import { getCurrentYearMonth } from './date-scope'
 
-function getDiapersWorkflow(mastra: Mastra) {
-    return mastra.getWorkflow('diapersWorkflow')
+function getMedsWorkflow(mastra: Mastra) {
+    return mastra.getWorkflow('medsWorkflow')
 }
 
 const ACTIVE_STEP_STATUSES = new Set(['running', 'suspended', 'waiting', 'paused'])
@@ -23,9 +23,9 @@ function findActiveStep(steps?: Record<string, WorkflowStateStepResult>) {
     return undefined
 }
 
-export async function readDiapersStatus(mastra: Mastra, yearMonth: string = getCurrentYearMonth()) {
-    const workflow = getDiapersWorkflow(mastra)
-    const state = await workflow.getWorkflowRunById(getDiapersRunId(yearMonth))
+export async function readMedsStatus(mastra: Mastra, yearMonth: string = getCurrentYearMonth()) {
+    const workflow = getMedsWorkflow(mastra)
+    const state = await workflow.getWorkflowRunById(getMedsRunId(yearMonth))
 
     if (!state) {
         return {
@@ -49,13 +49,13 @@ export async function readDiapersStatus(mastra: Mastra, yearMonth: string = getC
     }
 }
 
-export async function startDiapers(
+export async function startMedsOrder(
     mastra: Mastra,
-    input: { diaperType: string; quantity: number; yearMonth?: string },
+    input: { medications: string[]; yearMonth?: string },
 ) {
     const yearMonth = input.yearMonth ?? getCurrentYearMonth()
-    const runId = getDiapersRunId(yearMonth)
-    const workflow = getDiapersWorkflow(mastra)
+    const runId = getMedsRunId(yearMonth)
+    const workflow = getMedsWorkflow(mastra)
     const existing = await workflow.getWorkflowRunById(runId)
 
     if (existing) {
@@ -67,17 +67,25 @@ export async function startDiapers(
     }
 
     const run = await workflow.createRun({ runId })
-    const result = await run.start({ inputData: { diaperType: input.diaperType, quantity: input.quantity } })
+    await run.start({ inputData: {} })
+    const result = await run.resume({ resumeData: { medications: input.medications } })
 
     return { alreadyInProgress: false as const, result }
 }
 
-export async function confirmDiapersDate(
+export async function acknowledgeMedsOrder(mastra: Mastra, yearMonth: string) {
+    const workflow = getMedsWorkflow(mastra)
+    const run = await workflow.createRun({ runId: getMedsRunId(yearMonth) })
+
+    return run.resume({ resumeData: {} })
+}
+
+export async function confirmMedsDelivery(
     mastra: Mastra,
     payload: { deliveryDate: string; deliveryAddress: string; yearMonth: string },
 ) {
-    const workflow = getDiapersWorkflow(mastra)
-    const run = await workflow.createRun({ runId: getDiapersRunId(payload.yearMonth) })
+    const workflow = getMedsWorkflow(mastra)
+    const run = await workflow.createRun({ runId: getMedsRunId(payload.yearMonth) })
 
     return run.resume({ resumeData: { deliveryDate: payload.deliveryDate, deliveryAddress: payload.deliveryAddress } })
 }
