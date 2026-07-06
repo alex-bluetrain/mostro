@@ -58,8 +58,8 @@ const requestDiapersStep = createStep({
     },
 })
 
-const waitForDeliveryConfirmationStep = createStep({
-    id: 'wait-for-delivery-confirmation',
+const waitForDiapersConfirmationStep = createStep({
+    id: 'wait-for-diapers-confirmation',
     inputSchema: z.object({}),
     outputSchema: z.object({}),
     stateSchema: diapersStateSchema,
@@ -85,8 +85,8 @@ const waitForDeliveryConfirmationStep = createStep({
     },
 })
 
-const notifyRequestersStep = createStep({
-    id: 'notify-requesters',
+const notifyUsersStep = createStep({
+    id: 'notify-users',
     inputSchema: z.object({}),
     outputSchema: z.object({ notifiedCount: z.number() }),
     stateSchema: diapersStateSchema,
@@ -135,6 +135,6 @@ export const diapersWorkflow = createWorkflow({
     stateSchema: diapersStateSchema,
 })
     .then(requestDiapersStep)
-    .then(waitForDeliveryConfirmationStep)
-    .then(notifyRequestersStep)
+    .then(waitForDiapersConfirmationStep)
+    .then(notifyUsersStep)
     .commit()
