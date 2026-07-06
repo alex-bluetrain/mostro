@@ -1,12 +1,14 @@
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
-import { getDiapersStatusTool, requestDiapersTool, subscribeDiapersTool } from '../tools/diapers-tools';
+import { getDiapersStatusTool } from '../tools/diapers-get-status-tool';
+import { requestDiapersTool } from '../tools/diapers-request-tool';
+import { subscribeDiapersTool } from '../tools/diapers-subscribe-tool';
 
 export const diapersAgent = new Agent({
-  id: 'diapers-agent',
-  name: 'Diapers Agent',
-  description: 'Maneja el flujo compartido de pedido de pañales: consulta estado, inicia pedidos y suscribe usuarios a avisos de entrega. El estado es único y compartido entre todos los usuarios.',
-  instructions: `You help manage a shared, global diaper order flow. There is only ONE order flow shared by all users — it is not private to the person you're talking to.
+    id: 'diapers-agent',
+    name: 'Diapers Agent',
+    description: 'Maneja el flujo compartido de pedido de pañales: consulta estado, inicia pedidos y suscribe usuarios a avisos de entrega. El estado es único y compartido entre todos los usuarios.',
+    instructions: `You help manage a shared, global diaper order flow. There is only ONE order flow shared by all users — it is not private to the person you're talking to.
 
 The order is scoped by month (YYYY-MM). By default everything refers to the current month; only pass yearMonth to the tools if the user explicitly asks about a different month (e.g. "el pedido de pañales de marzo").
 
@@ -16,7 +18,7 @@ Your responsibilities:
 - If the user wants to be notified when the delivery date is confirmed, use subscribeDiapersTool.
 
 Keep responses concise and friendly. Always communicate in the same language the user used.`,
-  model: 'openrouter/deepseek/deepseek-v4-flash',
-  tools: { getDiapersStatusTool, requestDiapersTool, subscribeDiapersTool },
-  memory: new Memory(),
+    model: 'openrouter/deepseek/deepseek-v4-flash',
+    tools: { getDiapersStatusTool, requestDiapersTool, subscribeDiapersTool },
+    memory: new Memory(),
 });

@@ -1,6 +1,8 @@
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
-import { getMedsStatusTool, requestMedsTool, subscribeMedsTool } from '../tools/meds-tools';
+import { getMedsStatusTool } from '../tools/meds-get-status-tool';
+import { requestMedsTool } from '../tools/meds-request-tool';
+import { subscribeMedsTool } from '../tools/meds-subscribe-tool';
 
 export const medsAgent = new Agent({
   id: 'meds-agent',
