@@ -1,0 +1,59 @@
+import { registerApiRoute } from '@mastra/core/server'
+import { acknowledgeRefund, confirmRefund, receiveDeposit } from '../lib/refunds-run'
+
+export const webhookRefundsAckRoute = registerApiRoute(
+    '/webhooks/refunds/ack',
+    {
+        method: 'POST',
+        handler: async (c) => {
+            const mastra = c.get('mastra')
+            const body = await c.req.json()
+
+            if (!body?.orderId) {
+                return c.json({ ok: false, error: 'orderId is required' }, 400)
+            }
+
+            const result = await acknowledgeRefund(mastra, body.orderId)
+            console.log('/webhooks/refunds/ack', JSON.stringify(result))
+            return c.json({ ok: true }, 200)
+        },
+    },
+)
+
+export const webhookRefundsConfirmationRoute = registerApiRoute(
+    '/webhooks/refunds/confirmation',
+    {
+        method: 'POST',
+        handler: async (c) => {
+            const mastra = c.get('mastra')
+            const body = await c.req.json()
+
+            if (!body?.orderId || !body?.refundReference) {
+                return c.json({ ok: false, error: 'orderId and refundReference are required' }, 400)
+            }
+
+            const result = await confirmRefund(mastra, body)
+            console.log('/webhooks/refunds/confirmation', JSON.stringify(result))
+            return c.json({ ok: true }, 200)
+        },
+    },
+)
+
+export const webhookRefundsDepositRoute = registerApiRoute(
+    '/webhooks/refunds/deposit',
+    {
+        method: 'POST',
+        handler: async (c) => {
+            const mastra = c.get('mastra')
+            const body = await c.req.json()
+
+            if (!body?.orderId || body?.depositAmount === undefined || !body?.depositDate) {
+                return c.json({ ok: false, error: 'orderId, depositAmount and depositDate are required' }, 400)
+            }
+
+            const result = await receiveDeposit(mastra, body)
+            console.log('/webhooks/refunds/deposit', JSON.stringify(result))
+            return c.json({ ok: true }, 200)
+        },
+    },
+)
