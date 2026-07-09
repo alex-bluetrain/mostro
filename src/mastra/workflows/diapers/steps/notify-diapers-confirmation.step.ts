@@ -4,7 +4,7 @@ import { listSubscribers } from '../../../lib/diapers-subscribers'
 import { diapersStateSchema } from '../schemas/diapers-state.schema'
 import { notifyUsersOutputSchema } from '../schemas/notify-users-output.schema'
 
-export const notifyUsersStep = createStep({
+export const notifyDiapersConfirmation = createStep({
     id: 'notify-users',
     inputSchema: z.object({}),
     outputSchema: notifyUsersOutputSchema,
@@ -18,7 +18,7 @@ export const notifyUsersStep = createStep({
                 await supervisor.sendNotificationSignal(
                     {
                         source: 'diapers',
-                        kind: 'delivery-confirmed',
+                        kind: 'diapers-confirmation',
                         priority: 'high',
                         summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: los pañales (${state.diaperType ?? 'sin especificar'}) llegan el ${state.deliveryDate ?? 'fecha a confirmar'}.`,
                         payload: {

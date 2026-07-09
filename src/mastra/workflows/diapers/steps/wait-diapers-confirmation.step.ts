@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { diapersStateSchema } from '../schemas/diapers-state.schema'
 import { waitDiapersConfirmationResumeSchema } from '../schemas/wait-diapers-confirmation-resume.schema'
 
-export const waitDiapersConfirmationStep = createStep({
+export const waitDiapersConfirmation = createStep({
     id: 'wait-diapers-confirmation',
     inputSchema: z.object({}),
     outputSchema: z.object({}),

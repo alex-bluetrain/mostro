@@ -4,7 +4,7 @@ import { appConfig } from '../../../config/app.config'
 import { diapersStateSchema } from '../schemas/diapers-state.schema'
 import { requestDiapersInputSchema } from '../schemas/request-diapers-input.schema'
 
-export const requestDiapersStep = createStep({
+export const requestDiapers = createStep({
     id: 'request-diapers',
     inputSchema: requestDiapersInputSchema,
     outputSchema: z.object({}),
