@@ -13,7 +13,6 @@ export const requestRefundStep = createStep({
         await setState({
             ...state,
             status: 'refund_requested',
-            orderId: inputData.orderId,
             amount: inputData.amount,
             reason: inputData.reason,
             requestedAt: new Date().toISOString(),
@@ -25,7 +24,6 @@ export const requestRefundStep = createStep({
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
-                    orderId: inputData.orderId,
                     amount: inputData.amount,
                     reason: inputData.reason,
                 }),

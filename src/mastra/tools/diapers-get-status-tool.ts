@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { readDiapersStatus } from '../lib/diapers-run'
+import { diapersStateSchema } from '../workflows/diapers/schemas/diapers-state.schema'
 
 export const getDiapersStatusTool = createTool({
     id: 'get-diapers-status',
@@ -8,9 +9,7 @@ export const getDiapersStatusTool = createTool({
     inputSchema: z.object({
         yearMonth: z.string().regex(/^\d{4}-\d{2}$/).optional().describe('Mes del pedido en formato YYYY-MM. Si no se indica, se usa el mes actual.'),
     }),
-    outputSchema: z.looseObject({
-        status: z.string(),
-    }),
+    outputSchema: diapersStateSchema.nullable(),
     mcp: {
         annotations: { readOnlyHint: true, idempotentHint: true },
     },

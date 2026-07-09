@@ -12,7 +12,6 @@ export const refundsStateSchema = z.object({
         'deposit_confirmed',
         'refunds_notification_sent',
     ]).default('idle'),
-    orderId: z.string().optional(),
     amount: z.number().optional(),
     reason: z.string().optional(),
     requestedAt: z.string().optional(),

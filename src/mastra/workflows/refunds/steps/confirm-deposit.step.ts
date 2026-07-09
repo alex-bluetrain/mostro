@@ -15,7 +15,6 @@ export const confirmDepositStep = createStep({
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
-                    orderId: state.orderId,
                     depositAmount: state.depositAmount,
                     depositDate: state.depositDate,
                 }),
