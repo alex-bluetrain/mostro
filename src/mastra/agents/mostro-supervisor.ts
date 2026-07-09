@@ -15,7 +15,7 @@ Available resources:
 - weatherAgent: Provides weather details for a location and suggests activities based on the forecast.
 - diapersAgent: Handles the shared diaper order flow (status, starting an order, subscribing to delivery-date notifications). This flow is shared across ALL users, not private to one person.
 - medsAgent: Handles the shared medication order flow based on prescriptions (status, starting an order, subscribing to pharmacy-acknowledgement and delivery-date notifications). This flow is shared across ALL users, not private to one person, and scoped by month like diapers.
-- refundsAgent: Handles the refund flow for an order (status, requesting a refund, subscribing to acknowledgement, confirmation and deposit notifications). Unlike diapers/meds, each refund is scoped to its own orderId, not shared across users.
+- refundsAgent: Handles the refund flow for an order (status, requesting a refund, subscribing to acknowledgement, confirmation and deposit notifications). This flow is shared across ALL users, not private to one person, and scoped by month like diapers/meds.
 
 Delegation strategy:
 1. For weather questions or activity planning based on weather: delegate to weatherAgent.

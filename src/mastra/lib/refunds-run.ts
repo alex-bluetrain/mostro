@@ -1,58 +1,30 @@
 import type { Mastra } from '@mastra/core/mastra'
 import { createWorkflowStateReader } from '@mastra/core/workflows'
-import type { WorkflowStateStepResult } from '@mastra/core/workflows'
+import type { RefundsState } from '../workflows/refunds/types/refunds-state.type'
 import { getRefundsRunId } from '../workflows/refunds/utils/refunds.utils'
+import { getCurrentYearMonth } from './date-scope'
 
 function getRefundsWorkflow(mastra: Mastra) {
     return mastra.getWorkflow('refundsWorkflow')
 }
 
-const ACTIVE_STEP_STATUSES = new Set(['running', 'suspended', 'waiting', 'paused'])
-
-function findActiveStep(steps?: Record<string, WorkflowStateStepResult>) {
-    if (!steps) return undefined
-
-    for (const [stepId, result] of Object.entries(steps)) {
-        const current = Array.isArray(result) ? result.at(-1) : result
-        if (current && ACTIVE_STEP_STATUSES.has(current.status)) {
-            return { stepId, ...current }
-        }
-    }
-
-    return undefined
-}
-
-export async function readRefundsStatus(mastra: Mastra, orderId: string) {
+export async function readRefundsStatus(mastra: Mastra, yearMonth: string = getCurrentYearMonth()) {
     const workflow = getRefundsWorkflow(mastra)
-    const state = await workflow.getWorkflowRunById(getRefundsRunId(orderId))
+    const run = await workflow.getWorkflowRunById(getRefundsRunId(yearMonth))
 
-    if (!state) {
-        return {
-            status: 'idle',
-            currentStep: 'n/a',
-            startedAt: 'n/a',
-            suspendedAt: 'n/a',
-            result: 'n/a',
-        }
+    if (!run?.state) {
+        return null
     }
 
-    const reader = createWorkflowStateReader(state)
-    const activeStep = findActiveStep(state.steps)
-
-    return {
-        status: reader.getStatus(),
-        currentStep: activeStep?.stepId,
-        startedAt: activeStep?.startedAt,
-        suspendedAt: activeStep?.suspendedAt,
-        result: reader.getResult(),
-    }
+    return run.state as RefundsState
 }
 
 export async function startRefundRequest(
     mastra: Mastra,
-    input: { orderId: string; amount: number; reason?: string },
+    input: { amount: number; reason?: string; yearMonth?: string },
 ) {
-    const runId = getRefundsRunId(input.orderId)
+    const yearMonth = input.yearMonth ?? getCurrentYearMonth()
+    const runId = getRefundsRunId(yearMonth)
     const workflow = getRefundsWorkflow(mastra)
     const existing = await workflow.getWorkflowRunById(runId)
 
@@ -66,35 +38,35 @@ export async function startRefundRequest(
 
     const run = await workflow.createRun({ runId })
     const result = await run.start({
-        inputData: { orderId: input.orderId, amount: input.amount, reason: input.reason },
+        inputData: { amount: input.amount, reason: input.reason },
     })
 
     return { alreadyInProgress: false as const, result }
 }
 
-export async function acknowledgeRefund(mastra: Mastra, orderId: string) {
+export async function acknowledgeRefund(mastra: Mastra, yearMonth: string) {
     const workflow = getRefundsWorkflow(mastra)
-    const run = await workflow.createRun({ runId: getRefundsRunId(orderId) })
+    const run = await workflow.createRun({ runId: getRefundsRunId(yearMonth) })
 
     return run.resume({ resumeData: {} })
 }
 
 export async function confirmRefund(
     mastra: Mastra,
-    payload: { orderId: string; refundReference: string },
+    payload: { refundReference: string; yearMonth: string },
 ) {
     const workflow = getRefundsWorkflow(mastra)
-    const run = await workflow.createRun({ runId: getRefundsRunId(payload.orderId) })
+    const run = await workflow.createRun({ runId: getRefundsRunId(payload.yearMonth) })
 
     return run.resume({ resumeData: { refundReference: payload.refundReference } })
 }
 
 export async function receiveDeposit(
     mastra: Mastra,
-    payload: { orderId: string; depositAmount: number; depositDate: string },
+    payload: { depositAmount: number; depositDate: string; yearMonth: string },
 ) {
     const workflow = getRefundsWorkflow(mastra)
-    const run = await workflow.createRun({ runId: getRefundsRunId(payload.orderId) })
+    const run = await workflow.createRun({ runId: getRefundsRunId(payload.yearMonth) })
 
     return run.resume({
         resumeData: { depositAmount: payload.depositAmount, depositDate: payload.depositDate },

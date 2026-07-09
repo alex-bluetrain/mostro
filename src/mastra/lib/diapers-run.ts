@@ -1,6 +1,6 @@
 import type { Mastra } from '@mastra/core/mastra'
 import { createWorkflowStateReader } from '@mastra/core/workflows'
-import type { WorkflowStateStepResult } from '@mastra/core/workflows'
+import type { DiapersState } from '../workflows/diapers/types/diapers-state.type'
 import { getDiapersRunId } from '../workflows/diapers/utils/diapers.utils'
 import { getCurrentYearMonth } from './date-scope'
 
@@ -8,45 +8,15 @@ function getDiapersWorkflow(mastra: Mastra) {
     return mastra.getWorkflow('diapersWorkflow')
 }
 
-const ACTIVE_STEP_STATUSES = new Set(['running', 'suspended', 'waiting', 'paused'])
-
-function findActiveStep(steps?: Record<string, WorkflowStateStepResult>) {
-    if (!steps) return undefined
-
-    for (const [stepId, result] of Object.entries(steps)) {
-        const current = Array.isArray(result) ? result.at(-1) : result
-        if (current && ACTIVE_STEP_STATUSES.has(current.status)) {
-            return { stepId, ...current }
-        }
-    }
-
-    return undefined
-}
-
 export async function readDiapersStatus(mastra: Mastra, yearMonth: string = getCurrentYearMonth()) {
     const workflow = getDiapersWorkflow(mastra)
-    const state = await workflow.getWorkflowRunById(getDiapersRunId(yearMonth))
+    const run = await workflow.getWorkflowRunById(getDiapersRunId(yearMonth))
 
-    if (!state) {
-        return {
-            status: 'idle',
-            currentStep: 'n/a',
-            startedAt: 'n/a',
-            suspendedAt: 'n/a',
-            result: 'n/a',
-        }
+    if (!run?.state) {
+        return null
     }
 
-    const reader = createWorkflowStateReader(state)
-    const activeStep = findActiveStep(state.steps)
-
-    return {
-        status: reader.getStatus(),
-        currentStep: activeStep?.stepId,
-        startedAt: activeStep?.startedAt,
-        suspendedAt: activeStep?.suspendedAt,
-        result: reader.getResult(),
-    }
+    return run.state as DiapersState
 }
 
 export async function startDiapers(

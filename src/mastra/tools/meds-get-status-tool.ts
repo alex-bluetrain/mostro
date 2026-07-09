@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { readMedsStatus } from '../lib/meds-run'
+import { medsStateSchema } from '../workflows/meds/schemas/meds-state.schema'
 
 export const getMedsStatusTool = createTool({
     id: 'get-meds-status',
@@ -8,9 +9,7 @@ export const getMedsStatusTool = createTool({
     inputSchema: z.object({
         yearMonth: z.string().regex(/^\d{4}-\d{2}$/).optional().describe('Mes del pedido en formato YYYY-MM. Si no se indica, se usa el mes actual.'),
     }),
-    outputSchema: z.looseObject({
-        status: z.string(),
-    }),
+    outputSchema: medsStateSchema.nullable(),
     mcp: {
         annotations: { readOnlyHint: true, idempotentHint: true },
     },

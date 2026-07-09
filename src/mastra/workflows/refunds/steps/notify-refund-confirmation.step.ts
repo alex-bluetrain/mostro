@@ -19,9 +19,8 @@ export const notifyRefundConfirmationStep = createStep({
                         source: 'refunds',
                         kind: 'refund-confirmed',
                         priority: 'medium',
-                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: el reembolso del pedido ${state.orderId ?? 'sin especificar'} fue confirmado (referencia ${state.refundReference ?? 'sin especificar'}).`,
+                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: el reembolso fue confirmado (referencia ${state.refundReference ?? 'sin especificar'}).`,
                         payload: {
-                            orderId: state.orderId,
                             amount: state.amount,
                             refundReference: state.refundReference,
                         },
