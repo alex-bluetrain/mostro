@@ -25,17 +25,17 @@ src/mastra/
 
 Archivo en kebab-case + sufijo de tipo. Export en camelCase (PascalCase para types). El `id` interno de Mastra (`createTool`/`createStep`/`createWorkflow`/`new Agent`) es kebab-case y más corto, sin sufijo redundante.
 
-| Tipo     | Archivo                          | Export                     | id                       |
-| -------- | -------------------------------- | -------------------------- | ------------------------ |
-| Agent    | `meds-agent.ts`                  | `medsAgent`                | `meds-agent`             |
-| Tool     | `meds-request-tool.ts`           | `requestMedsTool`          | `request-meds`           |
-| Step     | `wait-meds-confirmation.step.ts` | `waitMedsConfirmationStep` | `wait-meds-confirmation` |
-| Schema   | `meds-state.schema.ts`           | `medsStateSchema`          | —                        |
-| Type     | `meds-state.type.ts`             | `MedsState`                | —                        |
-| Workflow | `meds.workflow.ts`               | `medsWorkflow`             | `meds-workflow`          |
-| Scorer   | `weather-scorer.ts`              | `translationScorer`        | —                        |
-| Route    | `webhook-meds.route.ts`          | `webhookMedsAckRoute`      | —                        |
-| Config   | `app.config.ts`                  | `appConfig`                | —                        |
+| Tipo     | Archivo                          | Export                 | id                       |
+| -------- | -------------------------------- | ---------------------- | ------------------------ |
+| Agent    | `meds-agent.ts`                  | `medsAgent`            | `meds-agent`             |
+| Tool     | `meds-request-tool.ts`           | `requestMedsTool`      | `request-meds`           |
+| Step     | `wait-meds-confirmation.step.ts` | `waitMedsConfirmation` | `wait-meds-confirmation` |
+| Schema   | `meds-state.schema.ts`           | `medsStateSchema`      | —                        |
+| Type     | `meds-state.type.ts`             | `MedsState`            | —                        |
+| Workflow | `meds.workflow.ts`               | `medsWorkflow`         | `meds-workflow`          |
+| Scorer   | `weather-scorer.ts`              | `translationScorer`    | —                        |
+| Route    | `webhook-meds.route.ts`          | `webhookMedsAckRoute`  | —                        |
+| Config   | `app.config.ts`                  | `appConfig`            | —                        |
 
 Nota: en tools el orden se invierte respecto al archivo — el archivo antepone el dominio (`meds-request-tool`), el export antepone la acción (`requestMedsTool`).
 

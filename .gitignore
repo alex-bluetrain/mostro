@@ -2,8 +2,12 @@ output.txt
 node_modules
 dist
 .mastra
+web/.next
+web/next-env.d.ts
+web/src/generated
 .env.development
 .env
+.env.local
 *.db
 *.db-*
 *.duckdb

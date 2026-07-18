@@ -12,11 +12,11 @@ export async function readMedsStatus(mastra: Mastra, yearMonth: string = getCurr
     const workflow = getMedsWorkflow(mastra)
     const run = await workflow.getWorkflowRunById(getMedsRunId(yearMonth))
 
-    if (!run?.state) {
+    if (!run?.initialState || Object.keys(run.initialState).length === 0) {
         return null
     }
 
-    return run.state as MedsState
+    return run.initialState as MedsState
 }
 
 export async function startMedsOrder(
