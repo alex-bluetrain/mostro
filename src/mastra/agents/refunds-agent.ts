@@ -8,7 +8,9 @@ export const refundsAgent = new Agent({
     id: 'refunds-agent',
     name: 'Refunds Agent',
     description: 'Maneja el flujo de reembolso de una orden: consulta estado, inicia el pedido de reembolso y suscribe usuarios a avisos de reconocimiento, confirmación y depósito.',
-    instructions: `You help manage the refund flow for an order. This flow is shared across ALL users, not private to one person, and scoped by month like diapers/meds.
+    instructions: () => `Today is ${new Date().toISOString().slice(0, 10)} (YYYY-MM-DD). The current month scope is ${new Date().toISOString().slice(0, 7)}.
+
+You help manage the refund flow for an order. This flow is shared across ALL users, not private to one person, and scoped by month like diapers/meds.
 
 The refund is scoped by month (YYYY-MM). By default everything refers to the current month; only pass yearMonth to the tools if the user explicitly asks about a different month (e.g. "el reembolso de marzo").
 

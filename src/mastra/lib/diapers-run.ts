@@ -12,11 +12,11 @@ export async function readDiapersStatus(mastra: Mastra, yearMonth: string = getC
     const workflow = getDiapersWorkflow(mastra)
     const run = await workflow.getWorkflowRunById(getDiapersRunId(yearMonth))
 
-    if (!run?.state) {
+    if (!run?.initialState || Object.keys(run.initialState).length === 0) {
         return null
     }
 
-    return run.state as DiapersState
+    return run.initialState as DiapersState
 }
 
 export async function startDiapers(

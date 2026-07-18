@@ -8,7 +8,13 @@ export const diapersAgent = new Agent({
     id: 'diapers-agent',
     name: 'Diapers Agent',
     description: 'Maneja el flujo compartido de pedido de pañales: consulta estado, inicia pedidos y suscribe usuarios a avisos de entrega. El estado es único y compartido entre todos los usuarios.',
-    instructions: `You help manage a shared, global diaper order flow. There is only ONE order flow shared by all users — it is not private to the person you're talking to.
+    instructions: () => {
+        const now = new Date();
+        const today = now.toISOString().slice(0, 10);
+        const monthScope = now.toISOString().slice(0, 7);
+        return `Today is ${today} (YYYY-MM-DD). The current month scope is ${monthScope}.
+
+You help manage a shared, global diaper order flow. There is only ONE order flow shared by all users — it is not private to the person you're talking to.
 
 The order is scoped by month (YYYY-MM). By default everything refers to the current month; only pass yearMonth to the tools if the user explicitly asks about a different month (e.g. "el pedido de pañales de marzo").
 
@@ -17,7 +23,8 @@ Your responsibilities:
 - If the user wants to order diapers, use requestDiapersTool with the diaper type and quantity. If a request is already in progress for that month, tell them so instead of starting a new one.
 - If the user wants to be notified when the delivery date is confirmed, use subscribeDiapersTool.
 
-Keep responses concise and friendly. Always communicate in the same language the user used.`,
+Keep responses concise and friendly. Always communicate in the same language the user used.`;
+    },
     model: 'openrouter/deepseek/deepseek-v4-flash',
     tools: { getDiapersStatusTool, requestDiapersTool, subscribeDiapersTool },
     memory: new Memory(),
