@@ -8,7 +8,9 @@ export const medsAgent = new Agent({
   id: 'meds-agent',
   name: 'Meds Agent',
   description: 'Maneja el flujo compartido de pedido de medicamentos por receta: consulta estado, inicia pedidos y suscribe usuarios a avisos de confirmación de la farmacia y de entrega. El estado es único y compartido entre todos los usuarios.',
-  instructions: `You help manage a shared, global medication order flow based on prescriptions. There is only ONE order flow shared by all users — it is not private to the person you're talking to.
+  instructions: () => `Today is ${new Date().toISOString().slice(0, 10)} (YYYY-MM-DD). The current month scope is ${new Date().toISOString().slice(0, 7)}.
+
+You help manage a shared, global medication order flow based on prescriptions. There is only ONE order flow shared by all users — it is not private to the person you're talking to.
 
 The order is scoped by month (YYYY-MM). By default everything refers to the current month; only pass yearMonth to the tools if the user explicitly asks about a different month (e.g. "el pedido de medicamentos de marzo").
 
