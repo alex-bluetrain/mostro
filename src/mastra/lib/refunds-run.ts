@@ -12,11 +12,11 @@ export async function readRefundsStatus(mastra: Mastra, yearMonth: string = getC
     const workflow = getRefundsWorkflow(mastra)
     const run = await workflow.getWorkflowRunById(getRefundsRunId(yearMonth))
 
-    if (!run?.state) {
+    if (!run?.initialState || Object.keys(run.initialState).length === 0) {
         return null
     }
 
-    return run.state as RefundsState
+    return run.initialState as RefundsState
 }
 
 export async function startRefundRequest(
