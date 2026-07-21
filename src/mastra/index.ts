@@ -1,6 +1,6 @@
 import { Mastra } from '@mastra/core/mastra';
 import { PinoLogger } from '@mastra/loggers';
-import { LibSQLStore } from '@mastra/libsql';
+import { MongoDBStore } from '@mastra/mongodb';
 import { DuckDBStore } from "@mastra/duckdb";
 import { MastraCompositeStore } from '@mastra/core/storage';
 import { Observability, MastraStorageExporter, MastraPlatformExporter, SensitiveDataFilter } from '@mastra/observability';
@@ -47,9 +47,10 @@ export const mastra = new Mastra({
     scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer },
     storage: new MastraCompositeStore({
         id: 'composite-storage',
-        default: new LibSQLStore({
+        default: new MongoDBStore({
             id: "mastra-storage",
-            url: "file:./mastra.db",
+            uri: appConfig.MONGODB_URI,
+            dbName: appConfig.MONGODB_DB_NAME,
         }),
         domains: {
             observability: await new DuckDBStore().getStore('observability'),
