@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
+import '@openuidev/react-ui/components.css'
 import '@openuidev/react-ui/styles/index.css'
-import '@/mostro-components.css'
 
 export const metadata = {
     title: 'Mostro',
