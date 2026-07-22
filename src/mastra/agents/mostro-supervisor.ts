@@ -9,7 +9,7 @@ import { createTelegramGate } from '../lib/telegram-gate';
 import type { SubAgentKey } from '../lib/sub-agent-keys';
 import { createInviteTool } from '../tools/create-invite-tool';
 import { setMyNameTool } from '../tools/set-my-name-tool';
-import { getUserByTelegramId } from '../lib/users';
+import { userRepository } from '../../business/repositories';
 
 export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, a supervisor agent that coordinates specialized agents to help the user.
 
@@ -69,7 +69,7 @@ export const mostroSupervisor = new Agent({
         // Corre solo al crear un thread; si no resuelve, cae al default (fail-safe).
         resolveResourceId: async ({ thread, message, defaultResourceId }) => {
             if (!thread.isDM) return defaultResourceId;
-            const user = await getUserByTelegramId(message.author.userId);
+            const user = await userRepository.findByTelegramId(message.author.userId);
             return user?.email ?? defaultResourceId;
         },
         // La compuerta de acceso debe cubrir los tres caminos de entrada (DM, mención, suscripción)
