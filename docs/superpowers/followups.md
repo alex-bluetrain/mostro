@@ -17,10 +17,21 @@ Lista viva de pendientes que no bloquean el trabajo ya commiteado. Origen: revie
 - [ ] Incluir `requestedBy` en los payloads de los `sendNotificationSignal` de los tres notify steps (hoy el nombre está en el estado y el agente puede decirlo si le preguntan, pero el aviso no nombra a quién pidió).
 - [ ] Compensación si `linkTelegramId` falla (no matchea ningún user) después de `redeemInvite`: el invite queda quemado sin vincular; el gate ahora lo detecta, loguea un warning y no deja pasar al agente, pero el código no se puede reusar (ventana milimétrica; el admin puede regenerar el invite). Posible fix: try/catch que haga `$unset` de `usedBy`.
 - [ ] `ensureAdminSeed()` usa `$setOnInsert`: cambiar `ADMIN_NAME` en `.env` con el admin ya creado es un no-op silencioso.
-- [ ] Doble pool de Mongo: `lib/mongo-client.ts` abre su propio `MongoClient` además del interno de `MongoDBStore` (misma URI); sin `close()` en shutdown. Consolidar algún día.
+- [x] Doble pool de Mongo (`lib/mongo-client.ts` + `MongoDBStore`) — `mongo-client.ts` se borró en la migración a Mongoose (2026-07-22). Sigue habiendo dos pools (ver sección nueva abajo), pero ya no por este archivo.
 - [ ] El gate compara contra `users.telegramId` pero está registrado a nivel `channels.handlers` (aplica a todo adapter): si algún día se suma otro canal, ese canal queda bloqueado en silencio (fail closed). Documentado en comentario; revisar al agregar adapters.
 - [ ] Test de orden en el gate: nada asegura que `linkTelegramId` corra solo tras un `redeemInvite` exitoso si se refactoriza a concurrente.
 - [ ] Casts `context.mastra as any` preexistentes en las request tools.
+
+## Diferidos de la migración a Mongoose (2026-07-22)
+
+Origen: spec `specs/2026-07-22-mongoose-business-models-design.md`, plan `plans/2026-07-22-mongoose-business-models.md` (21 tareas + 4 fixes de diseño + 1 fix del review final, rama `feat/mongoose-business-models`, mergeada a `main`). Migró User/Subscriber/Invite de MongoDB driver crudo a Mongoose + Repository pattern en `src/business/`.
+
+- [ ] Los métodos de lectura de los repositories (`findByEmail`, `findByTelegramId` en `user.repository.ts`; `redeem` en `invite.repository.ts`) devuelven documentos Mongoose completos (con `_id`/`__v`) en vez de POJOs limpios con `.lean()`. Nadie los serializa hoy, no rompe nada, pero conviene limpiarlo si algún día se exponen por API.
+- [ ] Comentario de `subscriberRepository.add()` dice que el upsert es "sin race" — en rigor dos upserts idénticos exactamente simultáneos pueden tirar un error E11000 en vez de un no-op silencioso (sigue siendo más seguro que el find-then-insert original, pero el comentario es impreciso).
+- [ ] `setUserNameByResourceId()` en `src/business/identity.ts`, rama telegram, hace 2 queries (`findByTelegramId` + `setUserName` por email) en vez de la única query que hacía el código viejo — ventana TOCTOU teórica si se desvincula el telegram justo entre medio. Riesgo bajo, así lo requería la forma del repository.
+- [ ] `tsconfig.json` no incluye `tests/`: si se borra/mueve un archivo fuente que un test importa, ni `tsc` ni un grep sobre `src/` lo detectan (pasó durante esta migración, Task 18, ya reparado). Considerar ampliar el `include` o sumar un `tsconfig.test.json` chequeado en CI.
+- [ ] Dos pools de Mongo activos a la vez: `mongoose.connect()` (para los repositories nuevos) y el `MongoDBStore` interno de Mastra (`@mastra/mongodb`, storage propio del framework) — mismo Mongo, dos clientes separados, sin conflicto pero sin consolidar. Evaluar si vale la pena unificar.
+- [ ] Test de `user.repository.test.ts` para `findByEmail` no ejercita el lowercasing (pasa un email ya en minúsculas); sí está cubierto indirectamente en `invite.repository.test.ts`.
 
 ## Futuro (fuera de alcance por decisión de spec)
 
