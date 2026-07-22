@@ -11,3 +11,6 @@ dist
 *.duckdb.*
 .netlify
 .vercel
+
+# Google OAuth client credentials (nunca commitear)
+client_secret*.json
