@@ -16,7 +16,7 @@ participant "diapers-workflow\n(runId = diapers-YYYY-MM)" as WF
 participant "diapers-subscribers.json" as Subs
 participant "DIAPERS_MESSAGING_URL\n(proveedor externo)" as Provider
 participant "POST /webhooks/diapers" as Webhook
-database "mastra.db (LibSQLStore)" as DB
+database "MongoDB (MongoDBStore)" as DB
 
 User -> Supervisor: mensaje de chat\n("pedime pañales")
 Supervisor -> Agent: delega (reglas de mostro-supervisor.ts)
@@ -43,7 +43,7 @@ WF -> WF: resumeData == null -> **suspend({})**
 note right of WF #FFDDDD
   ◆◆◆ PUNTO DE PAUSA ◆◆◆
   El run queda "suspended" indefinidamente
-  en mastra.db, esperando resumeData.
+  en MongoDB, esperando resumeData.
 end note
 deactivate WF
 
@@ -104,7 +104,7 @@ diapers_notification_sent --> [*]
 | Helpers de ejecución | `src/mastra/lib/diapers-run.ts` | `readDiapersStatus`, `startDiapers`, `confirmDiapersDate` |
 | Suscriptores | `src/mastra/lib/diapers-subscribers.ts` | JSON plano con `{resourceId, threadId}` |
 | Webhook entrante | `src/mastra/routes/webhook-diapers.route.ts` | Único punto que reanuda el workflow |
-| Storage | `LibSQLStore` (`mastra.db`) | Persiste estado/run del workflow |
+| Storage | `MongoDBStore` (vía `MastraCompositeStore` en `src/mastra/index.ts`) | Persiste estado/run del workflow |
 | Supervisor | `src/mastra/agents/mostro-supervisor.ts` | Canal Telegram + delega a `diapersAgent` + reenvía notificaciones |
 
 ## 4. El punto clave: pausa y reanudación
@@ -122,4 +122,4 @@ diapers_notification_sent --> [*]
 | meds | 6 | 3 | por mes (`meds-YYYY-MM`) |
 | refunds | 8 | 3 | por `orderId` |
 
-Los tres comparten el mismo patrón: agente con 3 tools (`get-status`/`request`/`subscribe`), workflow Mastra con steps `wait-*` que suspenden hasta un webhook externo, steps `notify-*` que avisan a suscriptores vía `sendNotificationSignal` al supervisor, y persistencia en `LibSQLStore`.
+Los tres comparten el mismo patrón: agente con 3 tools (`get-status`/`request`/`subscribe`), workflow Mastra con steps `wait-*` que suspenden hasta un webhook externo, steps `notify-*` que avisan a suscriptores vía `sendNotificationSignal` al supervisor, y persistencia en `MongoDBStore`.
