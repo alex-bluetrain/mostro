@@ -1,6 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
-import { listMedsSubscribers } from '../../../lib/meds-subscribers'
+import { subscriberRepository } from '../../../../business/repositories'
 import { formatUnixDate, nowUnix } from '../../../lib/unix-time'
 import { medsStateSchema } from '../schemas/meds-state.schema'
 import { notifyMedsConfirmationOutputSchema } from '../schemas/notify-meds-confirmation-output.schema'
@@ -11,7 +11,7 @@ export const notifyMedsConfirmationStep = createStep({
     outputSchema: notifyMedsConfirmationOutputSchema,
     stateSchema: medsStateSchema,
     execute: async ({ state, setState, mastra }) => {
-        const subscribers = await listMedsSubscribers()
+        const subscribers = await subscriberRepository.list('meds')
 
         const supervisor = mastra?.getAgent('mostroSupervisor')
         if (supervisor) {

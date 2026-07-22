@@ -1,6 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
-import { listRefundsSubscribers } from '../../../lib/refunds-subscribers'
+import { subscriberRepository } from '../../../../business/repositories'
 import { nowUnix } from '../../../lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
 
@@ -10,7 +10,7 @@ export const notifyRefundAckStep = createStep({
     outputSchema: z.object({}),
     stateSchema: refundsStateSchema,
     execute: async ({ state, setState, mastra }) => {
-        const subscribers = await listRefundsSubscribers()
+        const subscribers = await subscriberRepository.list('refunds')
 
         const supervisor = mastra?.getAgent('mostroSupervisor')
         if (supervisor) {
