@@ -103,9 +103,13 @@ export const mastra = new Mastra({
 // inicialización que addAgent ya disparó y garantiza que sdk esté disponible.
 const supervisorChannels = mostroSupervisor.getChannels();
 if (supervisorChannels) {
-    await supervisorChannels.initialize(mastra);
-    supervisorChannels.sdk?.onSlashCommand('/start', createTelegramStartHandler());
-    console.info('[telegram-start] /start handler registered');
+    try {
+        await supervisorChannels.initialize(mastra);
+        supervisorChannels.sdk?.onSlashCommand('/start', createTelegramStartHandler());
+        console.info('[telegram-start] /start handler registered');
+    } catch (err) {
+        console.error('[telegram-start] channel init failed; /start handler not registered', err);
+    }
 } else {
     console.warn('[telegram-start] supervisor has no channels; /start handler not registered');
 }
