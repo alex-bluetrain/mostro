@@ -51,4 +51,25 @@ describe('UserRepository', () => {
       { upsert: true, new: true }
     );
   });
+
+  it('upsertFromInviteRedeem just links telegram when the user already exists', async () => {
+    const existingUser = { email: 'ana@gmail.com', name: 'Ana', role: 'admin' as const, telegramId: '99', addedAt: 5 };
+    vi.mocked(User.findOneAndUpdate).mockResolvedValue(existingUser as any);
+
+    const result = await userRepository.upsertFromInviteRedeem('Ana@Gmail.com', '99');
+
+    expect(result).toEqual(existingUser);
+    // Same call shape regardless of whether the user pre-existed: $setOnInsert
+    // only applies on insert (won't clobber name/role of the existing admin),
+    // $set unconditionally links the telegramId — that split is the whole
+    // point of the link-only semantics.
+    expect(User.findOneAndUpdate).toHaveBeenCalledWith(
+      { email: 'ana@gmail.com' },
+      expect.objectContaining({
+        $setOnInsert: expect.objectContaining({ email: 'ana@gmail.com', name: '', role: 'member' }),
+        $set: { telegramId: '99' },
+      }),
+      { upsert: true, new: true }
+    );
+  });
 });

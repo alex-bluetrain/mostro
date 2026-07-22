@@ -39,7 +39,7 @@ La colección `users` en Mongo (`src/mastra/lib/users.ts`):
 
 ## Invitaciones
 
-Solo admins, por chat: el supervisor usa `createInviteTool` con el email de Google del invitado (nombre opcional).
+Solo admins, por chat: el supervisor usa `createInviteTool` con el email de Google del invitado. El tool ya no recibe nombre; el link se manda por mail automáticamente vía Composio (Gmail) y, si el envío falla, el tool devuelve el link igual para que el admin lo reenvíe a mano.
 
 ```mermaid
 sequenceDiagram
@@ -61,7 +61,8 @@ Detalles:
 - El user se crea **al canjear el invite** (vía Telegram `/start`), no al generar el invite: solo después de redimir el invite puede loguearse a la web con su Google.
 - El invite es de un solo uso y vence a los 7 días (`INVITE_TTL_SECONDS`).
 - Quien abre el link se convierte en esa persona (se vincula su `telegramId` al email del invite) — por eso el link se manda en privado.
-- Si el canje sucede pero no matchea ningún invite válido, el gate loguea un warning y no deja pasar; el código queda quemado y el admin regenera el invite.
+- Si el código no matchea ningún invite válido (vencido, ya usado, inexistente), no se quema nada: el bot responde con el mensaje genérico de invitación inválida.
+- Si el canje sí matchea pero falla la provisión del user (p. ej. Mongo caído), el código **ya quedó quemado** por el `findOneAndUpdate` atómico; el bot le avisa al invitado que pida un link nuevo (mensaje de error de activación) y un admin tiene que generarle otra invitación.
 
 ## Acceso web: Google SSO
 

@@ -47,7 +47,7 @@ describe('createTelegramStartHandler', () => {
         expect(deps.redeemInvite).not.toHaveBeenCalled()
     })
 
-    it('desconocido con código válido canjea, provision y recibe la bienvenida', async () => {
+    it('desconocido con código válido canjea, provisiona y recibe la bienvenida', async () => {
         const deps = makeDeps({ redeemInvite: vi.fn(async () => validInvite) })
         const { event, post } = makeEvent('222', 'abc123XYZ_-9')
         await createTelegramStartHandler(deps)(event)

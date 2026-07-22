@@ -26,6 +26,12 @@ export async function assertInvitedAndSyncName(
         throw new Error(`no user for ${user.email}: access is invite-only`)
     }
     if (!known.name && user.name) {
-        await deps.setUserName(user.email, user.name)
+        try {
+            await deps.setUserName(user.email, user.name)
+        } catch (err) {
+            // Cosmético: nunca bloquear el login de un invitado por no poder
+            // sincronizar el nombre desde el perfil de Google.
+            console.warn('[google-auth-gate] failed to sync name from google profile', err)
+        }
     }
 }

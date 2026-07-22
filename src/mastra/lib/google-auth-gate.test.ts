@@ -38,4 +38,14 @@ describe('assertInvitedAndSyncName', () => {
     await assertInvitedAndSyncName({ email: 'ana@gmail.com', name: 'Otro Nombre' }, deps);
     expect(deps.setUserName).not.toHaveBeenCalled();
   });
+
+  it('still resolves when setUserName rejects (cosmetic write must not block login)', async () => {
+    const deps = makeDeps({
+      findByEmail: vi.fn().mockResolvedValue({ name: '' }),
+      setUserName: vi.fn().mockRejectedValue(new Error('mongo down')),
+    });
+    await expect(
+      assertInvitedAndSyncName({ email: 'new@gmail.com', name: 'Nueva Persona' }, deps)
+    ).resolves.toBeUndefined();
+  });
 });
