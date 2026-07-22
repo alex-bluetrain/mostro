@@ -40,6 +40,9 @@ export async function createInvite(params: { createdBy: string; email: string; n
         expiresAt: now + INVITE_TTL_SECONDS,
     }
     const col = await invitesCollection()
+    // Índice de integridad: un código de invite no puede repetirse (createIndex
+    // es idempotente, se recrea en cada invite sin costo relevante)
+    await col.createIndex({ code: 1 }, { unique: true })
     await col.insertOne(invite)
     return invite
 }

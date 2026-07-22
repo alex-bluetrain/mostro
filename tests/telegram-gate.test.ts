@@ -86,6 +86,16 @@ describe('createTelegramGate', () => {
         expect(defaultHandler).not.toHaveBeenCalled()
     })
 
+    it('canje válido pero sin user destinatario no pasa al agente', async () => {
+        const deps = makeDeps({
+            redeemInvite: vi.fn(async () => validInvite),
+            linkTelegramId: vi.fn(async () => false),
+        })
+        const defaultHandler = vi.fn(async () => {})
+        await createTelegramGate(deps)(thread, makeMessage('222', '/start abc123XYZ_-9'), defaultHandler)
+        expect(defaultHandler).not.toHaveBeenCalled()
+    })
+
     it('registrado que manda /start va por flujo normal sin canjear', async () => {
         const deps = makeDeps({ getUserByTelegramId: vi.fn(async () => member) })
         const defaultHandler = vi.fn(async () => {})
