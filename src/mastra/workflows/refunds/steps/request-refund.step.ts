@@ -16,6 +16,7 @@ export const requestRefundStep = createStep({
             status: 'refund_requested',
             amount: inputData.amount,
             reason: inputData.reason,
+            requestedBy: inputData.requestedBy,
             requestedAt: nowUnix(),
         })
 
