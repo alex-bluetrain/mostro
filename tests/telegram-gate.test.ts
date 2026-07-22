@@ -51,8 +51,10 @@ describe('createTelegramGate', () => {
     it('usuario registrado pasa al defaultHandler', async () => {
         const deps = makeDeps({ getUserByTelegramId: vi.fn(async () => member) })
         const defaultHandler = vi.fn(async () => {})
-        await createTelegramGate(deps)(thread, makeMessage('111', 'hola'), defaultHandler)
+        const message = makeMessage('111', 'hola')
+        await createTelegramGate(deps)(thread, message, defaultHandler)
         expect(defaultHandler).toHaveBeenCalledOnce()
+        expect(defaultHandler).toHaveBeenCalledWith(thread, message)
         expect(deps.redeemInvite).not.toHaveBeenCalled()
     })
 
@@ -68,13 +70,16 @@ describe('createTelegramGate', () => {
     it('desconocido con código válido queda registrado como member y pasa al agente', async () => {
         const deps = makeDeps({ redeemInvite: vi.fn(async () => validInvite) })
         const defaultHandler = vi.fn(async () => {})
-        await createTelegramGate(deps)(thread, makeMessage('222', '/start abc123XYZ_-9'), defaultHandler)
+        const message = makeMessage('222', '/start abc123XYZ_-9')
+        await createTelegramGate(deps)(thread, message, defaultHandler)
         expect(deps.redeemInvite).toHaveBeenCalledWith('abc123XYZ_-9', '222')
         expect(deps.createUser).toHaveBeenCalledWith(expect.objectContaining({
             telegramId: '222',
             role: 'member',
+            name: '',
         }))
         expect(defaultHandler).toHaveBeenCalledOnce()
+        expect(defaultHandler).toHaveBeenCalledWith(thread, message)
     })
 
     it('desconocido con código inválido/vencido/usado es ignorado (redeem devuelve null)', async () => {
@@ -88,8 +93,10 @@ describe('createTelegramGate', () => {
     it('registrado que manda /start va por flujo normal sin canjear', async () => {
         const deps = makeDeps({ getUserByTelegramId: vi.fn(async () => member) })
         const defaultHandler = vi.fn(async () => {})
-        await createTelegramGate(deps)(thread, makeMessage('111', '/start abc123XYZ_-9'), defaultHandler)
+        const message = makeMessage('111', '/start abc123XYZ_-9')
+        await createTelegramGate(deps)(thread, message, defaultHandler)
         expect(defaultHandler).toHaveBeenCalledOnce()
+        expect(defaultHandler).toHaveBeenCalledWith(thread, message)
         expect(deps.redeemInvite).not.toHaveBeenCalled()
     })
 })
