@@ -10,14 +10,10 @@ vi.mock('../../business/repositories', () => ({
 vi.mock('../../business/identity', () => ({
   getUserByResourceId: vi.fn(),
 }));
-vi.mock('../lib/invite-email', () => ({
-  sendInviteEmail: vi.fn(),
-}));
 
 import { createInviteTool } from './create-invite-tool';
 import { inviteRepository, userRepository } from '../../business/repositories';
 import { getUserByResourceId } from '../../business/identity';
-import { sendInviteEmail } from '../lib/invite-email';
 
 const admin = { email: 'admin@gmail.com', name: 'Admin', role: 'admin' as const, addedAt: 1 };
 const invite = { code: 'abc123', email: 'new@gmail.com', createdBy: 'admin@gmail.com', createdAt: 1, expiresAt: 999 };
@@ -32,7 +28,6 @@ describe('createInviteTool', () => {
     vi.mocked(getUserByResourceId).mockResolvedValue(admin);
     vi.mocked(userRepository.findByEmail).mockResolvedValue(null);
     vi.mocked(inviteRepository.create).mockResolvedValue(invite as any);
-    vi.mocked(sendInviteEmail).mockResolvedValue({ ok: true });
   });
 
   it('rejects non-admin callers', async () => {
@@ -50,24 +45,10 @@ describe('createInviteTool', () => {
     expect(inviteRepository.create).not.toHaveBeenCalled();
   });
 
-  it('creates the invite and emails the telegram link', async () => {
+  it('creates the invite and returns the telegram link', async () => {
     const result = await run({ email: 'new@gmail.com' });
 
     expect(inviteRepository.create).toHaveBeenCalledWith({ createdBy: 'admin@gmail.com', email: 'new@gmail.com' });
-    expect(sendInviteEmail).toHaveBeenCalledWith({
-      to: 'new@gmail.com',
-      link: 'https://t.me/mostro_bot?start=abc123',
-    });
-    expect(result).toMatchObject({ ok: true, emailSent: true, link: 'https://t.me/mostro_bot?start=abc123' });
-  });
-
-  it('still returns the link with a warning when the email fails', async () => {
-    vi.mocked(sendInviteEmail).mockResolvedValue({ ok: false, error: 'quota' });
-    const result = await run({ email: 'new@gmail.com' });
-
-    expect(result.ok).toBe(true);
-    expect(result.emailSent).toBe(false);
-    expect(result.link).toBe('https://t.me/mostro_bot?start=abc123');
-    expect(result.error).toContain('quota');
+    expect(result).toMatchObject({ ok: true, link: 'https://t.me/mostro_bot?start=abc123', expiresAt: 999 });
   });
 });
