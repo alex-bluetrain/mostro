@@ -14,7 +14,6 @@ const envSchema = z.object({
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
     GOOGLE_REDIRECT_URI: z.string().min(1).optional(),
     GOOGLE_COOKIE_PASSWORD: z.string().min(32).optional(),
-    GOOGLE_ALLOWED_EMAILS: z.string().min(1).optional(),
     NGROK_AUTHTOKEN: z.string().min(1).optional(),
     NGROK_DOMAIN: z.string().min(1).optional(),
     DIAPERS_MESSAGING_URL: z.string().min(1).optional(),
