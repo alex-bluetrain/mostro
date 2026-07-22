@@ -1,30 +1,36 @@
+import { randomBytes } from 'node:crypto';
 import { Invite, type IInvite } from '../models/invite.model';
 import { nowUnix } from '../../mastra/lib/unix-time';
+import { userRepository } from './user.repository';
+
+export const INVITE_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 export class InviteRepository {
-  async create(email: string, createdBy: string): Promise<IInvite> {
-    const result = await Invite.create({
-      email: email.toLowerCase(),
-      createdBy: createdBy.toLowerCase(),
-      createdAt: nowUnix(),
+  // Creates the invite and ensures the invitee's user record exists (without
+  // telegram yet) so they can already log into the web before redeeming.
+  async create(params: { createdBy: string; email: string; name?: string }): Promise<IInvite> {
+    const email = params.email.trim().toLowerCase();
+    const now = nowUnix();
+    await userRepository.upsertUser({ email, name: params.name ?? '', role: 'member', addedAt: now });
+    const invite = await Invite.create({
+      code: randomBytes(9).toString('base64url'),
+      email,
+      ...(params.name ? { name: params.name } : {}),
+      createdBy: params.createdBy,
+      createdAt: now,
+      expiresAt: now + INVITE_TTL_SECONDS,
     });
-    return result.toObject() as IInvite;
+    return invite.toObject() as IInvite;
   }
 
-  async findByEmail(email: string): Promise<IInvite | null> {
-    return Invite.findOne({ email: email.toLowerCase() });
-  }
-
-  async markAsUsed(email: string, usedBy: string): Promise<boolean> {
-    const result = await Invite.updateOne(
-      { email: email.toLowerCase() },
-      { $set: { usedAt: nowUnix(), usedBy: usedBy.toLowerCase() } }
+  // Atomic redeem: matches only unused, unexpired invites and marks them used
+  // in the same operation (of two concurrent redemptions, one wins, the other gets null).
+  async redeem(code: string, telegramId: string): Promise<IInvite | null> {
+    return Invite.findOneAndUpdate(
+      { code, usedBy: { $exists: false }, expiresAt: { $gt: nowUnix() } },
+      { $set: { usedBy: telegramId } },
+      { new: true }
     );
-    return result.matchedCount > 0;
-  }
-
-  async listPending(): Promise<IInvite[]> {
-    return Invite.find({ usedAt: { $exists: false } });
   }
 }
 
