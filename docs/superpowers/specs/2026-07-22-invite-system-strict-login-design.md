@@ -1,7 +1,10 @@
 # Invitaciones sin pre-creación de usuario + login de Google estricto
 
 Fecha: 2026-07-22
-Estado: aprobado
+Estado: aprobado — enmendado el 2026-07-22: el envío de mail vía Composio (sección 4)
+se revirtió por decisión del usuario (hubo un malentendido sobre usar el SDK de
+Composio vs el tool provider de Mastra). El tool de invitación vuelve a devolver
+el link para reenvío manual. El resto del diseño quedó implementado tal cual.
 
 ## Contexto y problema
 

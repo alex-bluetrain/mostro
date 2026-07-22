@@ -39,7 +39,7 @@ La colección `users` en Mongo (`src/mastra/lib/users.ts`):
 
 ## Invitaciones
 
-Solo admins, por chat: el supervisor usa `createInviteTool` con el email de Google del invitado. El tool ya no recibe nombre; el link se manda por mail automáticamente vía Composio (Gmail) y, si el envío falla, el tool devuelve el link igual para que el admin lo reenvíe a mano.
+Solo admins, por chat: el supervisor usa `createInviteTool` con el email de Google del invitado. El tool ya no recibe nombre (se toma del perfil de Google en el primer login web); devuelve un link `t.me/...?start=<código>` que el admin le reenvía en privado al invitado.
 
 ```mermaid
 sequenceDiagram
