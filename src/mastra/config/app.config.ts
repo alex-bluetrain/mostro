@@ -7,6 +7,8 @@ const envSchema = z.object({
     TELEGRAM_BOT_USERNAME: z.string().min(1),
     TELEGRAM_BOT_TOKEN: z.string().min(1),
     TELEGRAM_WEBHOOK_SECRET_TOKEN: z.string().min(1),
+    ADMIN_TELEGRAM_ID: z.string().min(1).optional(),
+    ADMIN_NAME: z.string().min(1).optional(),
     NGROK_AUTHTOKEN: z.string().min(1).optional(),
     NGROK_DOMAIN: z.string().min(1).optional(),
     DIAPERS_MESSAGING_URL: z.string().min(1).optional(),

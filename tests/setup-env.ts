@@ -1,0 +1,6 @@
+process.env.MONGODB_URI ??= 'mongodb://localhost:27017'
+process.env.MONGODB_DB_NAME ??= 'mostro-test'
+process.env.OPENROUTER_API_KEY ??= 'test-key'
+process.env.TELEGRAM_BOT_USERNAME ??= 'mostro_test_bot'
+process.env.TELEGRAM_BOT_TOKEN ??= 'test-token'
+process.env.TELEGRAM_WEBHOOK_SECRET_TOKEN ??= 'test-secret'
