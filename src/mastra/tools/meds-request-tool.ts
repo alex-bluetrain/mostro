@@ -1,5 +1,6 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
+import { getUserByResourceId } from '../lib/users'
 import { startMedsOrder } from '../lib/meds-run'
 
 export const requestMedsTool = createTool({
@@ -14,6 +15,8 @@ export const requestMedsTool = createTool({
         if (!context?.mastra) {
             throw new Error('mastra instance not available in tool context')
         }
-        return startMedsOrder(context.mastra as any, input)
+        const resourceId = context?.agent?.resourceId
+        const user = resourceId ? await getUserByResourceId(resourceId) : null
+        return startMedsOrder(context.mastra as any, { ...input, requestedBy: user?.name || undefined })
     },
 })
