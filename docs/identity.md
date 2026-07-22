@@ -48,25 +48,26 @@ sequenceDiagram
     participant M as Mongo
     participant I as Invitado (Telegram)
     A->>S: "invitá a ana@gmail.com"
-    S->>M: upsertUser (member, sin telegramId)
     S->>M: insert invite (código, TTL 7 días)
     S-->>A: https://t.me/<bot>?start=<código>
     A-->>I: reenvía el link en privado
     I->>S: /start <código>
-    Note over S: gate: redeemInvite (atómico) + linkTelegramId
+    Note over S: gate: redeemInvite (atómico) + upsertUser + linkTelegramId
     S-->>I: bienvenida, pregunta el nombre
 ```
 
 Detalles:
 
-- El user se crea **al generar el invite**, no al canjearlo: desde ese momento el invitado ya puede loguearse a la web con su Google, aunque nunca abra Telegram.
+- El user se crea **al canjear el invite** (vía Telegram `/start`), no al generar el invite: solo después de redimir el invite puede loguearse a la web con su Google.
 - El invite es de un solo uso y vence a los 7 días (`INVITE_TTL_SECONDS`).
 - Quien abre el link se convierte en esa persona (se vincula su `telegramId` al email del invite) — por eso el link se manda en privado.
-- Si el canje sucede pero no matchea ningún user (ventana mínima), el gate loguea un warning y no deja pasar; el código queda quemado y el admin regenera el invite.
+- Si el canje sucede pero no matchea ningún invite válido, el gate loguea un warning y no deja pasar; el código queda quemado y el admin regenera el invite.
 
 ## Acceso web: Google SSO
 
 `createGoogleAuth()` (`src/mastra/lib/google-auth.ts`) monta `MastraAuthGoogle` sobre el server de Mastra. La autorización es `authorizeUser`: email verificado por Google **y presente en `users`** — la misma condición que el bot, sin listas aparte. Sin `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` el auth queda deshabilitado con un warning (útil en dev).
+
+**Nota:** El acceso web solo funciona **después de canjear el invite** por Telegram. El invite no pre-crea el user; la redención es el momento donde se crea el user, se vincula el Telegram, y a partir de ese punto el email queda autorizado para la web.
 
 Excepción: el webhook del canal Telegram (`/api/agents/*/channels/telegram/webhook`) queda público porque ya tiene su propia protección (`TELEGRAM_WEBHOOK_SECRET_TOKEN`) — si el middleware de auth lo tapara, el bot muere.
 
