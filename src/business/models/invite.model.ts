@@ -1,19 +1,23 @@
 import { Schema, model } from 'mongoose';
 
 export interface IInvite {
+  code: string;
   email: string;
+  name?: string;
   createdBy: string;
   createdAt: number;
-  usedAt?: number;
+  expiresAt: number;
   usedBy?: string;
 }
 
 const inviteSchema = new Schema<IInvite>({
-  email: { type: String, required: true, unique: true, lowercase: true },
-  createdBy: { type: String, required: true, lowercase: true },
+  code: { type: String, required: true, unique: true },
+  email: { type: String, required: true, lowercase: true },
+  name: { type: String },
+  createdBy: { type: String, required: true },
   createdAt: { type: Number, required: true },
-  usedAt: { type: Number },
-  usedBy: { type: String, lowercase: true },
+  expiresAt: { type: Number, required: true },
+  usedBy: { type: String },
 });
 
 export const Invite = model<IInvite>('Invite', inviteSchema);
