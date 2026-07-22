@@ -1,8 +1,8 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { appConfig } from '../config/app.config'
-import { createInvite } from '../lib/invites'
-import { getUserByResourceId } from '../lib/users'
+import { inviteRepository } from '../../business/repositories'
+import { getUserByResourceId } from '../../business/identity'
 
 export const createInviteTool = createTool({
     id: 'create-invite',
@@ -26,7 +26,7 @@ export const createInviteTool = createTool({
         if (!user || user.role !== 'admin') {
             return { ok: false, error: 'only admins can create invites' }
         }
-        const invite = await createInvite({ createdBy: user.email, email: input.email, name: input.name })
+        const invite = await inviteRepository.create({ createdBy: user.email, email: input.email, name: input.name })
         return {
             ok: true,
             link: `https://t.me/${appConfig.TELEGRAM_BOT_USERNAME}?start=${invite.code}`,
