@@ -34,11 +34,15 @@ await mongoose.connect(appConfig.MONGODB_URI, {
 await startNgrokTunnel(port);
 
 // Seed admin user
-await userRepository.ensureAdminSeed(
-    appConfig.ADMIN_EMAIL || 'admin@example.com',
-    appConfig.ADMIN_NAME || 'Admin',
-    appConfig.ADMIN_TELEGRAM_ID
-);
+if (appConfig.ADMIN_EMAIL) {
+    await userRepository.ensureAdminSeed(
+        appConfig.ADMIN_EMAIL,
+        appConfig.ADMIN_NAME ?? 'Admin',
+        appConfig.ADMIN_TELEGRAM_ID
+    );
+} else {
+    console.warn('[mastra] ADMIN_EMAIL not set, skipping admin seed');
+}
 
 export const mastra = new Mastra({
     server: {
