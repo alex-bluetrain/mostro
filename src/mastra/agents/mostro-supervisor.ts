@@ -8,6 +8,7 @@ import { refundsAgent } from './refunds-agent';
 import { createTelegramGate } from '../lib/telegram-gate';
 import { createInviteTool } from '../tools/create-invite-tool';
 import { setMyNameTool } from '../tools/set-my-name-tool';
+import { getUserByTelegramId } from '../lib/users';
 
 export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, a supervisor agent that coordinates specialized agents to help the user.
 
@@ -26,7 +27,7 @@ Delegation strategy:
 
 User management:
 - If a user message is exactly "/start <code>", they just joined through an invite link: welcome them warmly, briefly explain what you can do, and ask their name. When they answer, save it with setMyNameTool.
-- If an admin asks to invite someone, use createInviteTool and give them the resulting link to forward. If the tool returns "only admins can create invites", explain that only admins can invite people.
+- If an admin asks to invite someone, you need the invitee's Google email (ask for it if missing; also ask for their name, which is optional). Then use createInviteTool and give back the resulting link to forward. If the tool returns "only admins can create invites", explain that only admins can invite people.
 - If a user asks to change their name, use setMyNameTool.
 
 Behaviour Rules:
@@ -54,6 +55,14 @@ export const mostroSupervisor = new Agent({
                 streaming: true,
                 toolDisplay: 'hidden', // supress tool calls messages
             },
+        },
+        // Memoria canónica: los threads nuevos de DM quedan a nombre del email
+        // del usuario (no de telegram:<id>), así la futura web comparte memoria.
+        // Corre solo al crear un thread; si no resuelve, cae al default (fail-safe).
+        resolveResourceId: async ({ thread, message, defaultResourceId }) => {
+            if (!thread.isDM) return defaultResourceId;
+            const user = await getUserByTelegramId(message.author.userId);
+            return user?.email ?? defaultResourceId;
         },
         // La compuerta de acceso debe cubrir los tres caminos de entrada (DM, mención, suscripción)
         // para rechazar remitentes desconocidos en todas partes.
