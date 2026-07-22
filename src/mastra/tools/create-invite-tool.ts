@@ -1,20 +1,21 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { appConfig } from '../config/app.config'
-import { inviteRepository } from '../../business/repositories'
+import { inviteRepository, userRepository } from '../../business/repositories'
 import { getUserByResourceId } from '../../business/identity'
+import { sendInviteEmail } from '../lib/invite-email'
 
 export const createInviteTool = createTool({
     id: 'create-invite',
-    description: 'Genera un link de invitación de un solo uso (vence en 7 días) para sumar a una persona al bot y a la web. Requiere el email de Google del invitado; el nombre es opcional. Solo los admins pueden usarlo.',
+    description: 'Invita a una persona al bot y a la web: genera un código de un solo uso (vence en 7 días) y le manda la invitación por mail. Solo requiere el email de Google del invitado; el nombre se toma después de su perfil de Google. Solo los admins pueden usarlo.',
     inputSchema: z.object({
         email: z.email().describe('Email de Google del invitado (su identidad canónica)'),
-        name: z.string().min(1).optional().describe('Nombre del invitado, si se sabe'),
     }),
     outputSchema: z.object({
         ok: z.boolean(),
         link: z.string().optional(),
         expiresAt: z.number().optional(),
+        emailSent: z.boolean().optional(),
         error: z.string().optional(),
     }),
     execute: async (input, context) => {
@@ -22,15 +23,23 @@ export const createInviteTool = createTool({
         if (!resourceId) {
             return { ok: false, error: 'caller identity not available' }
         }
-        const user = await getUserByResourceId(resourceId)
-        if (!user || user.role !== 'admin') {
+        const caller = await getUserByResourceId(resourceId)
+        if (!caller || caller.role !== 'admin') {
             return { ok: false, error: 'only admins can create invites' }
         }
-        const invite = await inviteRepository.create({ createdBy: user.email, email: input.email, name: input.name })
+        const existing = await userRepository.findByEmail(input.email)
+        if (existing?.telegramId) {
+            return { ok: false, error: 'that email already belongs to an active user' }
+        }
+        const invite = await inviteRepository.create({ createdBy: caller.email, email: input.email })
+        const link = `https://t.me/${appConfig.TELEGRAM_BOT_USERNAME}?start=${invite.code}`
+        const sent = await sendInviteEmail({ to: invite.email, link })
         return {
             ok: true,
-            link: `https://t.me/${appConfig.TELEGRAM_BOT_USERNAME}?start=${invite.code}`,
+            link,
             expiresAt: invite.expiresAt,
+            emailSent: sent.ok,
+            ...(sent.ok ? {} : { error: `invite created but email failed (${sent.error}): reenviá el link a mano` }),
         }
     },
 })
