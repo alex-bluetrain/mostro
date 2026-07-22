@@ -6,6 +6,7 @@ import { diapersAgent } from './diapers-agent';
 import { medsAgent } from './meds-agent';
 import { refundsAgent } from './refunds-agent';
 import { createTelegramGate } from '../lib/telegram-gate';
+import type { SubAgentKey } from '../lib/sub-agent-keys';
 import { createInviteTool } from '../tools/create-invite-tool';
 import { setMyNameTool } from '../tools/set-my-name-tool';
 import { getUserByTelegramId } from '../lib/users';
@@ -38,7 +39,14 @@ CRITICAL RULE: notification signals (system-generated context, not authored by t
 
 export const mostroSupervisorModel = 'openrouter/deepseek/deepseek-v4-flash';
 
-export const mostroSupervisorAgents = { weatherAgent, diapersAgent, medsAgent, refundsAgent };
+// El satisfies fuerza a que toda key registrada exista en subAgentKeys (y viceversa):
+// users.ts depende de esa lista para des-derivar los resourceIds de sub-agentes.
+export const mostroSupervisorAgents = {
+    weatherAgent,
+    diapersAgent,
+    medsAgent,
+    refundsAgent,
+} satisfies Record<SubAgentKey, Agent>;
 
 export const mostroSupervisor = new Agent({
     id: 'mostro-supervisor',

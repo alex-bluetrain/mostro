@@ -29,4 +29,14 @@ describe('parseResourceId', () => {
     it('recorta el sufijo de sub-agente en resourceIds de email', () => {
         expect(parseResourceId('ana@gmail.com-diapersAgent')).toEqual({ kind: 'email', email: 'ana@gmail.com' })
     })
+
+    it('recorta el sufijo de cada sub-agente registrado', () => {
+        expect(parseResourceId('ana@gmail.com-weatherAgent')).toEqual({ kind: 'email', email: 'ana@gmail.com' })
+        expect(parseResourceId('ana@gmail.com-medsAgent')).toEqual({ kind: 'email', email: 'ana@gmail.com' })
+        expect(parseResourceId('ana@gmail.com-refundsAgent')).toEqual({ kind: 'email', email: 'ana@gmail.com' })
+    })
+
+    it('no recorta sufijos que no son sub-agentes registrados', () => {
+        expect(parseResourceId('ana@gmail.com-customAgent')).toEqual({ kind: 'email', email: 'ana@gmail.com-customagent' })
+    })
 })
