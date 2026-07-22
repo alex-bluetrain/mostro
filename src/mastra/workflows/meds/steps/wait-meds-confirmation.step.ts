@@ -1,5 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
+import { toUnix } from '../../../lib/unix-time'
 import { medsStateSchema } from '../schemas/meds-state.schema'
 import { waitMedsConfirmationResumeSchema } from '../schemas/wait-meds-confirmation-resume.schema'
 
@@ -18,7 +19,7 @@ export const waitMedsConfirmationStep = createStep({
         await setState({
             ...state,
             status: 'delivery_confirmed',
-            deliveryDate: resumeData.deliveryDate,
+            deliveryDate: toUnix(resumeData.deliveryDate),
             deliveryAddress: resumeData.deliveryAddress,
         })
 

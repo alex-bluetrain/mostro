@@ -1,5 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
+import { nowUnix } from '../../../lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
 import { waitRefundAckResumeSchema } from '../schemas/wait-refund-ack-resume.schema'
 
@@ -18,7 +19,7 @@ export const waitRefundAckStep = createStep({
         await setState({
             ...state,
             status: 'refund_acknowledged',
-            acknowledgedAt: new Date().toISOString(),
+            acknowledgedAt: nowUnix(),
         })
 
         return {}

@@ -1,5 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
+import { nowUnix, toUnix } from '../../../lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
 import { waitDepositResumeSchema } from '../schemas/wait-deposit-resume.schema'
 
@@ -19,8 +20,8 @@ export const waitDepositStep = createStep({
             ...state,
             status: 'deposit_received',
             depositAmount: resumeData.depositAmount,
-            depositDate: resumeData.depositDate,
-            depositReceivedAt: new Date().toISOString(),
+            depositDate: toUnix(resumeData.depositDate),
+            depositReceivedAt: nowUnix(),
         })
 
         return {}

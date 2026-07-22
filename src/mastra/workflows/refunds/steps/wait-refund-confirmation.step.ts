@@ -1,5 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
+import { nowUnix } from '../../../lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
 import { waitRefundConfirmationResumeSchema } from '../schemas/wait-refund-confirmation-resume.schema'
 
@@ -19,7 +20,7 @@ export const waitRefundConfirmationStep = createStep({
             ...state,
             status: 'refund_confirmed',
             refundReference: resumeData.refundReference,
-            confirmedAt: new Date().toISOString(),
+            confirmedAt: nowUnix(),
         })
 
         return {}

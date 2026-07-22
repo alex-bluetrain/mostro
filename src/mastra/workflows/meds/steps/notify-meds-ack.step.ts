@@ -1,6 +1,7 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { listMedsSubscribers } from '../../../lib/meds-subscribers'
+import { nowUnix } from '../../../lib/unix-time'
 import { medsStateSchema } from '../schemas/meds-state.schema'
 
 export const notifyMedsAckStep = createStep({
@@ -32,7 +33,7 @@ export const notifyMedsAckStep = createStep({
         await setState({
             ...state,
             status: 'ack_notified',
-            ackNotifiedAt: new Date().toISOString(),
+            ackNotifiedAt: nowUnix(),
         })
 
         return {}

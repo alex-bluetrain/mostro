@@ -1,6 +1,7 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { listRefundsSubscribers } from '../../../lib/refunds-subscribers'
+import { nowUnix } from '../../../lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
 
 export const notifyRefundConfirmationStep = createStep({
@@ -33,7 +34,7 @@ export const notifyRefundConfirmationStep = createStep({
         await setState({
             ...state,
             status: 'confirmation_notified',
-            confirmationNotifiedAt: new Date().toISOString(),
+            confirmationNotifiedAt: nowUnix(),
         })
 
         return {}

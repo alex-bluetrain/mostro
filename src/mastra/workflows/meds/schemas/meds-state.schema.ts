@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { unixTimestampSchema } from '../../../lib/unix-time'
 
 export const medsStateSchema = z.object({
     status: z.enum([
@@ -11,12 +12,12 @@ export const medsStateSchema = z.object({
         'meds_notification_sent',
     ]).default('idle'),
     medications: z.array(z.string()).optional(),
-    prescriptionsReceivedAt: z.string().optional(),
-    requestedAt: z.string().optional(),
-    acknowledgedAt: z.string().optional(),
-    ackNotifiedAt: z.string().optional(),
-    deliveryDate: z.string().optional(),
+    prescriptionsReceivedAt: unixTimestampSchema.optional(),
+    requestedAt: unixTimestampSchema.optional(),
+    acknowledgedAt: unixTimestampSchema.optional(),
+    ackNotifiedAt: unixTimestampSchema.optional(),
+    deliveryDate: unixTimestampSchema.optional(),
     deliveryAddress: z.string().optional(),
-    notifiedAt: z.string().optional(),
+    notifiedAt: unixTimestampSchema.optional(),
     notifiedCount: z.number().optional(),
 })

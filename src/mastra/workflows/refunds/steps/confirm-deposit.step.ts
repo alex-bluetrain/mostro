@@ -1,6 +1,7 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { appConfig } from '../../../config/app.config'
+import { nowUnix } from '../../../lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
 
 export const confirmDepositStep = createStep({
@@ -26,7 +27,7 @@ export const confirmDepositStep = createStep({
         await setState({
             ...state,
             status: 'deposit_confirmed',
-            depositConfirmedAt: new Date().toISOString(),
+            depositConfirmedAt: nowUnix(),
         })
 
         return {}

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { unixTimestampSchema } from '../../../lib/unix-time'
 
 export const refundsStateSchema = z.object({
     status: z.enum([
@@ -14,16 +15,16 @@ export const refundsStateSchema = z.object({
     ]).default('idle'),
     amount: z.number().optional(),
     reason: z.string().optional(),
-    requestedAt: z.string().optional(),
-    acknowledgedAt: z.string().optional(),
-    ackNotifiedAt: z.string().optional(),
+    requestedAt: unixTimestampSchema.optional(),
+    acknowledgedAt: unixTimestampSchema.optional(),
+    ackNotifiedAt: unixTimestampSchema.optional(),
     refundReference: z.string().optional(),
-    confirmedAt: z.string().optional(),
-    confirmationNotifiedAt: z.string().optional(),
+    confirmedAt: unixTimestampSchema.optional(),
+    confirmationNotifiedAt: unixTimestampSchema.optional(),
     depositAmount: z.number().optional(),
-    depositDate: z.string().optional(),
-    depositReceivedAt: z.string().optional(),
-    depositConfirmedAt: z.string().optional(),
-    notifiedAt: z.string().optional(),
+    depositDate: unixTimestampSchema.optional(),
+    depositReceivedAt: unixTimestampSchema.optional(),
+    depositConfirmedAt: unixTimestampSchema.optional(),
+    notifiedAt: unixTimestampSchema.optional(),
     notifiedCount: z.number().optional(),
 })

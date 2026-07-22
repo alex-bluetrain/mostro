@@ -1,6 +1,7 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { listMedsSubscribers } from '../../../lib/meds-subscribers'
+import { formatUnixDate, nowUnix } from '../../../lib/unix-time'
 import { medsStateSchema } from '../schemas/meds-state.schema'
 import { notifyMedsConfirmationOutputSchema } from '../schemas/notify-meds-confirmation-output.schema'
 
@@ -20,7 +21,7 @@ export const notifyMedsConfirmationStep = createStep({
                         source: 'meds',
                         kind: 'delivery-confirmed',
                         priority: 'high',
-                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: los medicamentos (${(state.medications ?? []).join(', ') || 'sin especificar'}) llegan el ${state.deliveryDate ?? 'fecha a confirmar'}.`,
+                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: los medicamentos (${(state.medications ?? []).join(', ') || 'sin especificar'}) llegan el ${state.deliveryDate != null ? formatUnixDate(state.deliveryDate) : 'fecha a confirmar'}.`,
                         payload: {
                             medications: state.medications,
                             deliveryDate: state.deliveryDate,
@@ -35,7 +36,7 @@ export const notifyMedsConfirmationStep = createStep({
         await setState({
             ...state,
             status: 'meds_notification_sent',
-            notifiedAt: new Date().toISOString(),
+            notifiedAt: nowUnix(),
             notifiedCount: subscribers.length,
         })
 

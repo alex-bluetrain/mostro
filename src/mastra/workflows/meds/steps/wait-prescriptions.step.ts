@@ -1,5 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
+import { nowUnix } from '../../../lib/unix-time'
 import { medsStateSchema } from '../schemas/meds-state.schema'
 import { waitPrescriptionsResumeSchema } from '../schemas/wait-prescriptions-resume.schema'
 
@@ -19,7 +20,7 @@ export const waitPrescriptionsStep = createStep({
             ...state,
             status: 'prescriptions_received',
             medications: resumeData.medications,
-            prescriptionsReceivedAt: new Date().toISOString(),
+            prescriptionsReceivedAt: nowUnix(),
         })
 
         return {}
