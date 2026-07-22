@@ -1,14 +1,18 @@
 import type { ChannelHandler } from '@mastra/core/channels'
-import { getUserByTelegramId, linkTelegramId, type User } from './users'
-import { redeemInvite, type Invite } from './invites'
+import { userRepository, inviteRepository } from '../../business/repositories'
+import type { IUser, IInvite } from '../../business'
 
 export type TelegramGateDeps = {
-    getUserByTelegramId: (telegramId: string) => Promise<User | null>
-    redeemInvite: (code: string, telegramId: string) => Promise<Invite | null>
+    getUserByTelegramId: (telegramId: string) => Promise<IUser | null>
+    redeemInvite: (code: string, telegramId: string) => Promise<IInvite | null>
     linkTelegramId: (email: string, telegramId: string) => Promise<boolean>
 }
 
-const defaultDeps: TelegramGateDeps = { getUserByTelegramId, redeemInvite, linkTelegramId }
+const defaultDeps: TelegramGateDeps = {
+    getUserByTelegramId: telegramId => userRepository.findByTelegramId(telegramId),
+    redeemInvite: (code, telegramId) => inviteRepository.redeem(code, telegramId),
+    linkTelegramId: (email, telegramId) => userRepository.linkTelegramId(email, telegramId),
+}
 
 export function parseStartCode(text: string | undefined): string | null {
     if (!text) return null
