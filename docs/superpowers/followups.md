@@ -5,10 +5,10 @@ Lista viva de pendientes que no bloquean el trabajo ya commiteado. Origen: revie
 ## Bloqueantes para dar por cerrada la feature de identidad
 
 - [ ] **Rollout de identidad canónica + E2E manual** (specs 2026-07-21 y 2026-07-22; requiere dos cuentas de Telegram):
-  1. Limpiar data de prueba: drop de las colecciones `users` e `invites` viejas (keyed por telegramId), drop de las colecciones de storage de Mastra (threads/messages en el Mongo storage de Mastra) para que no sobrevivan threads viejos a nombre de `telegram:<id>` (`resolveResourceId` solo corre al crear un thread, no migra los existentes), y borrar los JSON de suscriptores (`*-subscribers.json` en `src/mastra/public/`).
-  2. `.env`: `ADMIN_EMAIL`, `ADMIN_NAME`, `ADMIN_TELEGRAM_ID` (nunca con valor vacío: zod valida `min(...)` y rompe el boot).
-  3. Verificar: desconocido ignorado en silencio (DM, mención en grupo); invitar con email crea el user en Mongo; el canje del deep link vincula `telegramId`; el thread nuevo de memoria queda a nombre del email (visible en Studio); link usado no se reusa; member no puede invitar; un pedido muestra `requestedBy`.
-- [ ] **Activar Google auth**: OAuth client tipo "Web application" en Google Cloud Console con redirect `https://<NGROK_DOMAIN>/api/auth/sso/callback`; completar `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `GOOGLE_COOKIE_PASSWORD` (32+ chars) en `.env`. La autorización es por colección `users` (invitado = acceso a bot y web). Probar login en Studio con el admin y que una cuenta no invitada reciba 401.
+  1. ~~Limpiar data de prueba~~ — hecho el 2026-07-22: messages dropeados, `users` re-seedeada, JSONs de suscriptores borrados; no había memoria a nombre de `telegram:<id>`. Cosmético pendiente: 6 threads vacíos `mostro-supervisor*` en `mastra_threads` (pre-fix `1a0aa8b`), se limpian con `db.mastra_threads.deleteMany({resourceId: /^mostro-supervisor/})`.
+  2. ~~`.env` con `ADMIN_*`~~ — hecho el 2026-07-22: seed verificado en Mongo (admin con `telegramId` vinculado) y el DM del admin ya crea threads a nombre del email.
+  3. Verificar con la segunda cuenta: desconocido ignorado en silencio (DM, mención en grupo); invitar con email crea el user en Mongo; el canje del deep link vincula `telegramId`; link usado no se reusa; member no puede invitar; un pedido muestra `requestedBy`. (El thread a nombre del email ya se verificó con el admin.)
+- [ ] **Activar Google auth**: credenciales `GOOGLE_*` ya completas en `.env` (2026-07-22). Falta probar: login en Studio con el admin y que una cuenta no invitada reciba 401. De paso borrar `GOOGLE_ALLOWED_EMAILS` del `.env`: ya no se lee (la autorización pasó a la colección `users` en `4126e03`).
 - [ ] **Cerrar la rama `feat/refactor`**: merge a `main` o PR, cuando el E2E esté verde.
 
 ## Diferidos de las reviews (mejoras, no bloquean)
