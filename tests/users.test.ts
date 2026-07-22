@@ -21,4 +21,12 @@ describe('parseResourceId', () => {
     it('devuelve null para telegram: vacío', () => {
         expect(parseResourceId('telegram:')).toBeNull()
     })
+
+    it('recorta el sufijo de sub-agente en resourceIds de telegram', () => {
+        expect(parseResourceId('telegram:5551234-diapersAgent')).toEqual({ kind: 'telegram', telegramId: '5551234' })
+    })
+
+    it('recorta el sufijo de sub-agente en resourceIds de email', () => {
+        expect(parseResourceId('ana@gmail.com-diapersAgent')).toEqual({ kind: 'email', email: 'ana@gmail.com' })
+    })
 })

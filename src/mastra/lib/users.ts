@@ -24,12 +24,20 @@ async function usersCollection(): Promise<Collection<User>> {
     return db.collection<User>('users')
 }
 
+// La delegación a sub-agentes deriva el resourceId hijo como
+// `${resourceId}-${agentName}` (ej. 'ana@gmail.com-diapersAgent');
+// se recorta ese sufijo para resolver siempre a la identidad del padre
+function stripSubAgentSuffix(resourceId: string): string {
+    return resourceId.replace(/-[A-Za-z0-9]+Agent$/, '')
+}
+
 // Un resourceId puede ser 'telegram:<id>' (threads legacy / default de channels)
 // o un email plano (canónico: threads nuevos y futura web)
 export function parseResourceId(resourceId: string): ParsedResourceId | null {
-    const telegramMatch = /^telegram:(.+)$/.exec(resourceId)
+    const base = stripSubAgentSuffix(resourceId)
+    const telegramMatch = /^telegram:(.+)$/.exec(base)
     if (telegramMatch) return { kind: 'telegram', telegramId: telegramMatch[1] }
-    if (resourceId.includes('@')) return { kind: 'email', email: resourceId.trim().toLowerCase() }
+    if (base.includes('@')) return { kind: 'email', email: base.trim().toLowerCase() }
     return null
 }
 
@@ -81,13 +89,18 @@ export async function setUserNameByResourceId(resourceId: string, name: string):
 }
 
 export async function ensureAdminSeed(): Promise<void> {
+    const col = await usersCollection()
+    // Índices de integridad: un telegram no puede pertenecer a dos usuarios;
+    // sparse porque telegramId es opcional
+    await col.createIndex({ email: 1 }, { unique: true })
+    await col.createIndex({ telegramId: 1 }, { unique: true, sparse: true })
+
     const adminEmail = appConfig.ADMIN_EMAIL
     if (!adminEmail) {
         console.warn('[users] ADMIN_EMAIL not set, skipping admin seed')
         return
     }
     const email = adminEmail.toLowerCase()
-    const col = await usersCollection()
     await col.updateOne(
         { email },
         {

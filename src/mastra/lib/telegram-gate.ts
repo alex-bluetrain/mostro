@@ -34,7 +34,11 @@ export function createTelegramGate(deps: TelegramGateDeps = defaultDeps): Channe
         if (!invite) return
 
         // El user existe desde que se generó el invite; el canje solo vincula
-        await deps.linkTelegramId(invite.email, senderId)
+        const linked = await deps.linkTelegramId(invite.email, senderId)
+        if (!linked) {
+            console.warn(`[telegram-gate] invite ${invite.code} redeemed but no user found for ${invite.email}`)
+            return
+        }
         await defaultHandler(thread, message)
     }
 }
