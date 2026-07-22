@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "exports": {
-    "./mostro-supervisor": "./src/mastra/agents/mostro-supervisor.ts",
-    "./web-mastra": "./src/mastra/web-mastra.ts"
-  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "mastra dev",
