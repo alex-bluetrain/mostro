@@ -20,6 +20,7 @@ export const waitPrescriptionsStep = createStep({
             ...state,
             status: 'prescriptions_received',
             medications: resumeData.medications,
+            requestedBy: resumeData.requestedBy,
             prescriptionsReceivedAt: nowUnix(),
         })
 

@@ -12,6 +12,7 @@ export const medsStateSchema = z.object({
         'meds_notification_sent',
     ]).default('idle'),
     medications: z.array(z.string()).optional(),
+    requestedBy: z.string().optional(),
     prescriptionsReceivedAt: unixTimestampSchema.optional(),
     requestedAt: unixTimestampSchema.optional(),
     acknowledgedAt: unixTimestampSchema.optional(),
