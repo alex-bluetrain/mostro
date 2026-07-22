@@ -10,8 +10,9 @@ import { medsAgent } from './agents/meds-agent';
 import { refundsAgent } from './agents/refunds-agent';
 import { mostroSupervisor } from './agents/mostro-supervisor';
 import { toolCallAppropriatenessScorer, completenessScorer, translationScorer } from './scorers/weather-scorer';
+import mongoose from 'mongoose';
+import { userRepository } from '../business/repositories';
 import { startNgrokTunnel } from './ngrok';
-import { ensureAdminSeed } from './lib/users';
 import { createGoogleAuth } from './lib/google-auth';
 import { webhookDiapersRoute } from './routes/webhook-diapers.route';
 import { webhookMedsAckRoute, webhookMedsConfirmRoute } from './routes/webhook-meds.route';
@@ -25,8 +26,19 @@ import { weatherWorkflow } from './workflows/weather/weather.workflow';
 const port = appConfig.PORT;
 const ngrokOrigin = appConfig.NGROK_DOMAIN ? `https://${appConfig.NGROK_DOMAIN}` : undefined;
 
+// Connect to MongoDB
+await mongoose.connect(appConfig.MONGODB_URI, {
+    dbName: appConfig.MONGODB_DB_NAME,
+});
+
 await startNgrokTunnel(port);
-await ensureAdminSeed();
+
+// Seed admin user
+await userRepository.ensureAdminSeed(
+    appConfig.ADMIN_EMAIL || 'admin@example.com',
+    appConfig.ADMIN_NAME || 'Admin',
+    appConfig.ADMIN_TELEGRAM_ID
+);
 
 export const mastra = new Mastra({
     server: {
