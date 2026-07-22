@@ -1,6 +1,6 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { getUserByResourceId } from '../lib/users'
+import { getUserByResourceId } from '../../business/identity'
 import { startMedsOrder } from '../lib/meds-run'
 
 export const requestMedsTool = createTool({

@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { startDiapers } from '../lib/diapers-run'
-import { getUserByResourceId } from '../lib/users'
+import { getUserByResourceId } from '../../business/identity'
 
 export const requestDiapersTool = createTool({
     id: 'request-diapers',
