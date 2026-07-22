@@ -1,6 +1,6 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { addSubscriber } from '../lib/diapers-subscribers'
+import { subscriberRepository } from '../../business/repositories'
 
 export const subscribeDiapersTool = createTool({
     id: 'subscribe-diapers-notifications',
@@ -17,7 +17,7 @@ export const subscribeDiapersTool = createTool({
             return { subscribed: false }
         }
 
-        await addSubscriber({ resourceId, threadId })
+        await subscriberRepository.add('diapers', { resourceId, threadId })
         return { subscribed: true }
     },
 })
