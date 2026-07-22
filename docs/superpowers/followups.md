@@ -40,6 +40,7 @@ Origen: review final de la rama que agrega el handler `/start` de canje de invit
 - [ ] `telegram-start.ts` no distingue chats de grupo: un desconocido que escribe `/start` en un grupo hace que el bot postee el mensaje de invite inválido públicamente; los deep links legítimos siempre abren DM. Posible fix: `return` temprano cuando `event.raw.chat.type !== 'private'`.
 - [ ] `telegram-start.ts`: el `console.warn` de la rama "redeemed pero sin user" loguea el email del invitado; si se quiere endurecer privacidad, loguear solo `invite.code`.
 - [ ] Cosmético: `post(INVALID_INVITE_MESSAGE)` se repite tres veces; el literal `validInvite` en `tests/telegram-start.test.ts` es largo y podría extraerse a un fixture.
+- [ ] Los invites pendientes no se dedupean ni son revocables: invitar dos veces al mismo email genera dos códigos válidos de 7 días en paralelo (ninguno invalida al otro). El spec deja la revocación fuera de alcance a propósito; si hace falta, agregar un paso que invalide invites previos sin usar del mismo email al crear uno nuevo.
 
 ## Futuro (fuera de alcance por decisión de spec)
 

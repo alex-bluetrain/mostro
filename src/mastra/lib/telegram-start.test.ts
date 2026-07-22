@@ -4,6 +4,7 @@ import {
   buildWelcomeMessage,
   KNOWN_USER_GREETING,
   INVALID_INVITE_MESSAGE,
+  PROVISION_FAILED_MESSAGE,
   type TelegramStartDeps,
 } from './telegram-start';
 import type { IInvite, IUser } from '../../business';
@@ -71,5 +72,16 @@ describe('createTelegramStartHandler', () => {
     await createTelegramStartHandler(deps)(event);
 
     expect(event.channel.post).toHaveBeenCalledWith(buildWelcomeMessage('Ana'));
+  });
+
+  it('answers with the provisioning-failed message when provisionUser rejects, not the welcome', async () => {
+    const deps = makeDeps({ provisionUser: vi.fn().mockRejectedValue(new Error('mongo down')) });
+    const event = makeEvent('abc123');
+
+    await createTelegramStartHandler(deps)(event);
+
+    expect(event.channel.post).toHaveBeenCalledWith(PROVISION_FAILED_MESSAGE);
+    expect(event.channel.post).not.toHaveBeenCalledWith(buildWelcomeMessage(undefined));
+    expect(event.channel.post).not.toHaveBeenCalledWith(buildWelcomeMessage('Ana'));
   });
 });

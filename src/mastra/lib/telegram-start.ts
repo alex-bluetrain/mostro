@@ -24,6 +24,8 @@ export type TelegramStartEvent = {
 export const KNOWN_USER_GREETING = '¡Hola de nuevo! Contame en qué te ayudo.'
 export const INVALID_INVITE_MESSAGE =
     'No tengo una invitación válida para vos. Pedile a quien te invitó que te genere un link nuevo.'
+export const PROVISION_FAILED_MESSAGE =
+    'Uy, algo salió mal al activar tu invitación. Pedile a quien te invitó que te genere un link nuevo.'
 
 export function buildWelcomeMessage(name?: string): string {
     const greeting = name ? `¡Hola, ${name}!` : '¡Hola!'
@@ -54,8 +56,15 @@ export function createTelegramStartHandler(deps: TelegramStartDeps = defaultDeps
                 await event.channel.post(INVALID_INVITE_MESSAGE)
                 return
             }
-            const user = await deps.provisionUser(invite.email, telegramId)
-            await event.channel.post(buildWelcomeMessage(user.name || invite.name))
+            // El invite ya quedó quemado en redeemInvite; si la provisión falla acá
+            // igual hay que avisarle al invitado en vez de dejarlo sin respuesta.
+            try {
+                const user = await deps.provisionUser(invite.email, telegramId)
+                await event.channel.post(buildWelcomeMessage(user.name || invite.name))
+            } catch (err) {
+                console.error('[telegram-start] failed to provision user after redeem', err)
+                await event.channel.post(PROVISION_FAILED_MESSAGE)
+            }
         } catch (err) {
             console.error('[telegram-start] failed to handle /start', err)
         }
