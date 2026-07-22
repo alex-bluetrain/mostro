@@ -29,6 +29,27 @@ export class UserRepository {
     return result.matchedCount > 0;
   }
 
+  // Redeem-time provisioning: creates the user on their first /start, or just
+  // links telegram when the email already exists (legacy users, admin seed).
+  async upsertFromInviteRedeem(email: string, telegramId: string): Promise<IUser> {
+    const normalized = email.toLowerCase();
+    const result = await User.findOneAndUpdate(
+      { email: normalized },
+      {
+        $setOnInsert: {
+          email: normalized,
+          name: '',
+          role: 'member' as const,
+          addedAt: nowUnix(),
+        },
+        $set: { telegramId },
+      },
+      { upsert: true, new: true }
+    );
+    if (!result) throw new Error('Failed to upsert user from invite redeem');
+    return result;
+  }
+
   async setUserName(email: string, name: string): Promise<boolean> {
     const result = await User.updateOne(
       { email: email.toLowerCase() },

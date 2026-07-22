@@ -10,7 +10,7 @@ export interface IUser {
 
 const userSchema = new Schema<IUser>({
   email: { type: String, required: true, unique: true, lowercase: true },
-  name: { type: String, required: true },
+  name: { type: String, default: '' },
   role: { type: String, enum: ['admin', 'member'], required: true },
   telegramId: { type: String, unique: true, sparse: true },
   addedAt: { type: Number, required: true },

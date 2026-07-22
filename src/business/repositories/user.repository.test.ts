@@ -34,4 +34,21 @@ describe('UserRepository', () => {
 
     expect(result).toBe(false);
   });
+
+  it('upsertFromInviteRedeem creates the user with telegram linked', async () => {
+    const mockUser = { email: 'new@gmail.com', name: '', role: 'member' as const, telegramId: '42', addedAt: 123 };
+    vi.mocked(User.findOneAndUpdate).mockResolvedValue(mockUser as any);
+
+    const result = await userRepository.upsertFromInviteRedeem('New@Gmail.com', '42');
+
+    expect(result).toEqual(mockUser);
+    expect(User.findOneAndUpdate).toHaveBeenCalledWith(
+      { email: 'new@gmail.com' },
+      expect.objectContaining({
+        $setOnInsert: expect.objectContaining({ email: 'new@gmail.com', name: '', role: 'member' }),
+        $set: { telegramId: '42' },
+      }),
+      { upsert: true, new: true }
+    );
+  });
 });
