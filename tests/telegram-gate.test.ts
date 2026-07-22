@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createTelegramGate, parseStartCode, type TelegramGateDeps } from '../src/mastra/lib/telegram-gate'
-import type { User } from '../src/mastra/lib/users'
-import type { Invite } from '../src/mastra/lib/invites'
+import type { IUser, IInvite } from '../src/business'
 
 describe('parseStartCode', () => {
     it('extrae el código de /start CODE', () => {
@@ -29,8 +28,8 @@ describe('parseStartCode', () => {
     })
 })
 
-const member: User = { email: 'ana@gmail.com', telegramId: '111', name: 'Ana', role: 'member', addedAt: 1 }
-const validInvite: Invite = { code: 'abc123XYZ_-9', email: 'nueva@gmail.com', createdBy: 'admin@gmail.com', createdAt: 1, expiresAt: 2, usedBy: '222' }
+const member: IUser = { email: 'ana@gmail.com', telegramId: '111', name: 'Ana', role: 'member', addedAt: 1 }
+const validInvite: IInvite = { code: 'abc123XYZ_-9', email: 'nueva@gmail.com', createdBy: 'admin@gmail.com', createdAt: 1, expiresAt: 2, usedBy: '222' }
 
 function makeDeps(overrides: Partial<TelegramGateDeps> = {}): TelegramGateDeps {
     return {
