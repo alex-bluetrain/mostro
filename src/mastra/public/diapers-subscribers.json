@@ -10,5 +10,9 @@
   {
     "resourceId": "telegram:5336406566-diapersAgent",
     "threadId": "b191701b-45fa-42ec-a59a-273fd04e50f3-d19234f0-f3a7-477d-bc54-351dace29af3"
+  },
+  {
+    "resourceId": "mostro-supervisor-diapersAgent",
+    "threadId": "c9b4d972-a5ca-496a-bb46-48bd5316c6c5-1568ffb6-bd58-49b2-9909-ae0b0e725636"
   }
 ]

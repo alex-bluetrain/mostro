@@ -1,6 +1,7 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { appConfig } from '../../../config/app.config'
+import { nowUnix } from '../../../lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
 import { requestRefundInputSchema } from '../schemas/request-refund-input.schema'
 
@@ -15,7 +16,7 @@ export const requestRefundStep = createStep({
             status: 'refund_requested',
             amount: inputData.amount,
             reason: inputData.reason,
-            requestedAt: new Date().toISOString(),
+            requestedAt: nowUnix(),
         })
 
         const messagingUrl = appConfig.REFUNDS_MESSAGING_URL

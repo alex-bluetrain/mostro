@@ -1,6 +1,7 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { listSubscribers } from '../../../lib/diapers-subscribers'
+import { formatUnixDate, nowUnix } from '../../../lib/unix-time'
 import { diapersStateSchema } from '../schemas/diapers-state.schema'
 import { notifyUsersOutputSchema } from '../schemas/notify-users-output.schema'
 
@@ -20,7 +21,7 @@ export const notifyDiapersConfirmation = createStep({
                         source: 'diapers',
                         kind: 'diapers-confirmation',
                         priority: 'high',
-                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: los pañales (${state.diaperType ?? 'sin especificar'}) llegan el ${state.deliveryDate ?? 'fecha a confirmar'}.`,
+                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: los pañales (${state.diaperType ?? 'sin especificar'}) llegan el ${state.deliveryDate != null ? formatUnixDate(state.deliveryDate) : 'fecha a confirmar'}.`,
                         payload: {
                             diaperType: state.diaperType,
                             quantity: state.quantity,
@@ -36,7 +37,7 @@ export const notifyDiapersConfirmation = createStep({
         await setState({
             ...state,
             status: 'diapers_notification_sent',
-            notifiedAt: new Date().toISOString(),
+            notifiedAt: nowUnix(),
             notifiedCount: subscribers.length,
         })
 

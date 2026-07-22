@@ -1,6 +1,7 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { appConfig } from '../../../config/app.config'
+import { nowUnix } from '../../../lib/unix-time'
 import { diapersStateSchema } from '../schemas/diapers-state.schema'
 import { requestDiapersInputSchema } from '../schemas/request-diapers-input.schema'
 
@@ -15,7 +16,7 @@ export const requestDiapers = createStep({
             status: 'diapers_requested',
             diaperType: inputData.diaperType,
             quantity: inputData.quantity,
-            requestedAt: new Date().toISOString(),
+            requestedAt: nowUnix(),
         })
 
         const messagingUrl = appConfig.DIAPERS_MESSAGING_URL

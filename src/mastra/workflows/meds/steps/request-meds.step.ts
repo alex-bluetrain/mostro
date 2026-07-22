@@ -1,6 +1,7 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { appConfig } from '../../../config/app.config'
+import { nowUnix } from '../../../lib/unix-time'
 import { medsStateSchema } from '../schemas/meds-state.schema'
 
 export const requestMedsStep = createStep({
@@ -12,7 +13,7 @@ export const requestMedsStep = createStep({
         await setState({
             ...state,
             status: 'meds_requested',
-            requestedAt: new Date().toISOString(),
+            requestedAt: nowUnix(),
         })
 
         const messagingUrl = appConfig.MEDS_MESSAGING_URL

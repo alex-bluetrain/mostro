@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { unixTimestampSchema } from '../../../lib/unix-time'
 
 export const diapersStateSchema = z.object({
     status: z.enum([
@@ -9,9 +10,9 @@ export const diapersStateSchema = z.object({
     ]).default('idle'),
     diaperType: z.string().optional(),
     quantity: z.number().optional(),
-    deliveryDate: z.string().optional(),
+    deliveryDate: unixTimestampSchema.optional(),
     deliveryAddress: z.string().optional(),
-    requestedAt: z.string().optional(),
-    notifiedAt: z.string().optional(),
+    requestedAt: unixTimestampSchema.optional(),
+    notifiedAt: unixTimestampSchema.optional(),
     notifiedCount: z.number().optional(),
 })
