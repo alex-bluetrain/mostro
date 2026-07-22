@@ -21,7 +21,7 @@ export async function readDiapersStatus(mastra: Mastra, yearMonth: string = getC
 
 export async function startDiapers(
     mastra: Mastra,
-    input: { diaperType: string; quantity: number; yearMonth?: string },
+    input: { diaperType: string; quantity: number; yearMonth?: string; requestedBy?: string },
 ) {
     const yearMonth = input.yearMonth ?? getCurrentYearMonth()
     const runId = getDiapersRunId(yearMonth)
@@ -37,7 +37,7 @@ export async function startDiapers(
     }
 
     const run = await workflow.createRun({ runId })
-    const result = await run.start({ inputData: { diaperType: input.diaperType, quantity: input.quantity } })
+    const result = await run.start({ inputData: { diaperType: input.diaperType, quantity: input.quantity, requestedBy: input.requestedBy } })
 
     return { alreadyInProgress: false as const, result }
 }

@@ -16,6 +16,7 @@ export const requestDiapers = createStep({
             status: 'diapers_requested',
             diaperType: inputData.diaperType,
             quantity: inputData.quantity,
+            requestedBy: inputData.requestedBy,
             requestedAt: nowUnix(),
         })
 
