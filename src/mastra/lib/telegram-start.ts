@@ -4,13 +4,13 @@ import type { IUser, IInvite } from '../../business'
 export type TelegramStartDeps = {
     getUserByTelegramId: (telegramId: string) => Promise<IUser | null>
     redeemInvite: (code: string, telegramId: string) => Promise<IInvite | null>
-    linkTelegramId: (email: string, telegramId: string) => Promise<boolean>
+    provisionUser: (email: string, telegramId: string) => Promise<IUser>
 }
 
 const defaultDeps: TelegramStartDeps = {
     getUserByTelegramId: telegramId => userRepository.findByTelegramId(telegramId),
     redeemInvite: (code, telegramId) => inviteRepository.redeem(code, telegramId),
-    linkTelegramId: (email, telegramId) => userRepository.linkTelegramId(email, telegramId),
+    provisionUser: (email, telegramId) => userRepository.upsertFromInviteRedeem(email, telegramId),
 }
 
 // Subconjunto estructural de SlashCommandEvent del Chat SDK: alcanza para el
@@ -54,13 +54,8 @@ export function createTelegramStartHandler(deps: TelegramStartDeps = defaultDeps
                 await event.channel.post(INVALID_INVITE_MESSAGE)
                 return
             }
-            const linked = await deps.linkTelegramId(invite.email, telegramId)
-            if (!linked) {
-                console.warn(`[telegram-start] invite ${invite.code} redeemed but no user found for ${invite.email}`)
-                await event.channel.post(INVALID_INVITE_MESSAGE)
-                return
-            }
-            await event.channel.post(buildWelcomeMessage(invite.name))
+            const user = await deps.provisionUser(invite.email, telegramId)
+            await event.channel.post(buildWelcomeMessage(user.name || invite.name))
         } catch (err) {
             console.error('[telegram-start] failed to handle /start', err)
         }
