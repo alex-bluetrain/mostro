@@ -1,7 +1,7 @@
 # Mostro
 
 <p align="center">
-  <img src="docs/roblov.gif" alt="Mostro"/>
+  <img src="img/agents.png" alt="Mostro"/>
 </p>
 
 A multi-agent Telegram bot for managing recurring family orders — diapers, medications, and refunds — built with [Mastra](https://mastra.ai/).
@@ -35,13 +35,13 @@ Only known users get past the access gate; identity, invites, and memory ownersh
 
 ### Agents
 
-| Agent                 | Description                                                                                              |
-| --------------------- | -------------------------------------------------------------------------------------------------------- |
+| Agent                 | Description                                                                                                             |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | **Mostro Supervisor** | Receives all Telegram messages, delegates to domain agents, relays notification signals to subscribers, handles invites |
-| **Weather Agent**     | Provides weather details for a location and suggests activities based on the forecast                    |
-| **Diapers Agent**     | Manages the shared diaper order flow — request, check status, subscribe to updates                       |
-| **Meds Agent**        | Manages medication orders based on prescriptions — request, track pharmacy acknowledgements and delivery |
-| **Refunds Agent**     | Manages refund requests — submit, track acknowledgement, confirmation, and deposit                       |
+| **Weather Agent**     | Provides weather details for a location and suggests activities based on the forecast                                   |
+| **Diapers Agent**     | Manages the shared diaper order flow — request, check status, subscribe to updates                                      |
+| **Meds Agent**        | Manages medication orders based on prescriptions — request, track pharmacy acknowledgements and delivery                |
+| **Refunds Agent**     | Manages refund requests — submit, track acknowledgement, confirmation, and deposit                                      |
 
 ### Workflows
 
