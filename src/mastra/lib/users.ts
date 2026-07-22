@@ -1,6 +1,7 @@
 import type { Collection } from 'mongodb'
 import { appConfig } from '../config/app.config'
 import { getDb } from './mongo-client'
+import { subAgentKeys } from './sub-agent-keys'
 import { nowUnix } from './unix-time'
 
 export type UserRole = 'admin' | 'member'
@@ -26,9 +27,15 @@ async function usersCollection(): Promise<Collection<User>> {
 
 // La delegación a sub-agentes deriva el resourceId hijo como
 // `${resourceId}-${agentName}` (ej. 'ana@gmail.com-diapersAgent');
-// se recorta ese sufijo para resolver siempre a la identidad del padre
+// se recorta ese sufijo para resolver siempre a la identidad del padre.
+// Solo se recortan keys registradas: un sufijo desconocido no matchea ningún
+// user y el error queda visible en vez de mangled en silencio.
 function stripSubAgentSuffix(resourceId: string): string {
-    return resourceId.replace(/-[A-Za-z0-9]+Agent$/, '')
+    for (const key of subAgentKeys) {
+        const suffix = `-${key}`
+        if (resourceId.endsWith(suffix)) return resourceId.slice(0, -suffix.length)
+    }
+    return resourceId
 }
 
 // Un resourceId puede ser 'telegram:<id>' (threads legacy / default de channels)

@@ -42,6 +42,7 @@ Nota: en tools el orden se invierte respecto al archivo — el archivo antepone 
 ## Otras reglas
 
 - Supervisor es la excepción de nombre: `mostroSupervisor`, sin sufijo `Agent`.
+- Sub-agentes: al registrar uno nuevo en `mostroSupervisorAgents`, agregar su key a `lib/sub-agent-keys.ts` (el `satisfies` del supervisor lo exige en compilación; `users.ts` usa esa lista para des-derivar resourceIds).
 - Types se infieren con `z.infer<typeof xSchema>`, sin sufijo `Type` en el nombre exportado.
 - Comillas simples y sin `;` en código nuevo (`meds/`, `diapers/`); `weather/` e `index.ts` son legacy con comillas dobles y `;` — mantené el estilo del archivo que edites.
 - Comentarios solo para explicar un "por qué" no obvio (ver `meds-subscribers.ts`), nunca para describir "qué hace" el código.
