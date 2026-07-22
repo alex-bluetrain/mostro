@@ -5,6 +5,7 @@ export const webhookDiapersRoute = registerApiRoute(
     "/webhooks/diapers",
     {
         method: "POST",
+        requiresAuth: false,
         handler: async (c) => {
             const mastra = c.get("mastra");
             const body = await c.req.json();

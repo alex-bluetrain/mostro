@@ -5,6 +5,7 @@ export const webhookRefundsAckRoute = registerApiRoute(
     '/webhooks/refunds/ack',
     {
         method: 'POST',
+        requiresAuth: false,
         handler: async (c) => {
             const mastra = c.get('mastra')
             const body = await c.req.json()
@@ -24,6 +25,7 @@ export const webhookRefundsConfirmationRoute = registerApiRoute(
     '/webhooks/refunds/confirmation',
     {
         method: 'POST',
+        requiresAuth: false,
         handler: async (c) => {
             const mastra = c.get('mastra')
             const body = await c.req.json()
@@ -43,6 +45,7 @@ export const webhookRefundsDepositRoute = registerApiRoute(
     '/webhooks/refunds/deposit',
     {
         method: 'POST',
+        requiresAuth: false,
         handler: async (c) => {
             const mastra = c.get('mastra')
             const body = await c.req.json()
