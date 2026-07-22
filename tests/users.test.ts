@@ -1,20 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import { telegramIdFromResourceId } from '../src/mastra/lib/users'
+import { parseResourceId } from '../src/mastra/lib/users'
 
-describe('telegramIdFromResourceId', () => {
-    it('extrae el id de un resourceId de telegram', () => {
-        expect(telegramIdFromResourceId('telegram:5551234')).toBe('5551234')
+describe('parseResourceId', () => {
+    it('parsea un resourceId de telegram', () => {
+        expect(parseResourceId('telegram:5551234')).toEqual({ kind: 'telegram', telegramId: '5551234' })
     })
 
-    it('devuelve null para otros providers', () => {
-        expect(telegramIdFromResourceId('slack:U123')).toBeNull()
+    it('parsea un email como canónico', () => {
+        expect(parseResourceId('ana@gmail.com')).toEqual({ kind: 'email', email: 'ana@gmail.com' })
     })
 
-    it('devuelve null para strings sin prefijo', () => {
-        expect(telegramIdFromResourceId('5551234')).toBeNull()
+    it('normaliza el email a lowercase', () => {
+        expect(parseResourceId('Ana@Gmail.com')).toEqual({ kind: 'email', email: 'ana@gmail.com' })
+    })
+
+    it('devuelve null para strings sin formato conocido', () => {
+        expect(parseResourceId('5551234')).toBeNull()
     })
 
     it('devuelve null para telegram: vacío', () => {
-        expect(telegramIdFromResourceId('telegram:')).toBeNull()
+        expect(parseResourceId('telegram:')).toBeNull()
     })
 })
