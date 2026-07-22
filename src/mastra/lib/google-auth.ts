@@ -1,6 +1,6 @@
 import { MastraAuthGoogle } from '@mastra/auth-google'
 import { appConfig } from '../config/app.config'
-import { getUserByEmail } from './users'
+import { userRepository } from '../../business/repositories'
 
 // El webhook del canal Telegram vive bajo /api/* (protegido por default del
 // middleware de auth) pero ya tiene su propia protección vía
@@ -25,7 +25,7 @@ export function createGoogleAuth(): MastraAuthGoogle | undefined {
         // el email): invitar a alguien le da acceso al bot Y a la web de una
         authorizeUser: async user => {
             if (!user?.email || user.emailVerified === false) return false
-            return (await getUserByEmail(user.email)) !== null
+            return (await userRepository.findByEmail(user.email)) !== null
         },
     })
 }
