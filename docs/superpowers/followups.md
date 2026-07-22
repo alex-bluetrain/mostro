@@ -33,6 +33,14 @@ Origen: spec `specs/2026-07-22-mongoose-business-models-design.md`, plan `plans/
 - [ ] Dos pools de Mongo activos a la vez: `mongoose.connect()` (para los repositories nuevos) y el `MongoDBStore` interno de Mastra (`@mastra/mongodb`, storage propio del framework) — mismo Mongo, dos clientes separados, sin conflicto pero sin consolidar. Evaluar si vale la pena unificar.
 - [ ] Test de `user.repository.test.ts` para `findByEmail` no ejercita el lowercasing (pasa un email ya en minúsculas); sí está cubierto indirectamente en `invite.repository.test.ts`.
 
+## Diferidos de la rama `fix/telegram-start-invite-redeem` (2026-07-22)
+
+Origen: review final de la rama que agrega el handler `/start` de canje de invitaciones por Telegram (`src/mastra/lib/telegram-start.ts`).
+
+- [ ] `telegram-start.ts` no distingue chats de grupo: un desconocido que escribe `/start` en un grupo hace que el bot postee el mensaje de invite inválido públicamente; los deep links legítimos siempre abren DM. Posible fix: `return` temprano cuando `event.raw.chat.type !== 'private'`.
+- [ ] `telegram-start.ts`: el `console.warn` de la rama "redeemed pero sin user" loguea el email del invitado; si se quiere endurecer privacidad, loguear solo `invite.code`.
+- [ ] Cosmético: `post(INVALID_INVITE_MESSAGE)` se repite tres veces; el literal `validInvite` en `tests/telegram-start.test.ts` es largo y podría extraerse a un fixture.
+
 ## Futuro (fuera de alcance por decisión de spec)
 
 - ~~Identidad canónica cross-canal~~ → hecho el 2026-07-22 (spec `2026-07-22-canonical-identity-design.md`): email de Google como ID canónico, invites nominados, `resolveResourceId` en DMs. Queda para el futuro: otros proveedores de identidad, cambio de email de un usuario (migración manual), cache en `authorizeUser` si el login se pone lento.
