@@ -29,6 +29,7 @@
     "@mastra/observability": "^1.15.2",
     "@ngrok/ngrok": "^1.7.0",
     "mongodb": "^7.5.0",
+    "mongoose": "^8.24.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
