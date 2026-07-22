@@ -1,6 +1,6 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { addRefundsSubscriber } from '../lib/refunds-subscribers'
+import { subscriberRepository } from '../../business/repositories'
 
 export const subscribeRefundsTool = createTool({
     id: 'subscribe-refunds-notifications',
@@ -17,7 +17,7 @@ export const subscribeRefundsTool = createTool({
             return { subscribed: false }
         }
 
-        await addRefundsSubscriber({ resourceId, threadId })
+        await subscriberRepository.add('refunds', { resourceId, threadId })
         return { subscribed: true }
     },
 })
