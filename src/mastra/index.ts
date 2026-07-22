@@ -9,6 +9,7 @@ import { diapersAgent } from './agents/diapers-agent';
 import { medsAgent } from './agents/meds-agent';
 import { refundsAgent } from './agents/refunds-agent';
 import { mostroSupervisor } from './agents/mostro-supervisor';
+import { createTelegramStartHandler } from './lib/telegram-start';
 import { toolCallAppropriatenessScorer, completenessScorer, translationScorer } from './scorers/weather-scorer';
 import mongoose from 'mongoose';
 import { userRepository } from '../business/repositories';
@@ -95,3 +96,16 @@ export const mastra = new Mastra({
         },
     }),
 });
+
+// El adapter de telegram desvía los /start (bot_command) al pipeline de slash
+// commands del Chat SDK, así que el canje de invitaciones se registra acá y no
+// en el gate de onDirectMessage. initialize() es idempotente: espera la
+// inicialización que addAgent ya disparó y garantiza que sdk esté disponible.
+const supervisorChannels = mostroSupervisor.getChannels();
+if (supervisorChannels) {
+    await supervisorChannels.initialize(mastra);
+    supervisorChannels.sdk?.onSlashCommand('/start', createTelegramStartHandler());
+    console.info('[telegram-start] /start handler registered');
+} else {
+    console.warn('[telegram-start] supervisor has no channels; /start handler not registered');
+}
