@@ -5,6 +5,7 @@ export const webhookMedsAckRoute = registerApiRoute(
     "/webhooks/meds/ack",
     {
         method: "POST",
+        requiresAuth: false,
         handler: async (c) => {
             const mastra = c.get("mastra");
             const body = await c.req.json();
@@ -23,6 +24,7 @@ export const webhookMedsConfirmRoute = registerApiRoute(
     "/webhooks/meds/confirm",
     {
         method: "POST",
+        requiresAuth: false,
         handler: async (c) => {
             const mastra = c.get("mastra");
             const body = await c.req.json();

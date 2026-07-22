@@ -12,6 +12,7 @@ import { mostroSupervisor } from './agents/mostro-supervisor';
 import { toolCallAppropriatenessScorer, completenessScorer, translationScorer } from './scorers/weather-scorer';
 import { startNgrokTunnel } from './ngrok';
 import { ensureAdminSeed } from './lib/users';
+import { createGoogleAuth } from './lib/google-auth';
 import { webhookDiapersRoute } from './routes/webhook-diapers.route';
 import { webhookMedsAckRoute, webhookMedsConfirmRoute } from './routes/webhook-meds.route';
 import { webhookRefundsAckRoute, webhookRefundsConfirmationRoute, webhookRefundsDepositRoute } from './routes/webhook-refunds.route';
@@ -29,6 +30,7 @@ await ensureAdminSeed();
 
 export const mastra = new Mastra({
     server: {
+        auth: createGoogleAuth(),
         apiRoutes: [
             webhookDiapersRoute,
             webhookMedsAckRoute,
