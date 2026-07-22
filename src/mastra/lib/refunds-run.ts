@@ -21,7 +21,7 @@ export async function readRefundsStatus(mastra: Mastra, yearMonth: string = getC
 
 export async function startRefundRequest(
     mastra: Mastra,
-    input: { amount: number; reason?: string; yearMonth?: string },
+    input: { amount: number; reason?: string; yearMonth?: string; requestedBy?: string },
 ) {
     const yearMonth = input.yearMonth ?? getCurrentYearMonth()
     const runId = getRefundsRunId(yearMonth)
@@ -38,7 +38,7 @@ export async function startRefundRequest(
 
     const run = await workflow.createRun({ runId })
     const result = await run.start({
-        inputData: { amount: input.amount, reason: input.reason },
+        inputData: { amount: input.amount, reason: input.reason, requestedBy: input.requestedBy },
     })
 
     return { alreadyInProgress: false as const, result }

@@ -15,6 +15,7 @@ export const refundsStateSchema = z.object({
     ]).default('idle'),
     amount: z.number().optional(),
     reason: z.string().optional(),
+    requestedBy: z.string().optional(),
     requestedAt: unixTimestampSchema.optional(),
     acknowledgedAt: unixTimestampSchema.optional(),
     ackNotifiedAt: unixTimestampSchema.optional(),

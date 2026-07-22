@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { startRefundRequest } from '../lib/refunds-run'
+import { getUserByResourceId } from '../lib/users'
 
 export const requestRefundTool = createTool({
     id: 'request-refund',
@@ -15,6 +16,8 @@ export const requestRefundTool = createTool({
         if (!context?.mastra) {
             throw new Error('mastra instance not available in tool context')
         }
-        return startRefundRequest(context.mastra as any, input)
+        const resourceId = context?.agent?.resourceId
+        const user = resourceId ? await getUserByResourceId(resourceId) : null
+        return startRefundRequest(context.mastra as any, { ...input, requestedBy: user?.name || undefined })
     },
 })
