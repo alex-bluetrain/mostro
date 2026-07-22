@@ -1,43 +1,22 @@
-import { Subscriber, type ISubscriber } from '../models/subscriber.model';
-import { nowUnix } from '../../mastra/lib/unix-time';
+import { Subscriber } from '../models/subscriber.model';
 
 type Domain = 'diapers' | 'meds' | 'refunds';
+export type SubscriberEntry = { resourceId: string; threadId: string };
 
 export class SubscriberRepository {
-  async findByEmail(domain: Domain, email: string): Promise<ISubscriber | null> {
-    return Subscriber.findOne({ domain, email: email.toLowerCase() });
-  }
-
-  async findByTelegramId(domain: Domain, telegramId: string): Promise<ISubscriber | null> {
-    return Subscriber.findOne({ domain, telegramId });
-  }
-
-  async subscribe(domain: Domain, email?: string, telegramId?: string): Promise<ISubscriber> {
-    if (!email && !telegramId) {
-      throw new Error('Either email or telegramId must be provided');
-    }
-    const result = await Subscriber.findOneAndUpdate(
-      { domain, ...(email ? { email: email.toLowerCase() } : { telegramId }) },
-      { $setOnInsert: { domain, email: email?.toLowerCase(), telegramId, addedAt: nowUnix() } },
-      { upsert: true, new: true }
+  async add(domain: Domain, entry: SubscriberEntry): Promise<void> {
+    // Upsert with $setOnInsert reproduces the old find-then-insert idempotency
+    // check atomically (no race between the check and the insert).
+    await Subscriber.updateOne(
+      { type: domain, resourceId: entry.resourceId, threadId: entry.threadId },
+      { $setOnInsert: { type: domain, ...entry } },
+      { upsert: true }
     );
-    if (!result) throw new Error('Failed to subscribe');
-    return result;
   }
 
-  async unsubscribe(domain: Domain, email?: string, telegramId?: string): Promise<boolean> {
-    if (!email && !telegramId) {
-      throw new Error('Either email or telegramId must be provided');
-    }
-    const result = await Subscriber.deleteOne({
-      domain,
-      ...(email ? { email: email.toLowerCase() } : { telegramId }),
-    });
-    return result.deletedCount > 0;
-  }
-
-  async count(domain: Domain): Promise<number> {
-    return Subscriber.countDocuments({ domain });
+  async list(domain: Domain): Promise<SubscriberEntry[]> {
+    const docs = await Subscriber.find({ type: domain }).lean();
+    return docs.map(({ resourceId, threadId }) => ({ resourceId, threadId }));
   }
 }
 
