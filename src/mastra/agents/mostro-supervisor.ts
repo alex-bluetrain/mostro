@@ -55,8 +55,12 @@ export const mostroSupervisor = new Agent({
                 toolDisplay: 'hidden', // supress tool calls messages
             },
         },
+        // La compuerta de acceso debe cubrir los tres caminos de entrada (DM, mención, suscripción)
+        // para rechazar remitentes desconocidos en todas partes.
         handlers: {
             onDirectMessage: createTelegramGate(),
+            onMention: createTelegramGate(),
+            onSubscribedMessage: createTelegramGate(),
         },
     },
 });
