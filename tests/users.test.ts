@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseResourceId } from '../src/mastra/lib/users'
+import { parseResourceId } from '../src/business/identity'
 
 describe('parseResourceId', () => {
     it('parsea un resourceId de telegram', () => {

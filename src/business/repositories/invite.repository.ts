@@ -5,6 +5,10 @@ import { userRepository } from './user.repository';
 
 export const INVITE_TTL_SECONDS = 7 * 24 * 60 * 60;
 
+export function generateInviteCode(): string {
+  return randomBytes(9).toString('base64url');
+}
+
 export class InviteRepository {
   // Creates the invite and ensures the invitee's user record exists (without
   // telegram yet) so they can already log into the web before redeeming.
@@ -13,7 +17,7 @@ export class InviteRepository {
     const now = nowUnix();
     await userRepository.upsertUser({ email, name: params.name ?? '', role: 'member', addedAt: now });
     const invite = await Invite.create({
-      code: randomBytes(9).toString('base64url'),
+      code: generateInviteCode(),
       email,
       ...(params.name ? { name: params.name } : {}),
       createdBy: params.createdBy,
