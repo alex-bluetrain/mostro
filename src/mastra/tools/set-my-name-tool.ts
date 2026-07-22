@@ -1,6 +1,6 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { setUserNameByResourceId } from '../lib/users'
+import { setUserNameByResourceId } from '../../business/identity'
 
 export const setMyNameTool = createTool({
     id: 'set-my-name',

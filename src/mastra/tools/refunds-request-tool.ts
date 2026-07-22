@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { startRefundRequest } from '../lib/refunds-run'
-import { getUserByResourceId } from '../lib/users'
+import { getUserByResourceId } from '../../business/identity'
 
 export const requestRefundTool = createTool({
     id: 'request-refund',
