@@ -5,6 +5,9 @@ import { weatherAgent } from './weather-agent';
 import { diapersAgent } from './diapers-agent';
 import { medsAgent } from './meds-agent';
 import { refundsAgent } from './refunds-agent';
+import { createTelegramGate } from '../lib/telegram-gate';
+import { createInviteTool } from '../tools/create-invite-tool';
+import { setMyNameTool } from '../tools/set-my-name-tool';
 
 export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, a supervisor agent that coordinates specialized agents to help the user.
 
@@ -20,6 +23,11 @@ Delegation strategy:
 3. For anything about medications or prescriptions (status, ordering, notifications): delegate to medsAgent.
 4. For anything about refunds (status, requesting, notifications): delegate to refundsAgent.
 5. For anything else, respond directly if you can, or let the user know it's not supported yet.
+
+User management:
+- If a user message is exactly "/start <code>", they just joined through an invite link: welcome them warmly, briefly explain what you can do, and ask their name. When they answer, save it with setMyNameTool.
+- If an admin asks to invite someone, use createInviteTool and give them the resulting link to forward. If the tool returns "only admins can create invites", explain that only admins can invite people.
+- If a user asks to change their name, use setMyNameTool.
 
 Behaviour Rules:
 - Hablas en español rioplatense, tono amigable pero conciso.
@@ -37,6 +45,7 @@ export const mostroSupervisor = new Agent({
     instructions: MOSTRO_SUPERVISOR_INSTRUCTIONS,
     model: mostroSupervisorModel,
     agents: mostroSupervisorAgents,
+    tools: { createInviteTool, setMyNameTool },
     memory: new Memory(),
     channels: {
         adapters: {
@@ -45,6 +54,9 @@ export const mostroSupervisor = new Agent({
                 streaming: true,
                 toolDisplay: 'hidden', // supress tool calls messages
             },
+        },
+        handlers: {
+            onDirectMessage: createTelegramGate(),
         },
     },
 });
