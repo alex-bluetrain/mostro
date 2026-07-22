@@ -1,21 +1,18 @@
 import { Schema, model } from 'mongoose';
 
 export interface ISubscriber {
-  domain: 'diapers' | 'meds' | 'refunds';
-  email?: string;
-  telegramId?: string;
-  addedAt: number;
+  type: 'diapers' | 'meds' | 'refunds';
+  resourceId: string;
+  threadId: string;
 }
 
 const subscriberSchema = new Schema<ISubscriber>({
-  domain: { type: String, enum: ['diapers', 'meds', 'refunds'], required: true },
-  email: { type: String, lowercase: true },
-  telegramId: { type: String },
-  addedAt: { type: Number, required: true },
+  type: { type: String, enum: ['diapers', 'meds', 'refunds'], required: true },
+  resourceId: { type: String, required: true },
+  threadId: { type: String, required: true },
 });
 
-// Compound unique index: one subscriber per (domain, email) or (domain, telegramId)
-subscriberSchema.index({ domain: 1, email: 1 }, { unique: true, sparse: true });
-subscriberSchema.index({ domain: 1, telegramId: 1 }, { unique: true, sparse: true });
+// Idempotency guard: matches the current addSubscriber "insert if not present" check
+subscriberSchema.index({ type: 1, resourceId: 1, threadId: 1 }, { unique: true });
 
 export const Subscriber = model<ISubscriber>('Subscriber', subscriberSchema);
