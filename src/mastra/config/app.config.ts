@@ -9,6 +9,7 @@ const envSchema = z.object({
     TELEGRAM_WEBHOOK_SECRET_TOKEN: z.string().min(1),
     ADMIN_TELEGRAM_ID: z.string().min(1).optional(),
     ADMIN_NAME: z.string().min(1).optional(),
+    ADMIN_EMAIL: z.string().min(3).optional(),
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
     GOOGLE_REDIRECT_URI: z.string().min(1).optional(),

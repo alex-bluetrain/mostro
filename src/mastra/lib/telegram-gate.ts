@@ -1,15 +1,14 @@
 import type { ChannelHandler } from '@mastra/core/channels'
-import { createUser, getUserByTelegramId, type User } from './users'
+import { getUserByTelegramId, linkTelegramId, type User } from './users'
 import { redeemInvite, type Invite } from './invites'
-import { nowUnix } from './unix-time'
 
 export type TelegramGateDeps = {
     getUserByTelegramId: (telegramId: string) => Promise<User | null>
     redeemInvite: (code: string, telegramId: string) => Promise<Invite | null>
-    createUser: (user: User) => Promise<void>
+    linkTelegramId: (email: string, telegramId: string) => Promise<boolean>
 }
 
-const defaultDeps: TelegramGateDeps = { getUserByTelegramId, redeemInvite, createUser }
+const defaultDeps: TelegramGateDeps = { getUserByTelegramId, redeemInvite, linkTelegramId }
 
 export function parseStartCode(text: string | undefined): string | null {
     if (!text) return null
@@ -34,7 +33,8 @@ export function createTelegramGate(deps: TelegramGateDeps = defaultDeps): Channe
         const invite = await deps.redeemInvite(code, senderId)
         if (!invite) return
 
-        await deps.createUser({ telegramId: senderId, name: '', role: 'member', addedAt: nowUnix() })
+        // El user existe desde que se generó el invite; el canje solo vincula
+        await deps.linkTelegramId(invite.email, senderId)
         await defaultHandler(thread, message)
     }
 }

@@ -5,21 +5,37 @@ import { nowUnix } from './unix-time'
 
 export type UserRole = 'admin' | 'member'
 
+// Identidad canónica: email de Google (lowercase). telegramId es una identidad
+// vinculada, se setea al canjear un invite (o por seed para el admin).
 export type User = {
-    telegramId: string
+    email: string
     name: string
     role: UserRole
+    telegramId?: string
     addedAt: number
 }
+
+export type ParsedResourceId =
+    | { kind: 'telegram'; telegramId: string }
+    | { kind: 'email'; email: string }
 
 async function usersCollection(): Promise<Collection<User>> {
     const db = await getDb()
     return db.collection<User>('users')
 }
 
-export function telegramIdFromResourceId(resourceId: string): string | null {
-    const match = /^telegram:(.+)$/.exec(resourceId)
-    return match ? match[1] : null
+// Un resourceId puede ser 'telegram:<id>' (threads legacy / default de channels)
+// o un email plano (canónico: threads nuevos y futura web)
+export function parseResourceId(resourceId: string): ParsedResourceId | null {
+    const telegramMatch = /^telegram:(.+)$/.exec(resourceId)
+    if (telegramMatch) return { kind: 'telegram', telegramId: telegramMatch[1] }
+    if (resourceId.includes('@')) return { kind: 'email', email: resourceId.trim().toLowerCase() }
+    return null
+}
+
+export async function getUserByEmail(email: string): Promise<User | null> {
+    const col = await usersCollection()
+    return col.findOne({ email: email.toLowerCase() }, { projection: { _id: 0 } })
 }
 
 export async function getUserByTelegramId(telegramId: string): Promise<User | null> {
@@ -28,37 +44,62 @@ export async function getUserByTelegramId(telegramId: string): Promise<User | nu
 }
 
 export async function getUserByResourceId(resourceId: string): Promise<User | null> {
-    const telegramId = telegramIdFromResourceId(resourceId)
-    if (!telegramId) return null
-    return getUserByTelegramId(telegramId)
+    const parsed = parseResourceId(resourceId)
+    if (!parsed) return null
+    return parsed.kind === 'telegram'
+        ? getUserByTelegramId(parsed.telegramId)
+        : getUserByEmail(parsed.email)
 }
 
-// Upsert por telegramId: si ya existe, no pisa nada ($setOnInsert)
-export async function createUser(user: User): Promise<void> {
+// Upsert por email: crea si no existe, no pisa name/role de un user existente
+export async function upsertUser(user: Omit<User, 'telegramId'>): Promise<void> {
+    const email = user.email.toLowerCase()
     const col = await usersCollection()
     await col.updateOne(
-        { telegramId: user.telegramId },
-        { $setOnInsert: user },
+        { email },
+        { $setOnInsert: { ...user, email } },
         { upsert: true },
     )
 }
 
-export async function setUserName(telegramId: string, name: string): Promise<boolean> {
+// Vincula (o re-vincula, ej. cambio de teléfono) el Telegram de un user existente
+export async function linkTelegramId(email: string, telegramId: string): Promise<boolean> {
     const col = await usersCollection()
-    const result = await col.updateOne({ telegramId }, { $set: { name } })
+    const result = await col.updateOne({ email: email.toLowerCase() }, { $set: { telegramId } })
+    return result.matchedCount > 0
+}
+
+export async function setUserNameByResourceId(resourceId: string, name: string): Promise<boolean> {
+    const parsed = parseResourceId(resourceId)
+    if (!parsed) return false
+    const filter = parsed.kind === 'telegram'
+        ? { telegramId: parsed.telegramId }
+        : { email: parsed.email }
+    const col = await usersCollection()
+    const result = await col.updateOne(filter, { $set: { name } })
     return result.matchedCount > 0
 }
 
 export async function ensureAdminSeed(): Promise<void> {
-    const adminId = appConfig.ADMIN_TELEGRAM_ID
-    if (!adminId) {
-        console.warn('[users] ADMIN_TELEGRAM_ID not set, skipping admin seed')
+    const adminEmail = appConfig.ADMIN_EMAIL
+    if (!adminEmail) {
+        console.warn('[users] ADMIN_EMAIL not set, skipping admin seed')
         return
     }
-    await createUser({
-        telegramId: adminId,
-        name: appConfig.ADMIN_NAME ?? 'Admin',
-        role: 'admin',
-        addedAt: nowUnix(),
-    })
+    const email = adminEmail.toLowerCase()
+    const col = await usersCollection()
+    await col.updateOne(
+        { email },
+        {
+            $setOnInsert: {
+                email,
+                name: appConfig.ADMIN_NAME ?? 'Admin',
+                role: 'admin' as const,
+                addedAt: nowUnix(),
+            },
+            // El vínculo de Telegram sí se re-aplica en cada boot (idempotente)
+            ...(appConfig.ADMIN_TELEGRAM_ID ? { $set: { telegramId: appConfig.ADMIN_TELEGRAM_ID } } : {}),
+        },
+        { upsert: true },
+    )
 }

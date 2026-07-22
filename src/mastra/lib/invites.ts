@@ -2,11 +2,14 @@ import { randomBytes } from 'node:crypto'
 import type { Collection } from 'mongodb'
 import { getDb } from './mongo-client'
 import { nowUnix } from './unix-time'
+import { upsertUser } from './users'
 
 export const INVITE_TTL_SECONDS = 7 * 24 * 60 * 60
 
 export type Invite = {
     code: string
+    email: string
+    name?: string
     createdBy: string
     createdAt: number
     expiresAt: number
@@ -22,11 +25,17 @@ export function generateInviteCode(): string {
     return randomBytes(9).toString('base64url')
 }
 
-export async function createInvite(createdBy: string): Promise<Invite> {
+// Crea el invite nominado y asegura que el user destinatario exista (sin
+// telegram todavía): desde este momento ya puede loguearse a la web
+export async function createInvite(params: { createdBy: string; email: string; name?: string }): Promise<Invite> {
+    const email = params.email.trim().toLowerCase()
     const now = nowUnix()
+    await upsertUser({ email, name: params.name ?? '', role: 'member', addedAt: now })
     const invite: Invite = {
         code: generateInviteCode(),
-        createdBy,
+        email,
+        ...(params.name ? { name: params.name } : {}),
+        createdBy: params.createdBy,
         createdAt: now,
         expiresAt: now + INVITE_TTL_SECONDS,
     }
