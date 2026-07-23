@@ -2,17 +2,16 @@ import { Schema, model } from 'mongoose';
 
 export interface ISubscriber {
   type: 'diapers' | 'meds' | 'refunds';
-  resourceId: string;
-  threadId: string;
+  email: string;
 }
 
 const subscriberSchema = new Schema<ISubscriber>({
   type: { type: String, enum: ['diapers', 'meds', 'refunds'], required: true },
-  resourceId: { type: String, required: true },
-  threadId: { type: String, required: true },
+  email: { type: String, required: true, lowercase: true },
 });
 
-// Idempotency guard: matches the current addSubscriber "insert if not present" check
-subscriberSchema.index({ type: 1, resourceId: 1, threadId: 1 }, { unique: true });
+// One subscription per user per domain; the delivery thread is resolved at
+// send time (see resolve-telegram-thread), so no thread data is stored here.
+subscriberSchema.index({ type: 1, email: 1 }, { unique: true });
 
 export const Subscriber = model<ISubscriber>('Subscriber', subscriberSchema);
