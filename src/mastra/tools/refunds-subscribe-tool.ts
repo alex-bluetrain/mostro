@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { subscriberRepository } from '../../business/repositories'
+import { emailFromResourceId } from '../../business/identity'
 
 export const subscribeRefundsTool = createTool({
     id: 'subscribe-refunds-notifications',
@@ -10,14 +11,12 @@ export const subscribeRefundsTool = createTool({
         subscribed: z.boolean(),
     }),
     execute: async (_input, context) => {
-        const resourceId = context?.agent?.resourceId
-        const threadId = context?.agent?.threadId
-
-        if (!resourceId || !threadId) {
+        const email = emailFromResourceId(context?.agent?.resourceId ?? '')
+        if (!email) {
             return { subscribed: false }
         }
 
-        await subscriberRepository.add('refunds', { resourceId, threadId })
+        await subscriberRepository.add('refunds', email)
         return { subscribed: true }
     },
 })
