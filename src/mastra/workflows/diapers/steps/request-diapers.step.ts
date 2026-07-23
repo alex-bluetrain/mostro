@@ -14,7 +14,7 @@ export const requestDiapers = createStep({
         await setState({
             ...state,
             status: 'diapers_requested',
-            diaperType: inputData.diaperType,
+            size: inputData.size,
             requestedBy: inputData.requestedBy,
             requestedAt: nowUnix(),
         })
@@ -25,7 +25,7 @@ export const requestDiapers = createStep({
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
-                    type: inputData.diaperType,
+                    size: inputData.size,
                 }),
             })
         } else {
