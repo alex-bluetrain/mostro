@@ -1,6 +1,7 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { subscriberRepository } from '../../../../business/repositories'
+import { resolveTelegramThread } from '../../../lib/resolve-telegram-thread'
 import { formatUnixDate, nowUnix } from '../../../lib/unix-time'
 import { medsStateSchema } from '../schemas/meds-state.schema'
 import { notifyMedsConfirmationOutputSchema } from '../schemas/notify-meds-confirmation-output.schema'
@@ -11,11 +12,17 @@ export const notifyMedsConfirmationStep = createStep({
     outputSchema: notifyMedsConfirmationOutputSchema,
     stateSchema: medsStateSchema,
     execute: async ({ state, setState, mastra }) => {
-        const subscribers = await subscriberRepository.list('meds')
+        const emails = await subscriberRepository.list('meds')
 
         const supervisor = mastra?.getAgent('mostroSupervisor')
+        let sent = 0
         if (supervisor) {
-            for (const { resourceId, threadId } of subscribers) {
+            for (const email of emails) {
+                const target = await resolveTelegramThread(mastra, email)
+                if (!target) {
+                    console.warn(`[notify-meds-confirmation] no telegram thread for ${email}, skipping`)
+                    continue
+                }
                 await supervisor.sendNotificationSignal(
                     {
                         source: 'meds',
@@ -28,8 +35,9 @@ export const notifyMedsConfirmationStep = createStep({
                             deliveryAddress: state.deliveryAddress,
                         },
                     },
-                    { resourceId, threadId },
+                    target,
                 )
+                sent++
             }
         }
 
@@ -37,9 +45,9 @@ export const notifyMedsConfirmationStep = createStep({
             ...state,
             status: 'meds_notification_sent',
             notifiedAt: nowUnix(),
-            notifiedCount: subscribers.length,
+            notifiedCount: sent,
         })
 
-        return { notifiedCount: subscribers.length }
+        return { notifiedCount: sent }
     },
 })
