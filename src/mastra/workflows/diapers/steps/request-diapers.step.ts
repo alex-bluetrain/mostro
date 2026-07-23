@@ -15,7 +15,6 @@ export const requestDiapers = createStep({
             ...state,
             status: 'diapers_requested',
             diaperType: inputData.diaperType,
-            quantity: inputData.quantity,
             requestedBy: inputData.requestedBy,
             requestedAt: nowUnix(),
         })
@@ -27,7 +26,6 @@ export const requestDiapers = createStep({
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
                     type: inputData.diaperType,
-                    quantity: inputData.quantity,
                 }),
             })
         } else {
