@@ -18,6 +18,14 @@ export const webhookDiapersRoute = registerApiRoute(
                 return c.json({ ok: false, error: "quantity (number) is required" }, 400);
             }
 
+            if (typeof body?.deliveryDate !== "string") {
+                return c.json({ ok: false, error: "deliveryDate (string) is required" }, 400);
+            }
+
+            if (typeof body?.deliveryAddress !== "string") {
+                return c.json({ ok: false, error: "deliveryAddress (string) is required" }, 400);
+            }
+
             const result = await confirmDiapersDate(mastra, body);
             console.log("/webhooks/diapers", JSON.stringify(result));
             return c.json({ ok: true }, 200);
