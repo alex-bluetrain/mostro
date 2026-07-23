@@ -8,7 +8,7 @@ export const diapersStateSchema = z.object({
         'diapers_date_confirmed',
         'diapers_notification_sent',
     ]).default('idle'),
-    diaperType: z.string().optional(),
+    size: z.enum(['M', 'G', 'XG']).optional(),
     quantity: z.number().optional(),
     requestedBy: z.string().optional(),
     deliveryDate: unixTimestampSchema.optional(),
