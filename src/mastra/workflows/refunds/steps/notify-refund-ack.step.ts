@@ -1,6 +1,7 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { subscriberRepository } from '../../../../business/repositories'
+import { resolveTelegramThread } from '../../../lib/resolve-telegram-thread'
 import { nowUnix } from '../../../lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
 
@@ -10,11 +11,17 @@ export const notifyRefundAckStep = createStep({
     outputSchema: z.object({}),
     stateSchema: refundsStateSchema,
     execute: async ({ state, setState, mastra }) => {
-        const subscribers = await subscriberRepository.list('refunds')
+        const emails = await subscriberRepository.list('refunds')
 
         const supervisor = mastra?.getAgent('mostroSupervisor')
+        let sent = 0
         if (supervisor) {
-            for (const { resourceId, threadId } of subscribers) {
+            for (const email of emails) {
+                const target = await resolveTelegramThread(mastra, email)
+                if (!target) {
+                    console.warn(`[notify-refund-ack] no telegram thread for ${email}, skipping`)
+                    continue
+                }
                 await supervisor.sendNotificationSignal(
                     {
                         source: 'refunds',
@@ -25,8 +32,9 @@ export const notifyRefundAckStep = createStep({
                             amount: state.amount,
                         },
                     },
-                    { resourceId, threadId },
+                    target,
                 )
+                sent++
             }
         }
 

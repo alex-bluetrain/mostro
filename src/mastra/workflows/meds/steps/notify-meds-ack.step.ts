@@ -1,6 +1,7 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { subscriberRepository } from '../../../../business/repositories'
+import { resolveTelegramThread } from '../../../lib/resolve-telegram-thread'
 import { nowUnix } from '../../../lib/unix-time'
 import { medsStateSchema } from '../schemas/meds-state.schema'
 
@@ -10,11 +11,17 @@ export const notifyMedsAckStep = createStep({
     outputSchema: z.object({}),
     stateSchema: medsStateSchema,
     execute: async ({ state, setState, mastra }) => {
-        const subscribers = await subscriberRepository.list('meds')
+        const emails = await subscriberRepository.list('meds')
 
         const supervisor = mastra?.getAgent('mostroSupervisor')
+        let sent = 0
         if (supervisor) {
-            for (const { resourceId, threadId } of subscribers) {
+            for (const email of emails) {
+                const target = await resolveTelegramThread(mastra, email)
+                if (!target) {
+                    console.warn(`[notify-meds-ack] no telegram thread for ${email}, skipping`)
+                    continue
+                }
                 await supervisor.sendNotificationSignal(
                     {
                         source: 'meds',
@@ -25,8 +32,9 @@ export const notifyMedsAckStep = createStep({
                             medications: state.medications,
                         },
                     },
-                    { resourceId, threadId },
+                    target,
                 )
+                sent++
             }
         }
 

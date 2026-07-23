@@ -1,6 +1,7 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { subscriberRepository } from '../../../../business/repositories'
+import { resolveTelegramThread } from '../../../lib/resolve-telegram-thread'
 import { formatUnixDate, nowUnix } from '../../../lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
 import { notifyDepositOutputSchema } from '../schemas/notify-deposit-output.schema'
@@ -11,11 +12,17 @@ export const notifyDepositStep = createStep({
     outputSchema: notifyDepositOutputSchema,
     stateSchema: refundsStateSchema,
     execute: async ({ state, setState, mastra }) => {
-        const subscribers = await subscriberRepository.list('refunds')
+        const emails = await subscriberRepository.list('refunds')
 
         const supervisor = mastra?.getAgent('mostroSupervisor')
+        let sent = 0
         if (supervisor) {
-            for (const { resourceId, threadId } of subscribers) {
+            for (const email of emails) {
+                const target = await resolveTelegramThread(mastra, email)
+                if (!target) {
+                    console.warn(`[notify-deposit] no telegram thread for ${email}, skipping`)
+                    continue
+                }
                 await supervisor.sendNotificationSignal(
                     {
                         source: 'refunds',
@@ -27,8 +34,9 @@ export const notifyDepositStep = createStep({
                             depositDate: state.depositDate,
                         },
                     },
-                    { resourceId, threadId },
+                    target,
                 )
+                sent++
             }
         }
 
@@ -36,9 +44,9 @@ export const notifyDepositStep = createStep({
             ...state,
             status: 'refunds_notification_sent',
             notifiedAt: nowUnix(),
-            notifiedCount: subscribers.length,
+            notifiedCount: sent,
         })
 
-        return { notifiedCount: subscribers.length }
+        return { notifiedCount: sent }
     },
 })
