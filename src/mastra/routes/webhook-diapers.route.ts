@@ -14,6 +14,10 @@ export const webhookDiapersRoute = registerApiRoute(
                 return c.json({ ok: false, error: "yearMonth (YYYY-MM) is required" }, 400);
             }
 
+            if (typeof body?.quantity !== "number") {
+                return c.json({ ok: false, error: "quantity (number) is required" }, 400);
+            }
+
             const result = await confirmDiapersDate(mastra, body);
             console.log("/webhooks/diapers", JSON.stringify(result));
             return c.json({ ok: true }, 200);

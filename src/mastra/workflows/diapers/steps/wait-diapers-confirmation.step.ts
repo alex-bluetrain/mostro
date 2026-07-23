@@ -21,6 +21,7 @@ export const waitDiapersConfirmation = createStep({
             status: 'diapers_date_confirmed',
             deliveryDate: toUnix(resumeData.deliveryDate),
             deliveryAddress: resumeData.deliveryAddress,
+            quantity: resumeData.quantity,
         })
 
         return {}
