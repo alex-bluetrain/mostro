@@ -9,25 +9,25 @@ describe('SubscriberRepository', () => {
     vi.clearAllMocks();
   });
 
-  it('add upserts by type+resourceId+threadId', async () => {
+  it('add upserts by type+email', async () => {
     vi.mocked(Subscriber.updateOne).mockResolvedValue({} as any);
 
-    await subscriberRepository.add('diapers', { resourceId: 'r1', threadId: 't1' });
+    await subscriberRepository.add('diapers', 'ana@gmail.com');
 
     expect(Subscriber.updateOne).toHaveBeenCalledWith(
-      { type: 'diapers', resourceId: 'r1', threadId: 't1' },
-      { $setOnInsert: { type: 'diapers', resourceId: 'r1', threadId: 't1' } },
+      { type: 'diapers', email: 'ana@gmail.com' },
+      { $setOnInsert: { type: 'diapers', email: 'ana@gmail.com' } },
       { upsert: true }
     );
   });
 
-  it('list returns resourceId/threadId pairs for a domain', async () => {
-    const mockDocs = [{ type: 'diapers', resourceId: 'r1', threadId: 't1' }];
+  it('list returns emails for a domain', async () => {
+    const mockDocs = [{ type: 'diapers', email: 'ana@gmail.com' }];
     vi.mocked(Subscriber.find).mockReturnValue({ lean: () => Promise.resolve(mockDocs) } as any);
 
     const result = await subscriberRepository.list('diapers');
 
-    expect(result).toEqual([{ resourceId: 'r1', threadId: 't1' }]);
+    expect(result).toEqual(['ana@gmail.com']);
     expect(Subscriber.find).toHaveBeenCalledWith({ type: 'diapers' });
   });
 });
