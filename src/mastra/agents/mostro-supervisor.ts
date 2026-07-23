@@ -6,10 +6,10 @@ import { diapersAgent } from './diapers-agent';
 import { medsAgent } from './meds-agent';
 import { refundsAgent } from './refunds-agent';
 import { createTelegramGate } from '../lib/telegram-gate';
+import { createResolveResourceId } from '../lib/resolve-resource-id';
 import type { SubAgentKey } from '../lib/sub-agent-keys';
 import { createInviteTool } from '../tools/create-invite-tool';
 import { setMyNameTool } from '../tools/set-my-name-tool';
-import { userRepository } from '../../business/repositories';
 
 export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, a supervisor agent that coordinates specialized agents to help the user.
 
@@ -64,14 +64,10 @@ export const mostroSupervisor = new Agent({
                 toolDisplay: 'hidden', // supress tool calls messages
             },
         },
-        // Memoria canónica: los threads nuevos de DM quedan a nombre del email
-        // del usuario (no de telegram:<id>), así la futura web comparte memoria.
-        // Corre solo al crear un thread; si no resuelve, cae al default (fail-safe).
-        resolveResourceId: async ({ thread, message, defaultResourceId }) => {
-            if (!thread.isDM) return defaultResourceId;
-            const user = await userRepository.findByTelegramId(message.author.userId);
-            return user?.email ?? defaultResourceId;
-        },
+        // Memoria canónica: todo thread queda a nombre del email del usuario
+        // (nunca telegram:<id>). Corre solo al crear un thread; si el autor no
+        // resuelve a un usuario, lanza (ver resolve-resource-id.ts).
+        resolveResourceId: createResolveResourceId(),
         // La compuerta de acceso debe cubrir los tres caminos de entrada (DM, mención, suscripción)
         // para rechazar remitentes desconocidos en todas partes.
         handlers: {
