@@ -76,11 +76,14 @@ para que una respuesta humana sea rastreable. El identificador sale del `runId` 
 del step ya recibe en su contexto (`diapers-2026-07`, `meds-2026-07`, `refunds-2026-07`), así
 que ningún schema de input necesita cambiar.
 
-### `scripts/gmail-authorize.ts` (`pnpm run gmail:auth`)
+### `scripts/gmail-authorize.mjs` (`pnpm run gmail:auth`)
 
 Script de setup, se corre una vez. Imprime la URL de consentimiento, levanta un servidor
 efímero en `localhost` para recibir el callback (flujo loopback; el flujo OOB está deprecado por
 Google) e imprime el refresh token por consola para pegarlo en el `.env`.
+
+Va en JavaScript plano para no depender de un runner de TypeScript, y se ejecuta con
+`node --env-file=.env`, porque fuera de `mastra dev` el `.env` no se carga solo.
 
 ## Configuración
 
