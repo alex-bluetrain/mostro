@@ -3,16 +3,19 @@ import { z } from 'zod'
 import { appConfig } from '../../../config/app.config'
 import { nowUnix } from '../../../lib/unix-time'
 import { medsStateSchema } from '../schemas/meds-state.schema'
+import { medsWorkflowInputSchema } from '../schemas/meds-workflow-input.schema'
 
 export const requestMedsStep = createStep({
     id: 'request-meds',
-    inputSchema: z.object({}),
+    inputSchema: medsWorkflowInputSchema,
     outputSchema: z.object({}),
     stateSchema: medsStateSchema,
-    execute: async ({ state, setState }) => {
+    execute: async ({ inputData, state, setState }) => {
         await setState({
             ...state,
             status: 'meds_requested',
+            medications: inputData.medications,
+            requestedBy: inputData.requestedBy,
             requestedAt: nowUnix(),
         })
 
@@ -22,7 +25,7 @@ export const requestMedsStep = createStep({
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
-                    medications: state.medications,
+                    medications: inputData.medications,
                 }),
             })
         } else {
