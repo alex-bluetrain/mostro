@@ -1,8 +1,8 @@
 import { registerApiRoute } from "@mastra/core/server";
-import { confirmDiapersDate } from "../lib/diapers-run";
+import { acknowledgeMedsOrder } from "../lib/meds-run";
 
-export const webhookDiapersRoute = registerApiRoute(
-    "/webhooks/diapers",
+export const webhookMedsAckRoute = registerApiRoute(
+    "/webhooks/meds/ack",
     {
         method: "POST",
         requiresAuth: false,
@@ -14,20 +14,8 @@ export const webhookDiapersRoute = registerApiRoute(
                 return c.json({ ok: false, error: "yearMonth (YYYY-MM) is required" }, 400);
             }
 
-            if (typeof body?.quantity !== "number") {
-                return c.json({ ok: false, error: "quantity (number) is required" }, 400);
-            }
-
-            if (typeof body?.deliveryDate !== "string") {
-                return c.json({ ok: false, error: "deliveryDate (string) is required" }, 400);
-            }
-
-            if (typeof body?.deliveryAddress !== "string") {
-                return c.json({ ok: false, error: "deliveryAddress (string) is required" }, 400);
-            }
-
-            const result = await confirmDiapersDate(mastra, body);
-            console.log("/webhooks/diapers", JSON.stringify(result));
+            const result = await acknowledgeMedsOrder(mastra, body.yearMonth);
+            console.log("/webhooks/meds/ack", JSON.stringify(result));
 
             if (!result.ok) {
                 if (result.reason === "not_found") {

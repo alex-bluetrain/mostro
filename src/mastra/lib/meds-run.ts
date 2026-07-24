@@ -45,9 +45,29 @@ export async function startMedsOrder(
 
 export async function acknowledgeMedsOrder(mastra: Mastra, yearMonth: string) {
     const workflow = getMedsWorkflow(mastra)
-    const run = await workflow.createRun({ runId: getMedsRunId(yearMonth) })
+    const runId = getMedsRunId(yearMonth)
+    const existing = await workflow.getWorkflowRunById(runId)
 
-    return run.resume({ resumeData: {} })
+    if (!existing) {
+        return { ok: false as const, reason: 'not_found' as const }
+    }
+
+    const reader = createWorkflowStateReader(existing)
+    const status = reader.getStatus()
+    if (status !== 'suspended') {
+        return { ok: false as const, reason: 'not_suspended' as const, status }
+    }
+
+    const suspendedStep = reader.getSuspendedStep()?.stepId
+    const expected = 'wait-meds-acknowledge'
+    if (suspendedStep !== expected) {
+        return { ok: false as const, reason: 'wrong_step' as const, suspendedStep, expected }
+    }
+
+    const run = await workflow.createRun({ runId })
+    const result = await run.resume({ resumeData: {} })
+
+    return { ok: true as const, result }
 }
 
 export async function confirmMedsDelivery(
@@ -55,7 +75,32 @@ export async function confirmMedsDelivery(
     payload: { deliveryDate: string; deliveryAddress: string; yearMonth: string },
 ) {
     const workflow = getMedsWorkflow(mastra)
-    const run = await workflow.createRun({ runId: getMedsRunId(payload.yearMonth) })
+    const runId = getMedsRunId(payload.yearMonth)
+    const existing = await workflow.getWorkflowRunById(runId)
 
-    return run.resume({ resumeData: { deliveryDate: payload.deliveryDate, deliveryAddress: payload.deliveryAddress } })
+    if (!existing) {
+        return { ok: false as const, reason: 'not_found' as const }
+    }
+
+    const reader = createWorkflowStateReader(existing)
+    const status = reader.getStatus()
+    if (status !== 'suspended') {
+        return { ok: false as const, reason: 'not_suspended' as const, status }
+    }
+
+    const suspendedStep = reader.getSuspendedStep()?.stepId
+    const expected = 'wait-meds-confirmation'
+    if (suspendedStep !== expected) {
+        return { ok: false as const, reason: 'wrong_step' as const, suspendedStep, expected }
+    }
+
+    const run = await workflow.createRun({ runId })
+    const result = await run.resume({
+        resumeData: {
+            deliveryDate: payload.deliveryDate,
+            deliveryAddress: payload.deliveryAddress,
+        },
+    })
+
+    return { ok: true as const, result }
 }
