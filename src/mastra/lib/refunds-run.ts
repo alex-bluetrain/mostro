@@ -46,9 +46,29 @@ export async function startRefundRequest(
 
 export async function acknowledgeRefund(mastra: Mastra, yearMonth: string) {
     const workflow = getRefundsWorkflow(mastra)
-    const run = await workflow.createRun({ runId: getRefundsRunId(yearMonth) })
+    const runId = getRefundsRunId(yearMonth)
+    const existing = await workflow.getWorkflowRunById(runId)
 
-    return run.resume({ resumeData: {} })
+    if (!existing) {
+        return { ok: false as const, reason: 'not_found' as const }
+    }
+
+    const reader = createWorkflowStateReader(existing)
+    const status = reader.getStatus()
+    if (status !== 'suspended') {
+        return { ok: false as const, reason: 'not_suspended' as const, status }
+    }
+
+    const suspendedStep = reader.getSuspendedStep()?.stepId
+    const expected = 'wait-refund-ack'
+    if (suspendedStep !== expected) {
+        return { ok: false as const, reason: 'wrong_step' as const, suspendedStep, expected }
+    }
+
+    const run = await workflow.createRun({ runId })
+    const result = await run.resume({ resumeData: {} })
+
+    return { ok: true as const, result }
 }
 
 export async function confirmRefund(
@@ -56,9 +76,29 @@ export async function confirmRefund(
     payload: { refundReference: string; yearMonth: string },
 ) {
     const workflow = getRefundsWorkflow(mastra)
-    const run = await workflow.createRun({ runId: getRefundsRunId(payload.yearMonth) })
+    const runId = getRefundsRunId(payload.yearMonth)
+    const existing = await workflow.getWorkflowRunById(runId)
 
-    return run.resume({ resumeData: { refundReference: payload.refundReference } })
+    if (!existing) {
+        return { ok: false as const, reason: 'not_found' as const }
+    }
+
+    const reader = createWorkflowStateReader(existing)
+    const status = reader.getStatus()
+    if (status !== 'suspended') {
+        return { ok: false as const, reason: 'not_suspended' as const, status }
+    }
+
+    const suspendedStep = reader.getSuspendedStep()?.stepId
+    const expected = 'wait-refund-confirmation'
+    if (suspendedStep !== expected) {
+        return { ok: false as const, reason: 'wrong_step' as const, suspendedStep, expected }
+    }
+
+    const run = await workflow.createRun({ runId })
+    const result = await run.resume({ resumeData: { refundReference: payload.refundReference } })
+
+    return { ok: true as const, result }
 }
 
 export async function receiveDeposit(
@@ -66,9 +106,29 @@ export async function receiveDeposit(
     payload: { depositAmount: number; depositDate: string; yearMonth: string },
 ) {
     const workflow = getRefundsWorkflow(mastra)
-    const run = await workflow.createRun({ runId: getRefundsRunId(payload.yearMonth) })
+    const runId = getRefundsRunId(payload.yearMonth)
+    const existing = await workflow.getWorkflowRunById(runId)
 
-    return run.resume({
+    if (!existing) {
+        return { ok: false as const, reason: 'not_found' as const }
+    }
+
+    const reader = createWorkflowStateReader(existing)
+    const status = reader.getStatus()
+    if (status !== 'suspended') {
+        return { ok: false as const, reason: 'not_suspended' as const, status }
+    }
+
+    const suspendedStep = reader.getSuspendedStep()?.stepId
+    const expected = 'wait-deposit'
+    if (suspendedStep !== expected) {
+        return { ok: false as const, reason: 'wrong_step' as const, suspendedStep, expected }
+    }
+
+    const run = await workflow.createRun({ runId })
+    const result = await run.resume({
         resumeData: { depositAmount: payload.depositAmount, depositDate: payload.depositDate },
     })
+
+    return { ok: true as const, result }
 }
