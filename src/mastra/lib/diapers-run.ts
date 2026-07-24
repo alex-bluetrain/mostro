@@ -42,7 +42,18 @@ export async function startDiapers(
         initialState: { requestedBy: input.requestedBy },
     })
 
-    return { alreadyInProgress: false as const, result }
+    // run.start() no lanza: un step que falla vuelve como status 'failed'. Sin esto,
+    // el agente recibiría un objeto opaco y podría anunciar un pedido que nunca salió.
+    if (result.status === 'failed') {
+        return {
+            alreadyInProgress: false as const,
+            ok: false as const,
+            reason: 'send_failed' as const,
+            message: 'No pude enviar el pedido. Volvé a intentarlo en un rato.',
+        }
+    }
+
+    return { alreadyInProgress: false as const, ok: true as const, result }
 }
 
 export async function confirmDiapersDate(
