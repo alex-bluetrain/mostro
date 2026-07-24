@@ -18,6 +18,13 @@ export const requestRefundTool = createTool({
         }
         const resourceId = context?.agent?.resourceId
         const user = resourceId ? await getUserByResourceId(resourceId) : null
-        return startRefundRequest(context.mastra as any, { ...input, requestedBy: user?.name || undefined })
+        if (!user?.name?.trim()) {
+            return {
+                ok: false,
+                reason: 'requester_unidentified',
+                message: 'Todavía no sé tu nombre, así que no registré el pedido. ¿Cómo te llamás?',
+            }
+        }
+        return startRefundRequest(context.mastra as any, { ...input, requestedBy: user.name.trim() })
     },
 })

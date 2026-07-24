@@ -21,7 +21,7 @@ export async function readMedsStatus(mastra: Mastra, yearMonth: string = getCurr
 
 export async function startMedsOrder(
     mastra: Mastra,
-    input: { medications: string[]; yearMonth?: string; requestedBy?: string },
+    input: { medications: string[]; yearMonth?: string; requestedBy: string },
 ) {
     const yearMonth = input.yearMonth ?? getCurrentYearMonth()
     const runId = getMedsRunId(yearMonth)
@@ -37,8 +37,10 @@ export async function startMedsOrder(
     }
 
     const run = await workflow.createRun({ runId })
-    await run.start({ inputData: {} })
-    const result = await run.resume({ resumeData: { medications: input.medications, requestedBy: input.requestedBy } })
+    const result = await run.start({
+        inputData: { medications: input.medications, requestedBy: input.requestedBy },
+        initialState: { requestedBy: input.requestedBy },
+    })
 
     return { alreadyInProgress: false as const, result }
 }
