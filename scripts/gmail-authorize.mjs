@@ -35,10 +35,18 @@ const server = http.createServer(async (req, res) => {
     }
 
     const code = url.searchParams.get('code')
+    const error = url.searchParams.get('error')
 
     if (!code) {
         res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' })
         res.end('Faltó el parámetro code.')
+
+        if (error) {
+            console.error(`\nGoogle rechazó la solicitud: ${error}`)
+        } else {
+            console.error('\nNo se recibió código de autorización.')
+        }
+        server.close()
         return
     }
 
