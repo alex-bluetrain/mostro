@@ -46,13 +46,28 @@ The `{ ok, reason, message }` shape is interpretable by the LLM agents: the sub-
 
 ### b) Mandatory schemas and signatures
 
-Mongo is a disposable sandbox and will be wiped, so there are no historical runs to keep readable — every layer becomes required (`z.string().min(1)`, no `.optional()`):
+Mongo is a disposable sandbox and will be wiped, so there are no historical runs to keep readable — every layer becomes required (`z.string().min(1)`, no `.optional()`).
 
-- **Input / resume schemas**: `request-diapers-input.schema.ts`, `request-refund-input.schema.ts`, `wait-prescriptions-resume.schema.ts`.
-- **State schemas**: `diapers-state.schema.ts`, `refunds-state.schema.ts`, `meds-state.schema.ts`.
-- **Start function signatures**: `startDiapers`, `startMedsOrder`, `startRefundRequest` change `requestedBy?: string` to `requestedBy: string`.
+**Mastra constraint (verified in source, `chunk-PQ5PN4TW.js:18323`):** `run.start` validates the initial state — `initialState ?? {}` — against the workflow's `stateSchema`. A required `requestedBy` with no default therefore makes the empty initial state fail and the workflow never starts. The fix is to pass the author in `initialState` at start time so the initial state already satisfies the schema:
 
-Meds differs only in mechanics: it starts with an empty input and `requestedBy` travels in the `resume` of `wait-prescriptions`. The guard still lives in the tool, before `startMedsOrder`, so nothing about the mandatory value changes.
+- **State schemas** (`diapers-state.schema.ts`, `refunds-state.schema.ts`, `meds-state.schema.ts`): `requestedBy: z.string().min(1)` (required, no default).
+- **Start functions** pass `initialState: { requestedBy }` alongside `inputData`, and their signatures change `requestedBy?: string` to `requestedBy: string`:
+  - `startDiapers`: `run.start({ inputData: { size, requestedBy }, initialState: { requestedBy } })`
+  - `startRefundRequest`: `run.start({ inputData: { amount, reason, requestedBy }, initialState: { requestedBy } })`
+  - `startMedsOrder`: `run.start({ inputData: { medications, requestedBy }, initialState: { requestedBy } })` — see the meds restructure below.
+- **Input schemas**: `request-diapers-input.schema.ts`, `request-refund-input.schema.ts`, and the meds workflow input (`meds-workflow-input.schema.ts`) all require `requestedBy: z.string().min(1)`.
+
+### b.1) Meds restructure — drop `wait-prescriptions`
+
+Meds currently starts with an empty input and immediately suspends on `wait-prescriptions`, then `startMedsOrder` resumes with the medications the tool already had — a vestigial suspend/resume. To make meds start with its author like the other two flows, `wait-prescriptions` is removed:
+
+- **`meds-workflow-input.schema.ts`**: `z.object({ medications: z.array(z.string()), requestedBy: z.string().min(1) })` (was empty).
+- **`request-meds.step.ts`** becomes the first step: its `inputSchema` is the workflow input; it sets `medications`, `requestedBy`, `status: 'meds_requested'`, `requestedAt`, and keeps the messaging `fetch` (reading `inputData.medications`).
+- **`meds.workflow.ts`**: chain starts at `requestMedsStep` (drop `.then(waitPrescriptionsStep)`).
+- **`startMedsOrder`**: single `run.start`, no `resume`.
+- **Delete**: `wait-prescriptions.step.ts`, `wait-prescriptions-resume.schema.ts`.
+- **`meds-state.schema.ts`**: remove the now-unreachable `'prescriptions_received'` status and `prescriptionsReceivedAt` field.
+- **`meds-agent.ts`**: drop "prescriptions received" from the status wording.
 
 ### c) Instructions across two layers
 
@@ -71,7 +86,8 @@ The request tools live on the sub-agents; `setMyNameTool` lives on the superviso
 - **`telegram-start`** tests: events carry `fullName`; a redeem persists the Telegram name; empty `fullName` still provisions with `''`.
 - **`user.repository`** tests: `upsertFromInviteRedeem` stores the passed name and does not overwrite an existing user's name.
 - **Request tools** tests: guard rejects with `requester_unidentified` when the user is unresolved or `name` is empty/whitespace; passes `requestedBy` through when the name is valid.
-- **Schema** tests: input/resume and state schemas reject missing/empty `requestedBy`.
+- **Schema** tests: input and state schemas reject missing/empty `requestedBy`.
+- **Meds restructure**: `startMedsOrder` starts the workflow directly (no resume) and the run reaches `meds_requested` with `medications` and `requestedBy` set; the meds workflow input schema rejects a call without `requestedBy`.
 
 ## Out of scope
 
