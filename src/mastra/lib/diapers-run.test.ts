@@ -6,7 +6,7 @@ vi.mock('@mastra/core/workflows', async (importActual) => {
 })
 
 import { createWorkflowStateReader } from '@mastra/core/workflows'
-import { confirmDiapersDate } from './diapers-run'
+import { confirmDiapersDate, startDiapers } from './diapers-run'
 
 const readerMock = vi.mocked(createWorkflowStateReader)
 
@@ -90,5 +90,45 @@ describe('confirmDiapersDate', () => {
             },
         })
         expect(result).toEqual({ ok: true, result: { status: 'success' } })
+    })
+})
+
+function buildStartMastra(start: ReturnType<typeof vi.fn>) {
+    const createRun = vi.fn().mockResolvedValue({ start })
+    const workflow = {
+        getWorkflowRunById: vi.fn().mockResolvedValue(null),
+        createRun,
+    }
+    const mastra = { getWorkflow: vi.fn().mockReturnValue(workflow) }
+    return mastra as never
+}
+
+describe('startDiapers', () => {
+    it('reports send_failed when the run fails', async () => {
+        const start = vi.fn().mockResolvedValue({
+            status: 'failed',
+            error: new Error('No se pudo enviar el correo'),
+        })
+
+        const result = await startDiapers(buildStartMastra(start), {
+            size: 'M',
+            requestedBy: 'Ana',
+            yearMonth: '2026-07',
+        })
+
+        expect(result).toMatchObject({ ok: false, reason: 'send_failed' })
+        expect((result as { message?: string }).message).toContain('No pude enviar')
+    })
+
+    it('reports ok when the run suspends waiting for the supplier', async () => {
+        const start = vi.fn().mockResolvedValue({ status: 'suspended' })
+
+        const result = await startDiapers(buildStartMastra(start), {
+            size: 'M',
+            requestedBy: 'Ana',
+            yearMonth: '2026-07',
+        })
+
+        expect(result).toMatchObject({ ok: true, alreadyInProgress: false })
     })
 })
