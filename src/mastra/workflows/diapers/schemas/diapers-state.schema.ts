@@ -10,7 +10,7 @@ export const diapersStateSchema = z.object({
     ]).default('idle'),
     size: z.enum(['M', 'G', 'XG']).optional(),
     quantity: z.number().optional(),
-    requestedBy: z.string().optional(),
+    requestedBy: z.string().min(1),
     deliveryDate: unixTimestampSchema.optional(),
     deliveryAddress: z.string().optional(),
     requestedAt: unixTimestampSchema.optional(),
