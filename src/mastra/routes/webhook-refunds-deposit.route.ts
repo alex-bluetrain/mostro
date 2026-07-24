@@ -30,6 +30,12 @@ export const webhookRefundsDepositRoute = registerApiRoute(
                 )
             }
 
+            // El resume no lanza cuando un step falla: hay que mirar el status para que
+            // el sistema externo pueda reintentar en vez de darlo por recibido.
+            if (result.result?.status === 'failed') {
+                return c.json({ ok: false, error: 'workflow failed' }, 502)
+            }
+
             return c.json({ ok: true }, 200)
         },
     },
