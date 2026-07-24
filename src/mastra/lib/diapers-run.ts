@@ -47,7 +47,33 @@ export async function confirmDiapersDate(
     payload: { deliveryDate: string; deliveryAddress: string; quantity: number; yearMonth: string },
 ) {
     const workflow = getDiapersWorkflow(mastra)
-    const run = await workflow.createRun({ runId: getDiapersRunId(payload.yearMonth) })
+    const runId = getDiapersRunId(payload.yearMonth)
+    const existing = await workflow.getWorkflowRunById(runId)
 
-    return run.resume({ resumeData: { deliveryDate: payload.deliveryDate, deliveryAddress: payload.deliveryAddress, quantity: payload.quantity } })
+    if (!existing) {
+        return { ok: false as const, reason: 'not_found' as const }
+    }
+
+    const reader = createWorkflowStateReader(existing)
+    const status = reader.getStatus()
+    if (status !== 'suspended') {
+        return { ok: false as const, reason: 'not_suspended' as const, status }
+    }
+
+    const suspendedStep = reader.getSuspendedStep()?.stepId
+    const expected = 'wait-diapers-confirmation'
+    if (suspendedStep !== expected) {
+        return { ok: false as const, reason: 'wrong_step' as const, suspendedStep, expected }
+    }
+
+    const run = await workflow.createRun({ runId })
+    const result = await run.resume({
+        resumeData: {
+            deliveryDate: payload.deliveryDate,
+            deliveryAddress: payload.deliveryAddress,
+            quantity: payload.quantity,
+        },
+    })
+
+    return { ok: true as const, result }
 }
