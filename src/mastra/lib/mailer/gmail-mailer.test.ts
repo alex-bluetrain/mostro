@@ -57,6 +57,19 @@ describe('sendEmail', () => {
     expect(send).toHaveBeenCalledTimes(3)
   })
 
+  it('retries network failures with no HTTP status and succeeds', async () => {
+    vi.useFakeTimers()
+    send.mockRejectedValueOnce(Object.assign(new Error('ECONNRESET'), { code: 'ECONNRESET' }))
+    send.mockRejectedValueOnce(Object.assign(new Error('ETIMEDOUT'), { code: 'ETIMEDOUT' }))
+    send.mockResolvedValueOnce({ data: { id: 'msg-1' } })
+
+    const pending = sendEmail(message)
+    await vi.advanceTimersByTimeAsync(5000)
+    await pending
+
+    expect(send).toHaveBeenCalledTimes(3)
+  })
+
   it('gives up after three attempts', async () => {
     vi.useFakeTimers()
     send.mockRejectedValue(httpError(503))
