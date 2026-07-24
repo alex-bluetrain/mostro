@@ -28,6 +28,20 @@ export const webhookDiapersRoute = registerApiRoute(
 
             const result = await confirmDiapersDate(mastra, body);
             console.log("/webhooks/diapers", JSON.stringify(result));
+
+            if (!result.ok) {
+                if (result.reason === "not_found") {
+                    return c.json({ ok: false, error: "run not found" }, 404);
+                }
+                if (result.reason === "not_suspended") {
+                    return c.json({ ok: false, error: "run not suspended", status: result.status }, 409);
+                }
+                return c.json(
+                    { ok: false, error: "unexpected step", suspendedStep: result.suspendedStep, expected: result.expected },
+                    409,
+                );
+            }
+
             return c.json({ ok: true }, 200);
         }
     })
