@@ -28,8 +28,8 @@ function makeDeps(overrides: Partial<TelegramStartDeps> = {}): TelegramStartDeps
   };
 }
 
-function makeEvent(text: string) {
-  return { user: { userId: '42' }, text, channel: { post: vi.fn().mockResolvedValue(undefined) } };
+function makeEvent(text: string, fullName = 'Vani Telegram') {
+  return { user: { userId: '42', fullName }, text, channel: { post: vi.fn().mockResolvedValue(undefined) } };
 }
 
 describe('createTelegramStartHandler', () => {
@@ -61,8 +61,26 @@ describe('createTelegramStartHandler', () => {
 
     await createTelegramStartHandler(deps)(event);
 
-    expect(deps.provisionUser).toHaveBeenCalledWith('new@gmail.com', '42');
+    expect(deps.provisionUser).toHaveBeenCalledWith('new@gmail.com', '42', 'Vani Telegram');
     expect(event.channel.post).toHaveBeenCalledWith(buildWelcomeMessage(undefined));
+  });
+
+  it('passes the trimmed Telegram fullName as the provisioned name', async () => {
+    const deps = makeDeps();
+    const event = makeEvent('abc123', '  Ana Perez  ');
+
+    await createTelegramStartHandler(deps)(event);
+
+    expect(deps.provisionUser).toHaveBeenCalledWith('new@gmail.com', '42', 'Ana Perez');
+  });
+
+  it('provisions with empty name when fullName is blank', async () => {
+    const deps = makeDeps();
+    const event = makeEvent('abc123', '   ');
+
+    await createTelegramStartHandler(deps)(event);
+
+    expect(deps.provisionUser).toHaveBeenCalledWith('new@gmail.com', '42', '');
   });
 
   it('uses the legacy invite name in the welcome when present', async () => {
