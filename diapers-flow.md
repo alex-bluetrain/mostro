@@ -14,7 +14,7 @@ participant "mostro-supervisor" as Supervisor
 participant "diapers-agent" as Agent
 participant "diapers-workflow\n(runId = diapers-YYYY-MM)" as WF
 participant "diapers-subscribers.json" as Subs
-participant "DIAPERS_MESSAGING_URL\n(proveedor externo)" as Provider
+participant "DIAPERS_EMAIL_TO\n(proveedor externo, por correo)" as Provider
 participant "POST /webhooks/diapers" as Webhook
 database "MongoDB (MongoDBStore)" as DB
 
@@ -31,7 +31,7 @@ Agent -> WF: requestDiapersTool\n-> startDiapers(diaperType, quantity, yearMonth
 activate WF
 WF -> DB: crea/persiste run
 WF -> WF: **step 1: request-diapers**\nstatus = diapers_requested
-WF -> Provider: (opcional) POST {type, quantity}
+WF -> Provider: (opcional) correo {type, quantity}
 note right of WF
   Si no hay run "in progress" para el mes,
   arranca uno nuevo. Si ya existe, responde
