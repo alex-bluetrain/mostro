@@ -1,6 +1,9 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { appConfig } from '../../../config/app.config'
+import { yearMonthFromRunId } from '../../../lib/date-scope'
+import { sendEmail } from '../../../lib/mailer/gmail-mailer'
+import { diapersRequestEmail } from '../../../lib/mailer/templates/diapers'
 import { nowUnix } from '../../../lib/unix-time'
 import { diapersStateSchema } from '../schemas/diapers-state.schema'
 import { requestDiapersInputSchema } from '../schemas/request-diapers-input.schema'
@@ -10,7 +13,16 @@ export const requestDiapers = createStep({
     inputSchema: requestDiapersInputSchema,
     outputSchema: z.object({}),
     stateSchema: diapersStateSchema,
-    execute: async ({ inputData, state, setState }) => {
+    execute: async ({ inputData, state, setState, runId }) => {
+        // Primero el correo: si falla, el estado no avanza y el pedido se puede reintentar limpio.
+        const { subject, text } = diapersRequestEmail({
+            size: inputData.size,
+            requestedBy: inputData.requestedBy,
+            yearMonth: yearMonthFromRunId(runId),
+        })
+
+        await sendEmail({ to: appConfig.DIAPERS_EMAIL_TO, subject, text })
+
         await setState({
             ...state,
             status: 'diapers_requested',
@@ -18,19 +30,6 @@ export const requestDiapers = createStep({
             requestedBy: inputData.requestedBy,
             requestedAt: nowUnix(),
         })
-
-        const messagingUrl = appConfig.DIAPERS_MESSAGING_URL
-        if (messagingUrl) {
-            await fetch(messagingUrl, {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({
-                    size: inputData.size,
-                }),
-            })
-        } else {
-            console.log('[diapers-workflow] DIAPERS_MESSAGING_URL not set, skipping messaging call')
-        }
 
         return {}
     },
