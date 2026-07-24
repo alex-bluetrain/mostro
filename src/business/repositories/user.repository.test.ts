@@ -35,38 +35,34 @@ describe('UserRepository', () => {
     expect(result).toBe(false);
   });
 
-  it('upsertFromInviteRedeem creates the user with telegram linked', async () => {
-    const mockUser = { email: 'new@gmail.com', name: '', role: 'member' as const, telegramId: '42', addedAt: 123 };
+  it('upsertFromInviteRedeem creates the user with the given name and telegram linked', async () => {
+    const mockUser = { email: 'new@gmail.com', name: 'Ana', role: 'member' as const, telegramId: '42', addedAt: 123 };
     vi.mocked(User.findOneAndUpdate).mockResolvedValue(mockUser as any);
 
-    const result = await userRepository.upsertFromInviteRedeem('New@Gmail.com', '42');
+    const result = await userRepository.upsertFromInviteRedeem('New@Gmail.com', '42', 'Ana');
 
     expect(result).toEqual(mockUser);
     expect(User.findOneAndUpdate).toHaveBeenCalledWith(
       { email: 'new@gmail.com' },
       expect.objectContaining({
-        $setOnInsert: expect.objectContaining({ email: 'new@gmail.com', name: '', role: 'member' }),
+        $setOnInsert: expect.objectContaining({ email: 'new@gmail.com', name: 'Ana', role: 'member' }),
         $set: { telegramId: '42' },
       }),
       { upsert: true, new: true }
     );
   });
 
-  it('upsertFromInviteRedeem just links telegram when the user already exists', async () => {
+  it('upsertFromInviteRedeem does not clobber an existing user (setOnInsert only)', async () => {
     const existingUser = { email: 'ana@gmail.com', name: 'Ana', role: 'admin' as const, telegramId: '99', addedAt: 5 };
     vi.mocked(User.findOneAndUpdate).mockResolvedValue(existingUser as any);
 
-    const result = await userRepository.upsertFromInviteRedeem('Ana@Gmail.com', '99');
+    const result = await userRepository.upsertFromInviteRedeem('Ana@Gmail.com', '99', 'Telegram Name');
 
     expect(result).toEqual(existingUser);
-    // Same call shape regardless of whether the user pre-existed: $setOnInsert
-    // only applies on insert (won't clobber name/role of the existing admin),
-    // $set unconditionally links the telegramId — that split is the whole
-    // point of the link-only semantics.
     expect(User.findOneAndUpdate).toHaveBeenCalledWith(
       { email: 'ana@gmail.com' },
       expect.objectContaining({
-        $setOnInsert: expect.objectContaining({ email: 'ana@gmail.com', name: '', role: 'member' }),
+        $setOnInsert: expect.objectContaining({ email: 'ana@gmail.com', name: 'Telegram Name', role: 'member' }),
         $set: { telegramId: '99' },
       }),
       { upsert: true, new: true }
