@@ -21,9 +21,9 @@ function makeDeps(overrides: Partial<TelegramStartDeps> = {}): TelegramStartDeps
     }
 }
 
-function makeEvent(senderId: string, text: string) {
+function makeEvent(senderId: string, text: string, fullName = 'Nueva Persona') {
     const post = vi.fn(async () => ({}))
-    return { event: { user: { userId: senderId }, text, channel: { post } }, post }
+    return { event: { user: { userId: senderId, fullName }, text, channel: { post } }, post }
 }
 
 describe('buildWelcomeMessage', () => {
@@ -52,7 +52,7 @@ describe('createTelegramStartHandler', () => {
         const { event, post } = makeEvent('222', 'abc123XYZ_-9')
         await createTelegramStartHandler(deps)(event)
         expect(deps.redeemInvite).toHaveBeenCalledWith('abc123XYZ_-9', '222')
-        expect(deps.provisionUser).toHaveBeenCalledWith('nueva@gmail.com', '222')
+        expect(deps.provisionUser).toHaveBeenCalledWith('nueva@gmail.com', '222', 'Nueva Persona')
         expect(post).toHaveBeenCalledExactlyOnceWith(buildWelcomeMessage('Nueva'))
     })
 

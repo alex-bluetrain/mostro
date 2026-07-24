@@ -4,7 +4,6 @@ import { unixTimestampSchema } from '../../../lib/unix-time'
 export const medsStateSchema = z.object({
     status: z.enum([
         'idle',
-        'prescriptions_received',
         'meds_requested',
         'meds_acknowledged',
         'ack_notified',
@@ -12,8 +11,7 @@ export const medsStateSchema = z.object({
         'meds_notification_sent',
     ]).default('idle'),
     medications: z.array(z.string()).optional(),
-    requestedBy: z.string().optional(),
-    prescriptionsReceivedAt: unixTimestampSchema.optional(),
+    requestedBy: z.string().min(1),
     requestedAt: unixTimestampSchema.optional(),
     acknowledgedAt: unixTimestampSchema.optional(),
     ackNotifiedAt: unixTimestampSchema.optional(),

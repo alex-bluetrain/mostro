@@ -48,7 +48,7 @@ Only known users get past the access gate; identity, invites, and memory ownersh
 Each domain workflow follows a request → wait → notify pattern with external webhook-driven resume points:
 
 - **Diapers**: `requested → date_confirmed → notification_sent`
-- **Meds**: `prescriptions_received → requested → acknowledged → ack_notified → delivery_confirmed → notification_sent`
+- **Meds**: `requested → acknowledged → ack_notified → delivery_confirmed → notification_sent`
 - **Refunds**: `requested → acknowledged → ack_notified → confirmed → confirmation_notified → deposit_received → deposit_confirmed → notification_sent`
 
 ### Webhook Endpoints

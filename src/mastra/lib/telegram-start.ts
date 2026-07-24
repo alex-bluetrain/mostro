@@ -4,19 +4,19 @@ import type { IUser, IInvite } from '../../business'
 export type TelegramStartDeps = {
     getUserByTelegramId: (telegramId: string) => Promise<IUser | null>
     redeemInvite: (code: string, telegramId: string) => Promise<IInvite | null>
-    provisionUser: (email: string, telegramId: string) => Promise<IUser>
+    provisionUser: (email: string, telegramId: string, name: string) => Promise<IUser>
 }
 
 const defaultDeps: TelegramStartDeps = {
     getUserByTelegramId: telegramId => userRepository.findByTelegramId(telegramId),
     redeemInvite: (code, telegramId) => inviteRepository.redeem(code, telegramId),
-    provisionUser: (email, telegramId) => userRepository.upsertFromInviteRedeem(email, telegramId),
+    provisionUser: (email, telegramId, name) => userRepository.upsertFromInviteRedeem(email, telegramId, name),
 }
 
 // Subconjunto estructural de SlashCommandEvent del Chat SDK: alcanza para el
 // handler y permite testearlo sin fabricar un evento completo.
 export type TelegramStartEvent = {
-    user: { userId: string }
+    user: { userId: string; fullName: string }
     text: string
     channel: { post: (message: string) => Promise<unknown> }
 }
@@ -59,7 +59,7 @@ export function createTelegramStartHandler(deps: TelegramStartDeps = defaultDeps
             // El invite ya quedó quemado en redeemInvite; si la provisión falla acá
             // igual hay que avisarle al invitado en vez de dejarlo sin respuesta.
             try {
-                const user = await deps.provisionUser(invite.email, telegramId)
+                const user = await deps.provisionUser(invite.email, telegramId, event.user.fullName.trim())
                 await event.channel.post(buildWelcomeMessage(user.name || invite.name))
             } catch (err) {
                 console.error('[telegram-start] failed to provision user after redeem', err)
