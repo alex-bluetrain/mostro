@@ -71,7 +71,7 @@ Each domain workflow follows a request → wait → notify pattern with external
 - **DuckDB** — observability and tracing
 - **ngrok** — tunnel for webhook delivery
 - **Zod** — schema validation
-- **[Gmail API](https://developers.google.com/gmail/api)** vía `@googleapis/gmail` — envío de correos salientes
+- **[Gmail API](https://developers.google.com/gmail/api)** via `@googleapis/gmail` — sends outbound emails
 
 ## Prerequisites
 
@@ -129,7 +129,7 @@ Each domain workflow follows a request → wait → notify pattern with external
    GOOGLE_COOKIE_PASSWORD=
    ```
 
-   Required — Gmail, para el envío de correos salientes:
+   Required — Gmail, for sending outbound emails:
 
    ```env
    GMAIL_CLIENT_ID=
@@ -141,17 +141,17 @@ Each domain workflow follows a request → wait → notify pattern with external
    REFUNDS_EMAIL_TO=
    ```
 
-   Setup de la cuenta de Gmail, una sola vez:
+   One-time Gmail account setup:
 
-   1. Crear un proyecto de Google Cloud propio del mailer, separado del que usa el SSO.
-   2. Habilitar la Gmail API.
-   3. Crear un cliente OAuth de tipo "Web application" con redirect a
-      `http://localhost:53682/oauth2callback` (la URI debe coincidir exactamente, puerto incluido).
-   4. Agregar el scope `https://www.googleapis.com/auth/gmail.send`.
-   5. **Publicar la app en producción.** En modo *Testing* el refresh token se invalida a los 7
-      días y los envíos empiezan a fallar. Al autorizar aparece la pantalla de "app no
-      verificada", que se acepta manualmente.
-   6. Correr `pnpm run gmail:auth` con la cuenta de Mostro y guardar el token en el `.env`.
+   1. Create a Google Cloud project dedicated to the mailer, separate from the one used for SSO.
+   2. Enable the Gmail API.
+   3. Create an OAuth client of type "Web application" with a redirect to
+      `http://localhost:53682/oauth2callback` (the URI must match exactly, port included).
+   4. Add the `https://www.googleapis.com/auth/gmail.send` scope.
+   5. **Publish the app to production.** In *Testing* mode the refresh token is invalidated
+      after 7 days and sends start failing. Authorizing shows the "unverified app" screen,
+      which you accept manually.
+   6. Run `pnpm run gmail:auth` with the Mostro account and save the token in `.env`.
 
 4. Start the development server:
 
@@ -179,12 +179,12 @@ src/mastra/
 
 ## Scripts
 
-| Script           | Description                              |
-| ---------------- | ---------------------------------------- |
-| `pnpm run dev`   | Start development server with hot reload |
-| `pnpm run build` | Build for production                     |
-| `pnpm run start` | Start production server                  |
-| `pnpm run gmail:auth` | Obtiene el refresh token de Gmail (one-time) |
+| Script                | Description                              |
+| --------------------- | ---------------------------------------- |
+| `pnpm run dev`        | Start development server with hot reload |
+| `pnpm run build`      | Build for production                     |
+| `pnpm run start`      | Start production server                  |
+| `pnpm run gmail:auth` | Get the Gmail refresh token (one-time)   |
 
 ## License
 
