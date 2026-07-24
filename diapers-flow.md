@@ -31,7 +31,7 @@ Agent -> WF: requestDiapersTool\n-> startDiapers(diaperType, quantity, yearMonth
 activate WF
 WF -> DB: crea/persiste run
 WF -> WF: **step 1: request-diapers**\nstatus = diapers_requested
-WF -> Provider: (opcional) correo {type, quantity}
+WF -> Provider: correo {size, requestedBy}
 note right of WF
   Si no hay run "in progress" para el mes,
   arranca uno nuevo. Si ya existe, responde
