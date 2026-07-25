@@ -4,7 +4,9 @@ import http from 'node:http'
 import { auth } from '@googleapis/gmail'
 
 const PORT = 53682
-const REDIRECT_URI = `http://localhost:${PORT}/oauth2callback`
+// 127.0.0.1 y no localhost: en Windows localhost resuelve primero a ::1, y el server escucha
+// solo en IPv4, así que el navegador se comería un connection refused al volver del consent.
+const REDIRECT_URI = `http://127.0.0.1:${PORT}/oauth2callback`
 const SCOPE = 'https://www.googleapis.com/auth/gmail.send'
 
 const clientId = process.env.GMAIL_MAILER_CLIENT_ID
