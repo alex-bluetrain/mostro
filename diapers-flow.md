@@ -27,7 +27,7 @@ Supervisor -> Agent: delega
 Agent -> Subs: subscribeDiapersTool\n(resourceId, threadId)
 
 == Inicio del pedido ==
-Agent -> WF: requestDiapersTool\n-> startDiapers(diaperType, quantity, yearMonth)
+Agent -> WF: requestDiapersTool\n-> startDiapers(size, requestedBy, yearMonth)
 activate WF
 WF -> DB: crea/persiste run
 WF -> WF: **step 1: request-diapers**\nstatus = diapers_requested
