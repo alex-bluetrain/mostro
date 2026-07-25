@@ -71,7 +71,8 @@ const server = http.createServer(async (req, res) => {
     }
 })
 
-server.listen(PORT, () => {
+// Solo loopback: el código de autorización no debe poder llegar por la LAN.
+server.listen(PORT, '127.0.0.1', () => {
     console.log('Abrí esta URL con la cuenta de Gmail de Mostro:\n')
     console.log(authUrl)
     console.log('\nEsperando el callback...')
