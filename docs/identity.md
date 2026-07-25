@@ -66,7 +66,7 @@ Detalles:
 
 ## Acceso web: Google SSO
 
-`createGoogleAuth()` (`src/mastra/lib/google-auth.ts`) monta `MastraAuthGoogle` sobre el server de Mastra. La autorización es `authorizeUser`: email verificado por Google **y presente en `users`** — la misma condición que el bot, sin listas aparte. Sin `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` el auth queda deshabilitado con un warning (útil en dev).
+`createGoogleAuth()` (`src/mastra/lib/google-auth.ts`) monta `MastraAuthGoogle` sobre el server de Mastra. La autorización es `authorizeUser`: email verificado por Google **y presente en `users`** — la misma condición que el bot, sin listas aparte. Sin `GOOGLE_SSO_CLIENT_ID`/`GOOGLE_SSO_CLIENT_SECRET` el auth queda deshabilitado con un warning (útil en dev).
 
 **Nota:** El acceso web solo funciona **después de canjear el invite** por Telegram. El invite no pre-crea el user; la redención es el momento donde se crea el user, se vincula el Telegram, y a partir de ese punto el email queda autorizado para la web.
 
@@ -88,10 +88,10 @@ Quién es "dueño" de la memoria de cada conversación:
 | `ADMIN_EMAIL`            | sí*       | Email del admin a seedear. Sin ella, nadie queda autorizado.          |
 | `ADMIN_NAME`             | no        | Nombre del admin. Solo se aplica al crear el user.                    |
 | `ADMIN_TELEGRAM_ID`      | no        | Vincula el Telegram del admin sin pasar por un invite.                |
-| `GOOGLE_CLIENT_ID`       | no        | OAuth client (tipo "Web application"). Sin él, auth web deshabilitado.|
-| `GOOGLE_CLIENT_SECRET`   | no        | Idem.                                                                 |
-| `GOOGLE_REDIRECT_URI`    | no        | `https://<NGROK_DOMAIN>/api/auth/sso/callback`                        |
-| `GOOGLE_COOKIE_PASSWORD` | no        | 32+ chars, firma la cookie de sesión.                                 |
+| `GOOGLE_SSO_CLIENT_ID`       | no        | OAuth client (tipo "Web application"). Sin él, auth web deshabilitado.|
+| `GOOGLE_SSO_CLIENT_SECRET`   | no        | Idem.                                                                 |
+| `GOOGLE_SSO_REDIRECT_URI`    | no        | `https://<NGROK_DOMAIN>/api/auth/sso/callback`                        |
+| `GOOGLE_SSO_COOKIE_PASSWORD` | no        | 32+ chars, firma la cookie de sesión.                                 |
 
 \* Opcional para el schema de zod, pero en la práctica obligatoria: sin admin no hay quien invite. Ojo: ninguna de estas variables puede estar presente **con valor vacío** — zod valida `min(...)` y rompe el boot.
 

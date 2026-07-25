@@ -123,19 +123,19 @@ Each domain workflow follows a request → wait → notify pattern with external
    Optional — Google SSO for the web (Studio and future frontends):
 
    ```env
-   GOOGLE_CLIENT_ID=
-   GOOGLE_CLIENT_SECRET=
-   GOOGLE_REDIRECT_URI=
-   GOOGLE_COOKIE_PASSWORD=
+   GOOGLE_SSO_CLIENT_ID=
+   GOOGLE_SSO_CLIENT_SECRET=
+   GOOGLE_SSO_REDIRECT_URI=
+   GOOGLE_SSO_COOKIE_PASSWORD=
    ```
 
    Required — Gmail, for sending outbound emails:
 
    ```env
-   GMAIL_CLIENT_ID=
-   GMAIL_CLIENT_SECRET=
-   GMAIL_REFRESH_TOKEN=
-   GMAIL_SENDER=
+   GMAIL_MAILER_CLIENT_ID=
+   GMAIL_MAILER_CLIENT_SECRET=
+   GMAIL_MAILER_REFRESH_TOKEN=
+   GMAIL_MAILER_SENDER=
    DIAPERS_EMAIL_TO=
    MEDS_EMAIL_TO=
    REFUNDS_EMAIL_TO=

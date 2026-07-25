@@ -14,10 +14,10 @@ vi.mock('@mastra/auth-google', () => {
 
 vi.mock('../config/app.config', () => ({
     appConfig: {
-        GOOGLE_CLIENT_ID: 'client-id',
-        GOOGLE_CLIENT_SECRET: 'client-secret',
-        GOOGLE_REDIRECT_URI: 'https://example.com/api/auth/sso/callback',
-        GOOGLE_COOKIE_PASSWORD: 'x'.repeat(32),
+        GOOGLE_SSO_CLIENT_ID: 'client-id',
+        GOOGLE_SSO_CLIENT_SECRET: 'client-secret',
+        GOOGLE_SSO_REDIRECT_URI: 'https://example.com/api/auth/sso/callback',
+        GOOGLE_SSO_COOKIE_PASSWORD: 'x'.repeat(32),
     },
 }))
 

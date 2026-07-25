@@ -9,9 +9,9 @@ let client: ReturnType<typeof gmail> | undefined
 
 function getClient() {
     if (!client) {
-        const oauth2 = new auth.OAuth2(appConfig.GMAIL_CLIENT_ID, appConfig.GMAIL_CLIENT_SECRET)
+        const oauth2 = new auth.OAuth2(appConfig.GMAIL_MAILER_CLIENT_ID, appConfig.GMAIL_MAILER_CLIENT_SECRET)
         // Con el refresh token alcanza: el SDK renueva el access token solo.
-        oauth2.setCredentials({ refresh_token: appConfig.GMAIL_REFRESH_TOKEN })
+        oauth2.setCredentials({ refresh_token: appConfig.GMAIL_MAILER_REFRESH_TOKEN })
         client = gmail({ version: 'v1', auth: oauth2 })
     }
     return client
@@ -51,7 +51,7 @@ export async function sendEmail({
     subject: string
     text: string
 }): Promise<void> {
-    const raw = buildRawMessage({ from: appConfig.GMAIL_SENDER, to, subject, text })
+    const raw = buildRawMessage({ from: appConfig.GMAIL_MAILER_SENDER, to, subject, text })
     let lastError: unknown
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {

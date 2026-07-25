@@ -7,11 +7,11 @@ const PORT = 53682
 const REDIRECT_URI = `http://localhost:${PORT}/oauth2callback`
 const SCOPE = 'https://www.googleapis.com/auth/gmail.send'
 
-const clientId = process.env.GMAIL_CLIENT_ID
-const clientSecret = process.env.GMAIL_CLIENT_SECRET
+const clientId = process.env.GMAIL_MAILER_CLIENT_ID
+const clientSecret = process.env.GMAIL_MAILER_CLIENT_SECRET
 
 if (!clientId || !clientSecret) {
-    console.error('Faltan GMAIL_CLIENT_ID y/o GMAIL_CLIENT_SECRET en el .env')
+    console.error('Faltan GMAIL_MAILER_CLIENT_ID y/o GMAIL_MAILER_CLIENT_SECRET en el .env')
     process.exit(1)
 }
 
@@ -57,7 +57,7 @@ const server = http.createServer(async (req, res) => {
 
         if (tokens.refresh_token) {
             console.log('\nPegá esto en tu .env:\n')
-            console.log(`GMAIL_REFRESH_TOKEN=${tokens.refresh_token}`)
+            console.log(`GMAIL_MAILER_REFRESH_TOKEN=${tokens.refresh_token}`)
         } else {
             console.error('\nGoogle no devolvió refresh token. Revocá el acceso de la app en')
             console.error('https://myaccount.google.com/permissions y volvé a correr el script.')
