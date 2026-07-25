@@ -168,6 +168,16 @@ The two are configured by separate variables: `GMAIL_MAILER_*` for sending, `GOO
       which you accept manually.
    6. Run `pnpm run gmail:auth` with the Mostro account and save the token in `.env`.
 
+   The consent screen's user type must be **External** — *Internal* only exists for Google
+   Workspace organizations, and Mostro's account is a plain `@gmail.com` one. Publishing the app
+   is not the same as getting it verified: you can publish without verification, and authorizing
+   then shows the "Google hasn't verified this app" screen, which you accept manually.
+
+   The refresh token also dies if the Mostro account's **password changes** (Google invalidates
+   tokens carrying Gmail scopes) or if it goes **six months unused**. In all of these cases sends
+   fail with `invalid_grant`, and the mailer's error message says so — the fix is always to re-run
+   `pnpm run gmail:auth`.
+
 4. Start the development server:
 
    ```bash
