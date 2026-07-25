@@ -56,7 +56,9 @@ export async function sendEmail({
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         try {
-            await getClient().users.messages.send({ userId: 'me', requestBody: { raw } })
+            // gaxios no pone timeout si no se lo pedimos: sin esto, un cuelgue de red puede
+            // tardar los ~300s por defecto de undici, multiplicado por los 3 intentos.
+            await getClient().users.messages.send({ userId: 'me', requestBody: { raw } }, { timeout: 15000 })
             return
         } catch (error) {
             lastError = error
