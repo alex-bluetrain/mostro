@@ -178,6 +178,12 @@ if you ever open the login to people outside the household.
       which you accept manually.
    6. Run `pnpm run gmail:auth` with the Mostro account and save the token in `.env`.
 
+   `gmail:auth` runs as its own process and briefly listens on port 53682 — not Mastra's port,
+   which it would collide with while `pnpm run dev` is up. The callback cannot be a Mastra route
+   either: `GMAIL_MAILER_REFRESH_TOKEN` is required for the server to boot, so you would need the
+   token to start the thing that gives you the token. The port number itself is arbitrary; it only
+   has to match the redirect URI registered on the OAuth client.
+
    The consent screen's user type must be **External** — *Internal* only exists for Google
    Workspace organizations, and Mostro's account is a plain `@gmail.com` one. Publishing the app
    is not the same as getting it verified: you can publish without verification, and authorizing
