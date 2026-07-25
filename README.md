@@ -167,8 +167,11 @@ if you ever open the login to people outside the household.
    1. Create a Google Cloud project — the same one can also host the web login's OAuth client.
    2. Enable the Gmail API.
    3. Create an OAuth client of type "Web application", **separate from the SSO one**, with a
-      redirect to `http://localhost:53682/oauth2callback` (the URI must match exactly, port
-      included).
+      redirect to `http://127.0.0.1:53682/oauth2callback`. Google matches redirect URIs literally,
+      so scheme, host, port and trailing slash must be exactly that — in particular `127.0.0.1`
+      and not `localhost`, which on Windows resolves to IPv6 first while the script listens on
+      IPv4. ("Web application" rather than "Desktop app" because the client secret lives in a
+      server's `.env` and is treated as confidential.)
    4. Add the `https://www.googleapis.com/auth/gmail.send` scope.
    5. **Publish the app to production.** In *Testing* mode the refresh token is invalidated
       after 7 days and sends start failing. Authorizing shows the "unverified app" screen,
