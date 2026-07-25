@@ -68,6 +68,8 @@ Detalles:
 
 `createGoogleAuth()` (`src/mastra/lib/google-auth.ts`) monta `MastraAuthGoogle` sobre el server de Mastra. La autorización es `authorizeUser`: email verificado por Google **y presente en `users`** — la misma condición que el bot, sin listas aparte. Sin `GOOGLE_SSO_CLIENT_ID`/`GOOGLE_SSO_CLIENT_SECRET` el auth queda deshabilitado con un warning (útil en dev).
 
+**Ojo, hay dos integraciones de Google en el proyecto y no comparten credenciales.** Las `GOOGLE_SSO_*` de acá son el login web. El envío de correos a proveedores usa `GMAIL_MAILER_*`, de un proyecto de Google Cloud aparte, porque necesita el scope sensible `gmail.send` y que su app esté publicada — hacerlo en este proyecto cambiaría la pantalla de consentimiento del login. El detalle está en el README.
+
 **Nota:** El acceso web solo funciona **después de canjear el invite** por Telegram. El invite no pre-crea el user; la redención es el momento donde se crea el user, se vincula el Telegram, y a partir de ese punto el email queda autorizado para la web.
 
 Excepción: el webhook del canal Telegram (`/api/agents/*/channels/telegram/webhook`) queda público porque ya tiene su propia protección (`TELEGRAM_WEBHOOK_SECRET_TOKEN`) — si el middleware de auth lo tapara, el bot muere.
@@ -83,15 +85,17 @@ Quién es "dueño" de la memoria de cada conversación:
 
 ## Variables de entorno
 
-| Variable                 | Requerida | Rol                                                                  |
-| ------------------------ | --------- | -------------------------------------------------------------------- |
-| `ADMIN_EMAIL`            | sí*       | Email del admin a seedear. Sin ella, nadie queda autorizado.          |
-| `ADMIN_NAME`             | no        | Nombre del admin. Solo se aplica al crear el user.                    |
-| `ADMIN_TELEGRAM_ID`      | no        | Vincula el Telegram del admin sin pasar por un invite.                |
-| `GOOGLE_SSO_CLIENT_ID`       | no        | OAuth client (tipo "Web application"). Sin él, auth web deshabilitado.|
-| `GOOGLE_SSO_CLIENT_SECRET`   | no        | Idem.                                                                 |
-| `GOOGLE_SSO_REDIRECT_URI`    | no        | `https://<NGROK_DOMAIN>/api/auth/sso/callback`                        |
-| `GOOGLE_SSO_COOKIE_PASSWORD` | no        | 32+ chars, firma la cookie de sesión.                                 |
+Solo las de identidad. Las del envío de correos (`GMAIL_MAILER_*`, `*_EMAIL_TO`) están en el README.
+
+| Variable                     | Requerida | Rol                                                                   |
+| ---------------------------- | --------- | --------------------------------------------------------------------- |
+| `ADMIN_EMAIL`                | sí*       | Email del admin a seedear. Sin ella, nadie queda autorizado.           |
+| `ADMIN_NAME`                 | no        | Nombre del admin. Solo se aplica al crear el user.                     |
+| `ADMIN_TELEGRAM_ID`          | no        | Vincula el Telegram del admin sin pasar por un invite.                 |
+| `GOOGLE_SSO_CLIENT_ID`       | no        | OAuth client (tipo "Web application"). Sin él, auth web deshabilitado. |
+| `GOOGLE_SSO_CLIENT_SECRET`   | no        | Idem.                                                                  |
+| `GOOGLE_SSO_REDIRECT_URI`    | no        | `https://<NGROK_DOMAIN>/api/auth/sso/callback`                         |
+| `GOOGLE_SSO_COOKIE_PASSWORD` | no        | 32+ chars, firma la cookie de sesión.                                  |
 
 \* Opcional para el schema de zod, pero en la práctica obligatoria: sin admin no hay quien invite. Ojo: ninguna de estas variables puede estar presente **con valor vacío** — zod valida `min(...)` y rompe el boot.
 
