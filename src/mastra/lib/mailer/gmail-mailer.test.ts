@@ -36,6 +36,7 @@ describe('sendEmail', () => {
   it('sends the message as the authenticated account', async () => {
     await sendEmail(message)
 
+    expect(setCredentials).toHaveBeenCalledWith({ refresh_token: 'test-refresh-token' })
     expect(send).toHaveBeenCalledTimes(1)
     const [args] = send.mock.calls[0]
     expect(args.userId).toBe('me')

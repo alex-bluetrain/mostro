@@ -23,6 +23,8 @@ export function buildRawMessage({
         `Subject: ${encodeSubject(subject)}`,
         'MIME-Version: 1.0',
         'Content-Type: text/plain; charset=UTF-8',
+        // Sin esto el default RFC 2045 es 7bit, pero los cuerpos llevan acentos (pañales, Depósito).
+        'Content-Transfer-Encoding: 8bit',
     ]
 
     const message = `${headers.join('\r\n')}\r\n\r\n${text}`
