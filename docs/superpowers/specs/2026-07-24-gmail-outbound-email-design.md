@@ -176,6 +176,16 @@ fallo queda en el log del step con el error de Gmail, y `webhook-refunds-deposit
 responder `502` cuando el resume termina en `failed`, para que el sistema externo pueda
 reintentar. Hoy responde `200` sin mirar el status del run.
 
+**Limitación conocida y trade-off aceptado:** ese `502` no habilita en la práctica un reintento
+automático. Si el resume falla, el run de reembolso queda en `failed`, y `receiveDeposit`
+(`lib/refunds-run.ts`) solo resume runs `suspended` — un reintento del webhook externo se
+encuentra el run en `failed` y recibe `409`, no un nuevo intento de envío. El `502` sirve como
+alerta para quien opera el sistema, no como señal de "reintentá y se arregla solo"; el reintegro
+de ese mes queda trabado hasta que alguien intervenga a mano (por ejemplo, reabriendo el run o
+completando el aviso por otra vía). Se acepta esta limitación: el caso es infrecuente y de bajo
+volumen, y automatizar la recuperación de un run fallido no se justifica frente a la complejidad
+que agregaría.
+
 ## Testing
 
 | Nivel               | Qué se verifica                                                                                                                                                    |

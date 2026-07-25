@@ -30,8 +30,12 @@ export const webhookRefundsDepositRoute = registerApiRoute(
                 )
             }
 
-            // El resume no lanza cuando un step falla: hay que mirar el status para que
-            // el sistema externo pueda reintentar en vez de darlo por recibido.
+            // El resume no lanza cuando un step falla: hay que mirar el status para saber
+            // que el run terminó en 'failed'. El 502 es una alerta, no una invitación a
+            // reintentar: un reintento de este webhook encuentra el run ya no 'suspended'
+            // y recibe 409 (ver el guard de receiveDeposit en refunds-run.ts). Ese reintegro
+            // queda trabado y requiere intervención manual — ver "Manejo de errores" en el
+            // spec de diseño.
             if (result.result?.status === 'failed') {
                 return c.json({ ok: false, error: 'workflow failed' }, 502)
             }
