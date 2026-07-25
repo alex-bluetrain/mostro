@@ -68,7 +68,7 @@ Detalles:
 
 `createGoogleAuth()` (`src/mastra/lib/google-auth.ts`) monta `MastraAuthGoogle` sobre el server de Mastra. La autorización es `authorizeUser`: email verificado por Google **y presente en `users`** — la misma condición que el bot, sin listas aparte. Sin `GOOGLE_SSO_CLIENT_ID`/`GOOGLE_SSO_CLIENT_SECRET` el auth queda deshabilitado con un warning (útil en dev).
 
-**Ojo, hay dos integraciones de Google en el proyecto y no comparten credenciales.** Las `GOOGLE_SSO_*` de acá son el login web. El envío de correos a proveedores usa `GMAIL_MAILER_*`, de un proyecto de Google Cloud aparte, porque necesita el scope sensible `gmail.send` y que su app esté publicada — hacerlo en este proyecto cambiaría la pantalla de consentimiento del login. El detalle está en el README.
+**Ojo, hay dos integraciones de Google en el proyecto y no comparten credenciales.** Las `GOOGLE_SSO_*` de acá son el login web. El envío de correos a proveedores usa `GMAIL_MAILER_*`, otro cliente OAuth (puede vivir en el mismo proyecto de Google Cloud). Quien se loguea nunca ve un pedido de acceso a Gmail: el consentimiento es por los scopes de cada solicitud, y el login solo pide `openid email profile`. El detalle está en el README.
 
 **Nota:** El acceso web solo funciona **después de canjear el invite** por Telegram. El invite no pre-crea el user; la redención es el momento donde se crea el user, se vincula el Telegram, y a partir de ese punto el email queda autorizado para la web.
 

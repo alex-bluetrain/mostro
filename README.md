@@ -84,19 +84,25 @@ Each domain workflow follows a request → wait → notify pattern with external
 - A [Telegram Bot](https://core.telegram.org/bots#how-do-i-create-a-bot) token
 - An [ngrok](https://ngrok.com/) account with a reserved domain
 - A Gmail account for Mostro itself — outbound orders are sent from it, and suppliers reply to it
-- A Google Cloud project **for the mailer**, with the Gmail API enabled, an OAuth client, and the
-  app published to production (see the one-time setup in step 3 below)
-- Optional: a **second** Google Cloud project with its own OAuth client ("Web application") for web login
+- A Google Cloud project with the Gmail API enabled, an OAuth client, and the app published to
+  production (see the one-time setup in step 3 below)
+- Optional, for web login: a second OAuth client of type "Web application" — the same project can
+  host it
 
-### Why two Google Cloud projects
+### One project, two OAuth clients
 
-The mailer and the web login are separate integrations and deliberately do not share credentials.
-Sending mail needs the `gmail.send` scope, which Google classifies as sensitive, and its OAuth app
-has to be published to production — otherwise the refresh token is invalidated after 7 days. Doing
-that in the project that backs the SSO would change the consent screen your users see when they log
-in. Keeping them apart also means rotating one set of credentials never affects the other.
+Sending mail and logging in are separate integrations with separate credentials
+(`GMAIL_MAILER_*` and `GOOGLE_SSO_*`), but they can live in one Google Cloud project.
 
-The two are configured by separate variables: `GMAIL_MAILER_*` for sending, `GOOGLE_SSO_*` for login.
+Users logging in are never asked for Gmail access. Consent is granted per authorization request,
+not per project: the login asks for `openid email profile`, while `gmail.send` is requested once,
+by you, when you authorize the mailer with Mostro's own account.
+
+What the two do share, being one project: the 100-new-user cap Google applies to an app that has
+shown the "unverified app" screen — which the mailer will, since its scope is sensitive and the app
+is published but unverified — plus the verification paperwork if you ever need it, and the blast
+radius of a suspension. None of that binds at family scale. Split the mailer into its own project
+if you ever open the login to people outside the household.
 
 ## Setup
 
@@ -158,10 +164,11 @@ The two are configured by separate variables: `GMAIL_MAILER_*` for sending, `GOO
 
    One-time Gmail account setup:
 
-   1. Create a Google Cloud project dedicated to the mailer, separate from the one used for SSO.
+   1. Create a Google Cloud project — the same one can also host the web login's OAuth client.
    2. Enable the Gmail API.
-   3. Create an OAuth client of type "Web application" with a redirect to
-      `http://localhost:53682/oauth2callback` (the URI must match exactly, port included).
+   3. Create an OAuth client of type "Web application", **separate from the SSO one**, with a
+      redirect to `http://localhost:53682/oauth2callback` (the URI must match exactly, port
+      included).
    4. Add the `https://www.googleapis.com/auth/gmail.send` scope.
    5. **Publish the app to production.** In *Testing* mode the refresh token is invalidated
       after 7 days and sends start failing. Authorizing shows the "unverified app" screen,
