@@ -14,6 +14,7 @@ Mostro uses a **supervisor/delegation architecture**: a central supervisor agent
 - **Invite-only access** — canonical user identity keyed by Google email; unknown Telegram senders are silently ignored, admins invite people via one-time deep links (see [docs/identity.md](docs/identity.md))
 - **Google SSO for the web** — the Mastra server authorizes logins against the same users collection as the bot
 - **Suspend/resume workflows** — long-running order flows that halt until external systems call back via webhooks
+- **Outbound email** — orders reach suppliers as real emails sent from Mostro's own Gmail account, so replies land in its inbox; a send that fails leaves the order un-placed and retryable rather than silently marked as sent
 - **Notification subscriptions** — users subscribe to order updates and receive Telegram messages when events occur
 - **Monthly scoping** — one shared order per domain per month (deterministic run IDs like `diapers-2025-07`)
 - **Ngrok tunneling** — automatic tunnel setup for Telegram webhooks and external provider callbacks
@@ -26,7 +27,8 @@ Telegram ──► access gate ──► Mostro Supervisor
                  ├──► Diapers Agent  ──► Diapers Workflow  (3 steps, 1 suspend)
                  ├──► Meds Agent     ──► Meds Workflow     (6 steps, 3 suspends)
                  └──► Refunds Agent  ──► Refunds Workflow  (8 steps, 3 suspends)
-                          ▲
+                          ▲ │
+                          │ └──► email (Gmail API) ──► suppliers
                           │ webhooks resume suspended steps
                  External Systems
 ```
@@ -81,7 +83,20 @@ Each domain workflow follows a request → wait → notify pattern with external
 - An [OpenRouter](https://openrouter.ai/) API key
 - A [Telegram Bot](https://core.telegram.org/bots#how-do-i-create-a-bot) token
 - An [ngrok](https://ngrok.com/) account with a reserved domain
-- Optional: a Google OAuth client ("Web application") for web login
+- A Gmail account for Mostro itself — outbound orders are sent from it, and suppliers reply to it
+- A Google Cloud project **for the mailer**, with the Gmail API enabled, an OAuth client, and the
+  app published to production (see the one-time setup in step 3 below)
+- Optional: a **second** Google Cloud project with its own OAuth client ("Web application") for web login
+
+### Why two Google Cloud projects
+
+The mailer and the web login are separate integrations and deliberately do not share credentials.
+Sending mail needs the `gmail.send` scope, which Google classifies as sensitive, and its OAuth app
+has to be published to production — otherwise the refresh token is invalidated after 7 days. Doing
+that in the project that backs the SSO would change the consent screen your users see when they log
+in. Keeping them apart also means rotating one set of credentials never affects the other.
+
+The two are configured by separate variables: `GMAIL_MAILER_*` for sending, `GOOGLE_SSO_*` for login.
 
 ## Setup
 
