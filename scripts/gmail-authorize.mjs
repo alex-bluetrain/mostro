@@ -3,6 +3,11 @@
 import http from 'node:http'
 import { auth } from '@googleapis/gmail'
 
+// Puerto propio, no el de Mastra (PORT/4111): esto corre como proceso aparte y chocaría con el
+// server si estuviera levantado. El callback tampoco puede ser una ruta de Mastra, porque
+// GMAIL_MAILER_REFRESH_TOKEN es requerido para arrancar el server: haría falta el token para
+// levantar lo que te da el token. El número es arbitrario; lo único que importa es que coincida
+// con el redirect URI registrado en el cliente OAuth.
 const PORT = 53682
 // 127.0.0.1 y no localhost: en Windows localhost resuelve primero a ::1, y el server escucha
 // solo en IPv4, así que el navegador se comería un connection refused al volver del consent.
