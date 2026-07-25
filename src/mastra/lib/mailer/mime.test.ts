@@ -23,6 +23,7 @@ describe('buildRawMessage', () => {
     expect(message).toContain('From: mostro@gmail.com\r\n')
     expect(message).toContain('To: farmacia@proveedor.test\r\n')
     expect(message).toContain('Content-Type: text/plain; charset=UTF-8\r\n')
+    expect(message).toContain('Content-Transfer-Encoding: 8bit\r\n')
     expect(message).toContain('\r\n\r\nTalle: M\nSolicitado por: Ana')
   })
 
