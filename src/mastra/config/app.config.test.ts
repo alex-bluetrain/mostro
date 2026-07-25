@@ -4,10 +4,10 @@ import { auth, gmail } from '@googleapis/gmail'
 
 describe('appConfig', () => {
   it('exposes the required Gmail settings as strings', () => {
-    expect(typeof appConfig.GMAIL_CLIENT_ID).toBe('string')
-    expect(typeof appConfig.GMAIL_CLIENT_SECRET).toBe('string')
-    expect(typeof appConfig.GMAIL_REFRESH_TOKEN).toBe('string')
-    expect(typeof appConfig.GMAIL_SENDER).toBe('string')
+    expect(typeof appConfig.GMAIL_MAILER_CLIENT_ID).toBe('string')
+    expect(typeof appConfig.GMAIL_MAILER_CLIENT_SECRET).toBe('string')
+    expect(typeof appConfig.GMAIL_MAILER_REFRESH_TOKEN).toBe('string')
+    expect(typeof appConfig.GMAIL_MAILER_SENDER).toBe('string')
   })
 
   it('exposes one recipient per domain', () => {
