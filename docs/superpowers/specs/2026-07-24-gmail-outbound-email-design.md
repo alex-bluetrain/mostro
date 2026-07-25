@@ -22,9 +22,13 @@ directamente desde su propia cuenta de Gmail.
   app password (credencial de alcance amplio, atada a 2FA) y un proveedor transaccional tipo
   Resend (requiere dominio propio y el correo dejaría de salir de la dirección que los
   destinatarios conocen).
-- **Proyecto OAuth separado:** cliente y proyecto de Google Cloud propios del mailer, distintos
-  de los que usa el SSO. Publicar la app y agregar un scope sensible no debe tocar la pantalla
-  de consentimiento que ven los usuarios al loguearse.
+- **Cliente OAuth propio del mailer:** distinto del que usa el SSO, aunque puede vivir en el mismo
+  proyecto de Google Cloud. Revisado el 2026-07-25: la decisión original pedía además un proyecto
+  aparte, con el argumento de que publicar la app con un scope sensible cambiaría la pantalla de
+  consentimiento del login. Es falso — el consentimiento se pide por los scopes de cada solicitud,
+  y el login solo pide `openid email profile`. Lo que un proyecto compartido sí comparte es el
+  cupo de 100 usuarios de una app sin verificar, el trámite de verificación y el radio de una
+  suspensión; nada de eso pesa a escala familiar, así que se usa un solo proyecto.
 - **Librería:** `@googleapis/gmail`, la variante modular del SDK oficial. Mismo código generado
   y misma llamada `users.messages.send` que `googleapis`, sin arrastrar las demás APIs de Google
   al build.
