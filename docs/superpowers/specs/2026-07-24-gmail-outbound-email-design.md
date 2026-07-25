@@ -124,8 +124,9 @@ Pasos obligatorios, no opcionales:
 1. Crear un proyecto de Google Cloud propio del mailer.
 2. Habilitar la Gmail API.
 3. Crear un cliente OAuth de tipo "Web application" con redirect a
-   `http://localhost:53682/oauth2callback`. La URI debe coincidir exactamente con la que usa el
-   script, puerto incluido; el script escucha en ese puerto fijo.
+   `http://127.0.0.1:53682/oauth2callback`. La URI debe coincidir exactamente con la que usa el
+   script, puerto incluido; el script escucha en ese puerto fijo. Va `127.0.0.1` y no `localhost`
+   porque en Windows `localhost` resuelve primero a `::1` y el script escucha solo en IPv4.
 4. Agregar el scope `https://www.googleapis.com/auth/gmail.send`.
 5. **Publicar la app en producción.** Si queda en modo *Testing*, el refresh token se invalida a
    los 7 días y los envíos empiezan a fallar. Al autorizar aparecerá la pantalla de "app no
