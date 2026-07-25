@@ -44,8 +44,8 @@ directamente desde su propia cuenta de Gmail.
 sendEmail({ to, subject, text }: { to: string; subject: string; text: string }): Promise<void>
 ```
 
-Construye una sola vez un `OAuth2Client` con `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET` y
-`GMAIL_REFRESH_TOKEN`; el SDK renueva el access token por su cuenta. Llama a
+Construye una sola vez un `OAuth2Client` con `GMAIL_MAILER_CLIENT_ID`, `GMAIL_MAILER_CLIENT_SECRET` y
+`GMAIL_MAILER_REFRESH_TOKEN`; el SDK renueva el access token por su cuenta. Llama a
 `users.messages.send` con `userId: 'me'` y el mensaje en `raw`.
 
 Reintentos: hasta 2 reintentos con backoff exponencial ante fallos de red, timeout, `429` y
@@ -97,15 +97,15 @@ REFUNDS_MESSAGING_URL
 
 Se agregan como **requeridas** (`z.string().min(1)`, sin `.optional()`):
 
-| Variable              | Contenido                                        |
-| --------------------- | ------------------------------------------------ |
-| `GMAIL_CLIENT_ID`     | Cliente OAuth del proyecto del mailer            |
-| `GMAIL_CLIENT_SECRET` | Secret de ese cliente                            |
-| `GMAIL_REFRESH_TOKEN` | Obtenido con `pnpm run gmail:auth`               |
-| `GMAIL_SENDER`        | Dirección de Mostro; va en el header `From`      |
-| `DIAPERS_EMAIL_TO`    | Destinatario de los pedidos de pañales           |
-| `MEDS_EMAIL_TO`       | Destinatario de los pedidos de medicamentos      |
-| `REFUNDS_EMAIL_TO`    | Destinatario de los reintegros                   |
+| Variable                     | Contenido                                   |
+| ---------------------------- | ------------------------------------------- |
+| `GMAIL_MAILER_CLIENT_ID`     | Cliente OAuth del proyecto del mailer       |
+| `GMAIL_MAILER_CLIENT_SECRET` | Secret de ese cliente                       |
+| `GMAIL_MAILER_REFRESH_TOKEN` | Obtenido con `pnpm run gmail:auth`          |
+| `GMAIL_MAILER_SENDER`        | Dirección de Mostro; va en el header `From` |
+| `DIAPERS_EMAIL_TO`           | Destinatario de los pedidos de pañales      |
+| `MEDS_EMAIL_TO`              | Destinatario de los pedidos de medicamentos |
+| `REFUNDS_EMAIL_TO`           | Destinatario de los reintegros              |
 
 Las siete se agregan también a `tests/setup-env.ts`, que es donde el proyecto inyecta las
 variables requeridas para vitest. Sin eso, hacerlas obligatorias rompe toda la suite.

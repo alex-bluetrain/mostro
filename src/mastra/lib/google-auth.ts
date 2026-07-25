@@ -14,17 +14,17 @@ const TELEGRAM_CHANNEL_WEBHOOK = /^\/api\/agents\/[^/]+\/channels\/telegram\/web
 type SSOCallback = (code: string, state: string) => Promise<{ user: GoogleUser }>
 
 export function createGoogleAuth(): MastraAuthGoogle | undefined {
-    if (!appConfig.GOOGLE_CLIENT_ID || !appConfig.GOOGLE_CLIENT_SECRET) {
-        console.warn('[google-auth] GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET not set, server auth disabled')
+    if (!appConfig.GOOGLE_SSO_CLIENT_ID || !appConfig.GOOGLE_SSO_CLIENT_SECRET) {
+        console.warn('[google-auth] GOOGLE_SSO_CLIENT_ID/GOOGLE_SSO_CLIENT_SECRET not set, server auth disabled')
         return undefined
     }
 
     const auth = new MastraAuthGoogle({
-        clientId: appConfig.GOOGLE_CLIENT_ID,
-        clientSecret: appConfig.GOOGLE_CLIENT_SECRET,
-        redirectUri: appConfig.GOOGLE_REDIRECT_URI,
-        session: appConfig.GOOGLE_COOKIE_PASSWORD
-            ? { cookiePassword: appConfig.GOOGLE_COOKIE_PASSWORD }
+        clientId: appConfig.GOOGLE_SSO_CLIENT_ID,
+        clientSecret: appConfig.GOOGLE_SSO_CLIENT_SECRET,
+        redirectUri: appConfig.GOOGLE_SSO_REDIRECT_URI,
+        session: appConfig.GOOGLE_SSO_COOKIE_PASSWORD
+            ? { cookiePassword: appConfig.GOOGLE_SSO_COOKIE_PASSWORD }
             : undefined,
         public: [TELEGRAM_CHANNEL_WEBHOOK],
         // Autorizado = existir en la colección users (la identidad canónica es
