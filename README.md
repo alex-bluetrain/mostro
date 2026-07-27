@@ -6,18 +6,19 @@
 
 A multi-agent Telegram bot for managing recurring family orders — diapers, medications, and refunds — built with [Mastra](https://mastra.ai/).
 
-Mostro uses a **supervisor/delegation architecture**: a central supervisor agent receives Telegram messages and routes them to specialized domain agents. Each domain agent orchestrates a workflow with **suspend/resume semantics** — workflows pause at specific steps waiting for external webhook callbacks, then notify subscribed users when milestones are reached.
+Mostro uses a **supervisor/delegation architecture**: a central supervisor agent receives Telegram messages and routes them to specialized domain agents. Each domain agent orchestrates a workflow with **suspend/resume semantics** — workflows pause at specific steps until Mostro's own mailbox-polling cycle finds and matches a reply, then notify subscribed users when milestones are reached.
 
 ## Features
 
 - **Supervisor pattern** — single entry point that delegates to domain-specific agents based on intent
 - **Invite-only access** — canonical user identity keyed by Google email; unknown Telegram senders are silently ignored, admins invite people via one-time deep links (see [docs/identity.md](docs/identity.md))
 - **Google SSO for the web** — the Mastra server authorizes logins against the same users collection as the bot
-- **Suspend/resume workflows** — long-running order flows that halt until external systems call back via webhooks
+- **Suspend/resume workflows** — long-running order flows that halt at a step until a matching reply is found in Mostro's own mailbox
+- **Mailbox polling** — a scheduled workflow per domain reads Mostro's Gmail inbox every 15 minutes, matches replies to the suspended step of the run they belong to, and resumes it — see [Mailbox Polling](#mailbox-polling) below
 - **Outbound email** — orders reach suppliers as real emails sent from Mostro's own Gmail account, so replies land in its inbox; a send that fails leaves the order un-placed and retryable rather than silently marked as sent
 - **Notification subscriptions** — users subscribe to order updates and receive Telegram messages when events occur
 - **Monthly scoping** — one shared order per domain per month (deterministic run IDs like `diapers-2025-07`)
-- **Ngrok tunneling** — automatic tunnel setup for Telegram webhooks and external provider callbacks
+- **Ngrok tunneling** — automatic tunnel setup for Telegram's webhook delivery
 
 ## Architecture
 
@@ -29,8 +30,10 @@ Telegram ──► access gate ──► Mostro Supervisor
                  └──► Refunds Agent  ──► Refunds Workflow  (8 steps, 3 suspends)
                           ▲ │
                           │ └──► email (Gmail API) ──► suppliers
-                          │ webhooks resume suspended steps
-                 External Systems
+                          │
+              Diapers/Meds/Refunds Poll Workflows (cron, every 15 min)
+                          │
+                 reads Mostro's own Gmail inbox, resumes the matching run
 ```
 
 Only known users get past the access gate; identity, invites, and memory ownership are covered in [docs/identity.md](docs/identity.md).
@@ -47,22 +50,40 @@ Only known users get past the access gate; identity, invites, and memory ownersh
 
 ### Workflows
 
-Each domain workflow follows a request → wait → notify pattern with external webhook-driven resume points:
+Each domain workflow follows a request → wait → notify pattern with mailbox-polling-driven resume points:
 
 - **Diapers**: `requested → date_confirmed → notification_sent`
 - **Meds**: `requested → acknowledged → ack_notified → delivery_confirmed → notification_sent`
 - **Refunds**: `requested → acknowledged → ack_notified → confirmed → confirmation_notified → deposit_received → deposit_confirmed → notification_sent`
 
-### Webhook Endpoints
+### Mailbox Polling
 
-| Endpoint                              | Purpose                            |
-| ------------------------------------- | ---------------------------------- |
-| `POST /webhooks/diapers`              | Delivery date confirmation         |
-| `POST /webhooks/meds/ack`             | Pharmacy acknowledgement           |
-| `POST /webhooks/meds/confirm`         | Medication delivery confirmation   |
-| `POST /webhooks/refunds/ack`          | Refund acknowledgement             |
-| `POST /webhooks/refunds/confirmation` | Refund confirmation with reference |
-| `POST /webhooks/refunds/deposit`      | Deposit received                   |
+There is no inbound webhook for suppliers to call. Instead, one poll workflow per domain
+(`diapers-poll`, `meds-poll`, `refunds-poll`) runs on a 15-minute Mastra `schedule` and, each cycle:
+
+1. Searches Mostro's own Gmail inbox for unlabeled mail from that domain's sender:
+   `from:<sender> -label:mostro-processed -label:mostro-failed newer_than:30d`.
+2. For each mail, reads which step the current month's run is suspended in — trying the
+   mail's month first, then the previous one, since a reply doesn't always land in the same
+   month the order was placed.
+3. Hands the extraction agent the schema and description **of that specific step** and asks a
+   closed question: does this mail match it, and if so, what are the field values? If not, why not.
+4. Calls the same `*-run.ts` resume function the old webhook handlers used to call.
+5. Labels the mail `mostro-processed`, or `mostro-failed` plus a Telegram notice to the domain's
+   subscribers if anything went wrong.
+
+**Why the run's state decides the destination, not the model:** the same sender can send
+different kinds of mail depending on the moment — a pharmacy first acknowledges an order, then
+later confirms delivery — and a given mail can be ambiguous between the two. If the LLM picked
+which stage a mail belonged to, a misclassification would resume the wrong step. So the poller
+reads the suspended step *before* calling the model, and only asks the model to confirm a match
+against that one step's schema and extract its fields. The model never chooses a destination.
+
+A mail that fails to match anything gets `mostro-failed` and drops out of the queue. An admin can
+ask Mostro to retry a domain's failed mail (the `retry-*-failed-mail` tools), which removes the
+label so the next cycle picks it back up. Failed mail older than the 30-day search window falls
+outside that query entirely; the retry tools count those separately and report that they need
+manual attention in Gmail.
 
 ## Tech Stack
 
@@ -71,7 +92,7 @@ Each domain workflow follows a request → wait → notify pattern with external
 - **[@chat-adapter/telegram](https://www.npmjs.com/package/@chat-adapter/telegram)** — Telegram bot integration
 - **MongoDB** — workflow state, agent memory, users, and invites
 - **DuckDB** — observability and tracing
-- **ngrok** — tunnel for webhook delivery
+- **ngrok** — tunnel for Telegram's webhook delivery
 - **Zod** — schema validation
 - **[Gmail API](https://developers.google.com/gmail/api)** via `@googleapis/gmail` — sends outbound emails
 
@@ -150,7 +171,8 @@ if you ever open the login to people outside the household.
    GOOGLE_SSO_COOKIE_PASSWORD=
    ```
 
-   Required — Gmail, for sending outbound emails:
+   Required — Gmail, for sending outbound emails and for the poll workflows that read replies
+   back from the same inbox:
 
    ```env
    GMAIL_MAILER_CLIENT_ID=
@@ -172,10 +194,15 @@ if you ever open the login to people outside the household.
       and not `localhost`, which on Windows resolves to IPv6 first while the script listens on
       IPv4. ("Web application" rather than "Desktop app" because the client secret lives in a
       server's `.env` and is treated as confidential.)
-   4. Add the `https://www.googleapis.com/auth/gmail.send` scope.
+   4. Add the `https://www.googleapis.com/auth/gmail.send` and
+      `https://www.googleapis.com/auth/gmail.modify` scopes. Sending only needs `gmail.send`;
+      `gmail.modify` is what lets the poll workflows read replies and apply the
+      `mostro-processed` / `mostro-failed` labels. Gmail doesn't offer a scope narrower than
+      "the whole mailbox" — the poller's containment is in code (a fixed query per domain
+      sender, fixed resume functions per step), not in the OAuth grant.
    5. **Publish the app to production.** In *Testing* mode the refresh token is invalidated
-      after 7 days and sends start failing. Authorizing shows the "unverified app" screen,
-      which you accept manually.
+      after 7 days and sends (and polling) start failing. Authorizing shows the "unverified app"
+      screen, which you accept manually.
    6. Run `pnpm run gmail:auth` with the Mostro account and save the token in `.env`.
 
    `gmail:auth` runs as its own process and briefly listens on port 53682 — not Mastra's port,
@@ -207,15 +234,18 @@ if you ever open the login to people outside the household.
 ```
 src/mastra/
 ├── agents/           Domain agents + supervisor
-├── tools/            3 tools per domain (request, get-status, subscribe)
+├── tools/            4 tools per domain (request, get-status, subscribe, retry-failed-mail)
 ├── workflows/        Suspend/resume workflows with steps, schemas, and types
-│   ├── diapers/
-│   ├── meds/
-│   └── refunds/
-├── routes/           Webhook endpoints that resume suspended workflows
-├── lib/              Users, invites, telegram gate, Google auth, run helpers, subscriber stores
+│   ├── diapers/      diapers.workflow.ts + diapers-poll.workflow.ts (schedule, every 15 min)
+│   ├── meds/         meds.workflow.ts + meds-poll.workflow.ts
+│   └── refunds/      refunds.workflow.ts + refunds-poll.workflow.ts
+├── lib/
+│   ├── inbox/        Shared mailbox-polling engine: Gmail reader, extraction agent call,
+│   │                 poll cycle, failure notice, retry helper — reused by all three domains
+│   ├── *-run.ts      Resume functions per domain, guarded by run + suspended + right step
+│   └── ...           Users, invites, telegram gate, Google auth, subscriber stores
 ├── config/           Zod-validated environment configuration
-└── index.ts          Central registration (agents, workflows, routes, storage)
+└── index.ts          Central registration (agents, workflows, storage)
 ```
 
 ## Scripts
