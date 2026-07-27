@@ -41,31 +41,34 @@ function decode(data: string | null | undefined): string {
     return data ? Buffer.from(data, 'base64url').toString('utf-8') : ''
 }
 
-// Un mail puede traer el texto directo o repartido en parts (multipart/alternative
-// con html + plano). Nos interesa el plano; si no hay, el primer body con datos.
-// Busca text/plain a cualquier profundidad, recursando primero en hermanos que son
-// a su vez multipart, para encontrar partes de texto plano anidadas más adentro.
-function bodyOf(payload: Payload | undefined): string {
-    if (!payload) return ''
+// Busca una parte text/plain a cualquier profundidad en el árbol de payloads.
+// Devuelve null si no la encuentra, para distinguir entre "encontré el tipo preferido"
+// y "encontré algún fallback".
+function findPlainText(payload: Payload | undefined): string | null {
+    if (!payload) return null
     if (payload.mimeType === 'text/plain' && payload.body?.data) {
         return decode(payload.body.data)
     }
+    for (const part of payload.parts ?? []) {
+        const found = findPlainText(part)
+        if (found !== null) return found
+    }
+    return null
+}
 
+// Un mail puede traer el texto directo o repartido en parts (multipart/alternative
+// con html + plano). Nos interesa el plano; si no hay, el primer body con datos.
+// Primero busca text/plain a cualquier profundidad. Si no lo encuentra, cae al
+// primer body con contenido. Esto distingue explícitamente entre "preferido" y "fallback".
+function bodyOf(payload: Payload | undefined): string {
+    if (!payload) return ''
+
+    // Primera pasada: buscar específicamente text/plain a cualquier profundidad
+    const plainText = findPlainText(payload)
+    if (plainText !== null) return plainText
+
+    // Segunda pasada: fallback a cualquier body con contenido
     if (payload.parts) {
-        // Busca text/plain a cualquier profundidad: primero recurse en multipart
-        // para alcanzar partes anidadas, luego busca en hermanos que no son multipart.
-        for (const part of payload.parts) {
-            if (part.mimeType?.startsWith('multipart/')) {
-                const found = bodyOf(part)
-                if (found) return found
-            }
-        }
-        // Si no encontró en multiparts anidadas, busca text/plain entre hermanos
-        const plainTextPart = payload.parts.find(part => part.mimeType === 'text/plain')
-        if (plainTextPart) {
-            return bodyOf(plainTextPart)
-        }
-        // Última opción: primer hermano con contenido
         for (const part of payload.parts) {
             const found = bodyOf(part)
             if (found) return found
@@ -98,8 +101,14 @@ export function createGmailReader(client?: GmailClient): GmailReader {
                 requestBody: { name, labelListVisibility: 'labelShow', messageListVisibility: 'show' },
             })
             return created.data.id as string
-        })()
+        })().catch(error => {
+            // Si la promesa rechaza, sácala del cache para que el siguiente intento reintente.
+            labelPromises.delete(name)
+            throw error
+        })
 
+        // Guardá la promesa en el cache sincronamente, antes de cualquier await,
+        // para que llamadas concurrentes vean la misma promesa en vuelo.
         labelPromises.set(name, promise)
         return promise
     }
