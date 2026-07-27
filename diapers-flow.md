@@ -13,7 +13,7 @@ actor "Usuario\n(Telegram)" as User
 participant "mostro-supervisor" as Supervisor
 participant "diapers-agent" as Agent
 participant "diapers-workflow\n(runId = diapers-YYYY-MM)" as WF
-participant "diapers-subscribers.json" as Subs
+participant "subscriberRepository\n(MongoDB)" as Subs
 participant "DIAPERS_EMAIL_TO\n(proveedor externo, por correo)" as Provider
 participant "diapers-poll\n(schedule cron */15 * * * *)" as Poll
 participant "extractor de mails\n(agente + schema del step)" as Extractor
@@ -140,14 +140,14 @@ end note
 
 | Componente | Archivo | Rol |
 |---|---|---|
-| Agente | `src/mastra/agents/diapers-agent.ts` | Interpreta intención del usuario, expone 3 tools |
+| Agente | `src/mastra/agents/diapers-agent.ts` | Interpreta intención del usuario, expone 4 tools |
 | Tools | `src/mastra/tools/diapers-{get-status,request,subscribe,retry-failed-mail}-tool.ts` | Consultar estado, iniciar pedido, suscribirse a avisos, reintentar mail fallido (admin) |
 | Workflow de pedido | `src/mastra/workflows/diapers/diapers.workflow.ts` | Encadena los 3 steps del pedido |
 | Workflow de polling | `src/mastra/workflows/diapers/diapers-poll.workflow.ts` | `schedule` cron cada 15 min; declara qué step espera qué schema/descripción |
 | Steps | `src/mastra/workflows/diapers/steps/*.ts` | Lógica de cada etapa del pedido |
 | Motor de polling (compartido) | `src/mastra/lib/inbox/{gmail-reader,mail-extractor,poll-mailbox,poll-step,notify-mail-failure,retry-failed-mails}.ts` | Buscar mails, extraer campos, resolver el run/step abierto, etiquetar, avisar fallos — compartido por diapers/meds/refunds |
 | Helpers de ejecución | `src/mastra/lib/diapers-run.ts` | `readDiapersStatus`, `startDiapers`, `confirmDiapersDate` — la capa de resume, sin cambios: mismo guard de run existente + suspendido + step correcto |
-| Suscriptores | `src/mastra/lib/diapers-subscribers.ts` | JSON plano con `{resourceId, threadId}` |
+| Suscriptores | `src/business/repositories/subscriber.repository.ts` (`subscriberRepository`) | Lista de emails suscriptos por dominio, persistida en MongoDB |
 | Storage | `MongoDBStore` (vía `MastraCompositeStore` en `src/mastra/index.ts`) | Persiste estado/run del workflow |
 | Supervisor | `src/mastra/agents/mostro-supervisor.ts` | Canal Telegram + delega a `diapersAgent` + reenvía notificaciones (incluidos avisos de mail fallido) |
 
