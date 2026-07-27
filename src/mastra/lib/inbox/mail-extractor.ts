@@ -70,16 +70,26 @@ ${body}`
             return { matches: false, reason: `los campos de la salida no validaron contra el schema esperado` }
         }
 
+        // Con schema.optional(), un step sin campos (z.object({})) deja "data" fuera de
+        // required en el JSON Schema resultante: un modelo al que se le pide "extraé los
+        // campos" cuando no hay campos puede perfectamente omitir la propiedad. Si
+        // comparásemos parsed.data.data === undefined a secas, ese caso legítimo caería
+        // acá igual que una extracción rota. Por eso completamos con {} antes de validar:
+        // con un schema vacío {} valida siempre: con uno no vacío, sigue sin validar si
+        // faltan campos.
+        const candidate = parsed.data.data ?? {}
+        const check = schema.safeParse(candidate)
+
         // matches true sin data válida es una salida incoherente: no se reanuda nada
         // con campos incompletos.
-        if (parsed.data.matches && parsed.data.data === undefined) {
+        if (parsed.data.matches && !check.success) {
             return { matches: false, reason: 'el modelo dijo que coincide pero los campos no validaron' }
         }
 
         return {
             matches: parsed.data.matches,
             reason: parsed.data.reason,
-            data: parsed.data.matches ? (parsed.data.data as Record<string, unknown>) : undefined,
+            data: parsed.data.matches && check.success ? (check.data as Record<string, unknown>) : undefined,
         }
     } catch (error) {
         const detail = error instanceof Error ? error.message : String(error)
