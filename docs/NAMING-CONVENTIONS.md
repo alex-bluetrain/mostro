@@ -14,14 +14,21 @@ src/mastra/
 │                 poll-mailbox, poll-step, notify-mail-failure, retry-failed-mails):
 │                 sin prefijo de dominio, porque lo consumen los tres <dominio>-poll.workflow.ts
 ├── config/       <propósito>.config.ts
-├── workflows/<dominio>/
-│   ├── <dominio>.workflow.ts
-│   ├── <dominio>-poll.workflow.ts   workflow de polling: declara el schedule (cron) y el
-│   │                                mapa step -> { schema, description, resume }
-│   ├── schemas/  <algo>.schema.ts
-│   ├── steps/    <algo>.step.ts
-│   ├── types/    <algo>.type.ts
-│   └── utils/    <dominio>.utils.ts
+├── workflows/
+│   ├── <workflow-name>/             un directorio por workflow, no por dominio
+│   │   ├── <workflow-name>.workflow.ts
+│   │   ├── schemas/  <algo>.schema.ts
+│   │   ├── steps/    <algo>.step.ts
+│   │   ├── types/    <algo>.type.ts
+│   │   └── utils/    <dominio>.utils.ts
+│   └── <dominio>-poll/              workflow de polling del mismo dominio, directorio propio
+│       ├── <dominio>-poll.workflow.ts   solo arma el schedule (cron) y encadena el step
+│       └── steps/
+│           └── poll-<dominio>-mailbox.step.ts   createPollStep(id, config): el mapa
+│                                        step -> { schema, description, resume } vive acá,
+│                                        no inline en el workflow; importa los resume
+│                                        schemas y getXRunId desde ../../<dominio>/schemas|utils
+│                                        en vez de duplicarlos, porque son del workflow principal
 └── index.ts      registro central (todo agent/workflow/scorer se declara acá)
 ```
 
@@ -49,5 +56,7 @@ Nota: en tools el orden se invierte respecto al archivo — el archivo antepone 
 - Supervisor es la excepción de nombre: `mostroSupervisor`, sin sufijo `Agent`.
 - Sub-agentes: al registrar uno nuevo en `mostroSupervisorAgents`, agregar su key a `lib/sub-agent-keys.ts` (el `satisfies` del supervisor lo exige en compilación; `users.ts` usa esa lista para des-derivar resourceIds).
 - Types se infieren con `z.infer<typeof xSchema>`, sin sufijo `Type` en el nombre exportado.
+- Cada workflow vive en su propio directorio bajo `workflows/` (`workflows/<workflow-name>/`), no agrupado por dominio. El poll workflow de un dominio es un workflow más y tiene su propio directorio (`workflows/<dominio>-poll/`) separado del workflow principal (`workflows/<dominio>/`); no duplica sus resume schemas ni sus utils (p. ej. `getXRunId`) — los importa directamente desde `../<dominio>/schemas/...` y `../<dominio>/utils/...`, porque son del workflow principal.
+- El step del poll (`createPollStep(id, config)`) vive en su propio archivo bajo `steps/`, igual que cualquier otro step — nunca inline dentro de `<dominio>-poll.workflow.ts`. El archivo del workflow solo arma el `schedule` y encadena el step importado.
 - Comillas simples y sin `;` en código nuevo (`meds/`, `diapers/`); `weather/` e `index.ts` son legacy con comillas dobles y `;` — mantené el estilo del archivo que edites.
 - Comentarios solo para explicar un "por qué" no obvio (ver `meds-subscribers.ts`), nunca para describir "qué hace" el código.

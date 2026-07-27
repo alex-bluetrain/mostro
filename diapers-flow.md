@@ -143,7 +143,7 @@ end note
 | Agente | `src/mastra/agents/diapers-agent.ts` | Interpreta intención del usuario, expone 4 tools |
 | Tools | `src/mastra/tools/diapers-{get-status,request,subscribe,retry-failed-mail}-tool.ts` | Consultar estado, iniciar pedido, suscribirse a avisos, reintentar mail fallido (admin) |
 | Workflow de pedido | `src/mastra/workflows/diapers/diapers.workflow.ts` | Encadena los 3 steps del pedido |
-| Workflow de polling | `src/mastra/workflows/diapers/diapers-poll.workflow.ts` | `schedule` cron cada 15 min; declara qué step espera qué schema/descripción |
+| Workflow de polling | `src/mastra/workflows/diapers-poll/diapers-poll.workflow.ts` | `schedule` cron cada 15 min; declara qué step espera qué schema/descripción |
 | Steps | `src/mastra/workflows/diapers/steps/*.ts` | Lógica de cada etapa del pedido |
 | Motor de polling (compartido) | `src/mastra/lib/inbox/{gmail-reader,mail-extractor,poll-mailbox,poll-step,notify-mail-failure,retry-failed-mails}.ts` | Buscar mails, extraer campos, resolver el run/step abierto, etiquetar, avisar fallos — compartido por diapers/meds/refunds |
 | Helpers de ejecución | `src/mastra/lib/diapers-run.ts` | `readDiapersStatus`, `startDiapers`, `confirmDiapersDate` — la capa de resume, sin cambios: mismo guard de run existente + suspendido + step correcto |

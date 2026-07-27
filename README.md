@@ -254,10 +254,14 @@ if you ever open the login to people outside the household.
 src/mastra/
 ├── agents/           Domain agents + supervisor
 ├── tools/            4 tools per domain (request, get-status, subscribe, retry-failed-mail)
-├── workflows/        Suspend/resume workflows with steps, schemas, and types
-│   ├── diapers/      diapers.workflow.ts + diapers-poll.workflow.ts (schedule, every 15 min)
-│   ├── meds/         meds.workflow.ts + meds-poll.workflow.ts
-│   └── refunds/      refunds.workflow.ts + refunds-poll.workflow.ts
+├── workflows/        One directory per workflow (not per domain), suspend/resume workflows
+│   │                 with steps, schemas, and types
+│   ├── diapers/      diapers.workflow.ts
+│   ├── diapers-poll/ diapers-poll.workflow.ts (schedule, every 15 min)
+│   ├── meds/         meds.workflow.ts
+│   ├── meds-poll/    meds-poll.workflow.ts
+│   ├── refunds/      refunds.workflow.ts
+│   └── refunds-poll/ refunds-poll.workflow.ts
 ├── lib/
 │   ├── inbox/        Shared mailbox-polling engine: Gmail reader, extraction agent call,
 │   │                 poll cycle, failure notice, retry helper — reused by all three domains

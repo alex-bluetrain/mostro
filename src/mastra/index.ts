@@ -20,9 +20,9 @@ import { diapersWorkflow } from './workflows/diapers/diapers.workflow';
 import { medsWorkflow } from './workflows/meds/meds.workflow';
 import { refundsWorkflow } from './workflows/refunds/refunds.workflow';
 import { weatherWorkflow } from './workflows/weather/weather.workflow';
-import { diapersPollWorkflow } from './workflows/diapers/diapers-poll.workflow';
-import { medsPollWorkflow } from './workflows/meds/meds-poll.workflow';
-import { refundsPollWorkflow } from './workflows/refunds/refunds-poll.workflow';
+import { diapersPollWorkflow } from './workflows/diapers-poll/diapers-poll.workflow';
+import { medsPollWorkflow } from './workflows/meds-poll/meds-poll.workflow';
+import { refundsPollWorkflow } from './workflows/refunds-poll/refunds-poll.workflow';
 import { mailExtractorAgent } from './lib/inbox/mail-extractor';
 
 const port = appConfig.PORT;

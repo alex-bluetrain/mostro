@@ -1,13 +1,11 @@
-import { createWorkflow } from '@mastra/core/workflows'
-import { z } from 'zod'
-import { appConfig } from '../../config/app.config'
-import { acknowledgeRefund, confirmRefund, receiveDeposit } from '../../lib/refunds-run'
-import { createPollStep, pollOutputSchema, toResumeResult } from '../../lib/inbox/poll-step'
-import type { PollConfig } from '../../lib/inbox/poll-mailbox'
-import { waitDepositResumeSchema } from './schemas/wait-deposit-resume.schema'
-import { waitRefundAckResumeSchema } from './schemas/wait-refund-ack-resume.schema'
-import { waitRefundConfirmationResumeSchema } from './schemas/wait-refund-confirmation-resume.schema'
-import { getRefundsRunId } from './utils/refunds.utils'
+import { appConfig } from '../../../config/app.config'
+import { acknowledgeRefund, confirmRefund, receiveDeposit } from '../../../lib/refunds-run'
+import { createPollStep, toResumeResult } from '../../../lib/inbox/poll-step'
+import type { PollConfig } from '../../../lib/inbox/poll-mailbox'
+import { waitDepositResumeSchema } from '../../refunds/schemas/wait-deposit-resume.schema'
+import { waitRefundAckResumeSchema } from '../../refunds/schemas/wait-refund-ack-resume.schema'
+import { waitRefundConfirmationResumeSchema } from '../../refunds/schemas/wait-refund-confirmation-resume.schema'
+import { getRefundsRunId } from '../../refunds/utils/refunds.utils'
 
 const config: PollConfig = {
     domain: 'refunds',
@@ -41,18 +39,4 @@ const config: PollConfig = {
     },
 }
 
-export const refundsPollWorkflow = createWorkflow({
-    id: 'refunds-poll',
-    inputSchema: z.object({}),
-    outputSchema: pollOutputSchema,
-    schedule: {
-        // Desfasado de diapers (2,17,32,47) y meds (7,22,37,52): sigue siendo cada 15
-        // minutos, pero así los tres dominios no golpean la API de Gmail en el mismo
-        // instante.
-        cron: '12,27,42,57 * * * *',
-        timezone: 'America/Argentina/Buenos_Aires',
-        inputData: {},
-    },
-})
-    .then(createPollStep('poll-refunds-mailbox', config))
-    .commit()
+export const pollRefundsMailbox = createPollStep('poll-refunds-mailbox', config)

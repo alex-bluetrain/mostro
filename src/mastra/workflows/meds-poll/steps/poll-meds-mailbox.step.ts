@@ -1,12 +1,10 @@
-import { createWorkflow } from '@mastra/core/workflows'
-import { z } from 'zod'
-import { appConfig } from '../../config/app.config'
-import { acknowledgeMedsOrder, confirmMedsDelivery } from '../../lib/meds-run'
-import { createPollStep, pollOutputSchema, toResumeResult } from '../../lib/inbox/poll-step'
-import type { PollConfig } from '../../lib/inbox/poll-mailbox'
-import { waitMedsAcknowledgeResumeSchema } from './schemas/wait-meds-acknowledge-resume.schema'
-import { waitMedsConfirmationResumeSchema } from './schemas/wait-meds-confirmation-resume.schema'
-import { getMedsRunId } from './utils/meds.utils'
+import { appConfig } from '../../../config/app.config'
+import { acknowledgeMedsOrder, confirmMedsDelivery } from '../../../lib/meds-run'
+import { createPollStep, toResumeResult } from '../../../lib/inbox/poll-step'
+import type { PollConfig } from '../../../lib/inbox/poll-mailbox'
+import { waitMedsAcknowledgeResumeSchema } from '../../meds/schemas/wait-meds-acknowledge-resume.schema'
+import { waitMedsConfirmationResumeSchema } from '../../meds/schemas/wait-meds-confirmation-resume.schema'
+import { getMedsRunId } from '../../meds/utils/meds.utils'
 
 const config: PollConfig = {
     domain: 'meds',
@@ -35,18 +33,4 @@ const config: PollConfig = {
     },
 }
 
-export const medsPollWorkflow = createWorkflow({
-    id: 'meds-poll',
-    inputSchema: z.object({}),
-    outputSchema: pollOutputSchema,
-    schedule: {
-        // Desfasado de diapers (2,17,32,47) y refunds (12,27,42,57): sigue siendo cada 15
-        // minutos, pero así los tres dominios no golpean la API de Gmail en el mismo
-        // instante.
-        cron: '7,22,37,52 * * * *',
-        timezone: 'America/Argentina/Buenos_Aires',
-        inputData: {},
-    },
-})
-    .then(createPollStep('poll-meds-mailbox', config))
-    .commit()
+export const pollMedsMailbox = createPollStep('poll-meds-mailbox', config)
