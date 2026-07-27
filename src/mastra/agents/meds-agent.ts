@@ -3,6 +3,7 @@ import { Memory } from '@mastra/memory';
 import { getMedsStatusTool } from '../tools/meds-get-status-tool';
 import { requestMedsTool } from '../tools/meds-request-tool';
 import { subscribeMedsTool } from '../tools/meds-subscribe-tool';
+import { retryMedsFailedMailTool } from '../tools/meds-retry-failed-mail-tool';
 
 export const medsAgent = new Agent({
   id: 'meds-agent',
@@ -20,9 +21,10 @@ Your responsibilities:
 - If requestMedsTool returns { ok: false, reason: 'requester_unidentified' }, do not retry — relay its message to the user verbatim so the supervisor can capture their name.
 - If requestMedsTool returns { ok: false, reason: 'send_failed' }, the order was NOT placed. Do not retry it automatically — relay its message to the user verbatim and let them know they can ask again later.
 - If the user wants to be notified when the pharmacy acknowledges the order or when the delivery date is confirmed, use subscribeMedsTool.
+- Si un mail de la farmacia no se pudo procesar y el usuario pide reintentarlo, usá retryMedsFailedMailTool. Si devuelve { ok: false, error: 'only admins can retry failed mails' }, explicale que solo un admin puede hacerlo.
 
 Keep responses concise and friendly. Always communicate in the same language the user used.`,
   model: 'openrouter/deepseek/deepseek-v4-flash',
-  tools: { getMedsStatusTool, requestMedsTool, subscribeMedsTool },
+  tools: { getMedsStatusTool, requestMedsTool, subscribeMedsTool, retryMedsFailedMailTool },
   memory: new Memory(),
 });
