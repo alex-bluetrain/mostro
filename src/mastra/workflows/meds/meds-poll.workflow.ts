@@ -40,7 +40,10 @@ export const medsPollWorkflow = createWorkflow({
     inputSchema: z.object({}),
     outputSchema: pollOutputSchema,
     schedule: {
-        cron: '*/15 * * * *',
+        // Desfasado de diapers (2,17,32,47) y refunds (12,27,42,57): sigue siendo cada 15
+        // minutos, pero así los tres dominios no golpean la API de Gmail en el mismo
+        // instante.
+        cron: '7,22,37,52 * * * *',
         timezone: 'America/Argentina/Buenos_Aires',
         inputData: {},
     },
