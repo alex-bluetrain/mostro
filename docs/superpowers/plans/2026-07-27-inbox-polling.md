@@ -876,10 +876,22 @@ describe('notifyMailFailure', () => {
         expect(sendNotificationSignal).toHaveBeenCalledTimes(1)
     })
 
-    it('no falla cuando el supervisor no está disponible', async () => {
-        const mastra = { getAgent: vi.fn().mockReturnValue(undefined) }
+    // getAgent lanza cuando la clave no está registrada, no devuelve undefined.
+    // Este es el caso que de verdad ocurre en producción.
+    it('no falla cuando getAgent lanza porque el supervisor no está registrado', async () => {
+        const mastra = {
+            getAgent: vi.fn().mockImplementation(() => {
+                throw new Error('Agent with name mostroSupervisor not found')
+            }),
+        }
 
         const sent = await notifyMailFailure(mastra as never, failure)
+
+        expect(sent).toBe(0)
+    })
+
+    it('no falla cuando no hay instancia de mastra', async () => {
+        const sent = await notifyMailFailure(undefined, failure)
 
         expect(sent).toBe(0)
     })
@@ -919,8 +931,19 @@ const DOMAIN_LABEL = {
     refunds: 'reembolsos',
 } as const
 
+// getAgent lanza MastraError si la clave no está registrada, no devuelve undefined
+// (node_modules/@mastra/core/dist/mastra/index.d.ts:667). Un aviso que no se puede
+// entregar no debe romper el ciclo de polling: el mail ya quedó etiquetado.
+function supervisorOf(mastra: unknown): SupervisorLike | undefined {
+    try {
+        return (mastra as MastraLike | undefined)?.getAgent('mostroSupervisor')
+    } catch {
+        return undefined
+    }
+}
+
 export const notifyMailFailure: NotifyFailure = async (mastra, failure) => {
-    const supervisor = (mastra as MastraLike | undefined)?.getAgent('mostroSupervisor')
+    const supervisor = supervisorOf(mastra)
     if (!supervisor) {
         console.warn('[notify-mail-failure] no supervisor available, skipping')
         return 0
@@ -999,7 +1022,7 @@ reanuda.
 ```ts
 import { describe, it, expect, vi } from 'vitest'
 import { z } from 'zod'
-import { runPollCycle } from './poll-mailbox'
+import { runPollCycle, readSuspendedStep } from './poll-mailbox'
 import type { InboxMessage } from './gmail-reader'
 
 const confirmSchema = z.object({ deliveryDate: z.string(), quantity: z.number() })
@@ -1204,6 +1227,31 @@ describe('runPollCycle — fallos', () => {
     })
 })
 
+describe('readSuspendedStep', () => {
+    // getWorkflow lanza cuando el id no está registrado, no devuelve undefined.
+    it('devuelve null en vez de propagar cuando el workflow no está registrado', async () => {
+        const mastra = {
+            getWorkflow: vi.fn().mockImplementation(() => {
+                throw new Error('Workflow with ID diapersWorkflow not found')
+            }),
+        }
+
+        await expect(readSuspendedStep(mastra, 'diapersWorkflow', 'diapers-2026-07'))
+            .resolves.toBeNull()
+    })
+
+    it('devuelve null cuando no existe el run', async () => {
+        const mastra = {
+            getWorkflow: vi.fn().mockReturnValue({
+                getWorkflowRunById: vi.fn().mockResolvedValue(null),
+            }),
+        }
+
+        await expect(readSuspendedStep(mastra, 'diapersWorkflow', 'diapers-2026-07'))
+            .resolves.toBeNull()
+    })
+})
+
 describe('runPollCycle — estado que avanza dentro de la misma tanda', () => {
     it('relee el step suspendido por cada mail, no una vez por ciclo', async () => {
         const resume = vi.fn().mockResolvedValue({ ok: true })
@@ -1283,13 +1331,22 @@ export type PollDeps = {
 type WorkflowLike = { getWorkflowRunById: (runId: string) => Promise<unknown> }
 type MastraLike = { getWorkflow: (id: string) => WorkflowLike | undefined }
 
+// getWorkflow lanza MastraError si el id no está registrado, no devuelve undefined
+// (node_modules/@mastra/core/dist/chunk-PQ5PN4TW.js, getWorkflow). Tratamos "no
+// registrado" como "no hay run abierto": el mail cae a mostro-failed con motivo, en vez
+// de tumbar el ciclo entero y dejar los mails siguientes sin procesar.
 export async function readSuspendedStep(
     mastra: unknown,
     workflowId: string,
     runId: string,
 ): Promise<string | null> {
-    const workflow = (mastra as MastraLike | undefined)?.getWorkflow(workflowId)
-    const run = await workflow?.getWorkflowRunById(runId)
+    let run: unknown
+    try {
+        const workflow = (mastra as MastraLike | undefined)?.getWorkflow(workflowId)
+        run = await workflow?.getWorkflowRunById(runId)
+    } catch {
+        return null
+    }
     if (!run) return null
 
     const reader = createWorkflowStateReader(run as never)
@@ -1962,7 +2019,9 @@ Expected: sin errores.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add -A
+# Solo los archivos de documentación que hayas tocado. No usar `git add -A`:
+# hay cambios no relacionados en el working tree que no son de este plan.
+git add README.md .env.example
 git commit -m "docs: describe mailbox polling instead of resume webhooks"
 ```
 
