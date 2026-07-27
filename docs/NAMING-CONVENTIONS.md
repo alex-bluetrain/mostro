@@ -9,11 +9,15 @@ src/mastra/
 ├── agents/       <dominio>-agent.ts | mostro-supervisor.ts
 ├── tools/        <dominio>-<accion>-tool.ts
 ├── scorers/      <dominio>-scorer.ts
-├── routes/       webhook-<dominio>.route.ts
 ├── lib/          <dominio>-<propósito>.ts (run, subscribers), helpers compartidos
+│   └── inbox/    módulo compartido de polling de casilla (gmail-reader, mail-extractor,
+│                 poll-mailbox, poll-step, notify-mail-failure, retry-failed-mails):
+│                 sin prefijo de dominio, porque lo consumen los tres <dominio>-poll.workflow.ts
 ├── config/       <propósito>.config.ts
 ├── workflows/<dominio>/
 │   ├── <dominio>.workflow.ts
+│   ├── <dominio>-poll.workflow.ts   workflow de polling: declara el schedule (cron) y el
+│   │                                mapa step -> { schema, description, resume }
 │   ├── schemas/  <algo>.schema.ts
 │   ├── steps/    <algo>.step.ts
 │   ├── types/    <algo>.type.ts
@@ -34,7 +38,8 @@ Archivo en kebab-case + sufijo de tipo. Export en camelCase (PascalCase para typ
 | Type     | `meds-state.type.ts`             | `MedsState`            | —                        |
 | Workflow | `meds.workflow.ts`               | `medsWorkflow`         | `meds-workflow`          |
 | Scorer   | `weather-scorer.ts`              | `translationScorer`    | —                        |
-| Route    | `webhook-meds.route.ts`          | `webhookMedsAckRoute`  | —                        |
+| Workflow (poll) | `meds-poll.workflow.ts`   | `medsPollWorkflow`     | `meds-poll`              |
+| Tool (retry) | `meds-retry-failed-mail-tool.ts` | `retryMedsFailedMailTool` | `retry-meds-failed-mail` |
 | Config   | `app.config.ts`                  | `appConfig`            | —                        |
 
 Nota: en tools el orden se invierte respecto al archivo — el archivo antepone el dominio (`meds-request-tool`), el export antepone la acción (`requestMedsTool`).
