@@ -99,4 +99,37 @@ describe('notifyMailFailure', () => {
 
         expect(sent).toBe(0)
     })
+
+    it('no falla cuando subscriberRepository.list rechaza', async () => {
+        const { mastra } = buildMastra()
+        vi.mocked(subscriberRepository.list).mockRejectedValue(new Error('Database connection failed'))
+
+        const sent = await notifyMailFailure(mastra as never, failure)
+
+        expect(sent).toBe(0)
+    })
+
+    it('continúa aviso a otros suscriptores si resolveTelegramThread falla para uno', async () => {
+        const { mastra, sendNotificationSignal } = buildMastra()
+        vi.mocked(resolveTelegramThread)
+            .mockRejectedValueOnce(new Error('Telegram API error'))
+            .mockResolvedValueOnce({ resourceId: 'x', threadId: 't1' })
+
+        const sent = await notifyMailFailure(mastra as never, failure)
+
+        expect(sent).toBe(1)
+        expect(sendNotificationSignal).toHaveBeenCalledTimes(1)
+    })
+
+    it('continúa aviso a otros suscriptores si sendNotificationSignal falla para uno', async () => {
+        const { mastra, sendNotificationSignal } = buildMastra()
+        sendNotificationSignal
+            .mockRejectedValueOnce(new Error('Failed to send notification'))
+            .mockResolvedValueOnce(undefined)
+
+        const sent = await notifyMailFailure(mastra as never, failure)
+
+        expect(sent).toBe(1)
+        expect(sendNotificationSignal).toHaveBeenCalledTimes(2)
+    })
 })

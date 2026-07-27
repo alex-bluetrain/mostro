@@ -13,7 +13,7 @@ export type NotifyFailure = (mastra: unknown, failure: MailFailure) => Promise<n
 type SupervisorLike = {
     sendNotificationSignal: (signal: unknown, target: unknown) => Promise<unknown>
 }
-type MastraLike = { getAgent: (id: string) => SupervisorLike | undefined }
+type MastraLike = { getAgent: (id: string) => SupervisorLike }
 
 const DOMAIN_LABEL = {
     diapers: 'pañales',
@@ -39,11 +39,25 @@ export const notifyMailFailure: NotifyFailure = async (mastra, failure) => {
         return 0
     }
 
-    const emails = await subscriberRepository.list(failure.domain)
+    let emails: string[]
+    try {
+        emails = await subscriberRepository.list(failure.domain)
+    } catch (error) {
+        console.warn(`[notify-mail-failure] failed to fetch subscribers for ${failure.domain}:`, error)
+        return 0
+    }
+
     let sent = 0
 
     for (const email of emails) {
-        const target = await resolveTelegramThread(mastra as never, email)
+        let target
+        try {
+            target = await resolveTelegramThread(mastra as never, email)
+        } catch (error) {
+            console.warn(`[notify-mail-failure] failed to resolve telegram thread for ${email}:`, error)
+            continue
+        }
+
         if (!target) {
             console.warn(`[notify-mail-failure] no telegram thread for ${email}, skipping`)
             continue
@@ -51,21 +65,26 @@ export const notifyMailFailure: NotifyFailure = async (mastra, failure) => {
 
         // Sin el encuadre de aviso del sistema el supervisor interpreta la notificación
         // como una tarea e intenta actuar sobre ella en vez de reenviarla.
-        await supervisor.sendNotificationSignal(
-            {
-                source: failure.domain,
-                kind: 'mail-processing-failed',
-                priority: 'high',
-                summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: no pude procesar un mail de ${DOMAIN_LABEL[failure.domain]} enviado por ${failure.from} con asunto "${failure.subject}". Motivo: ${failure.reason}. Queda en espera; un admin puede pedirme que lo reintente.`,
-                payload: {
-                    from: failure.from,
-                    subject: failure.subject,
-                    reason: failure.reason,
+        try {
+            await supervisor.sendNotificationSignal(
+                {
+                    source: failure.domain,
+                    kind: 'mail-processing-failed',
+                    priority: 'high',
+                    summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: no pude procesar un mail de ${DOMAIN_LABEL[failure.domain]} enviado por ${failure.from} con asunto "${failure.subject}". Motivo: ${failure.reason}. Queda en espera; un admin puede pedirme que lo reintente.`,
+                    payload: {
+                        from: failure.from,
+                        subject: failure.subject,
+                        reason: failure.reason,
+                    },
                 },
-            },
-            target,
-        )
-        sent++
+                target,
+            )
+            sent++
+        } catch (error) {
+            console.warn(`[notify-mail-failure] failed to send notification to ${email}:`, error)
+            continue
+        }
     }
 
     return sent
