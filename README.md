@@ -85,6 +85,25 @@ label so the next cycle picks it back up. Failed mail older than the 30-day sear
 outside that query entirely; the retry tools count those separately and report that they need
 manual attention in Gmail.
 
+The three poll workflows still run every 15 minutes each, but on offset minutes
+(`diapers-poll` at `2,17,32,47`, `meds-poll` at `7,22,37,52`, `refunds-poll` at `12,27,42,57`) so
+the three domains don't hit the Gmail API at the same instant.
+
+**Before enabling the pollers for the first time**, bulk-apply the `mostro-processed` label in
+Gmail to every existing mail from the three suppliers. Without it, the first cycle pulls in 30
+days of history — old confirmations that could resume the current month's run with stale data,
+plus a Telegram notice for every mail that doesn't match anything.
+
+**When upgrading an already-deployed instance**, re-run `pnpm run gmail:auth`. An existing refresh
+token minted before polling only carries the `gmail.send` scope; the pollers need `gmail.modify`
+to read replies and apply labels. Without the new scope the poller gets a 403 every 15 minutes.
+
+**Known limitation:** a reply is checked against the mail's own month first and the previous month
+second (see [Mailbox Polling](#mailbox-polling) above). If an order is already open for the new
+month, a late reply about the previous month's order can be evaluated against the wrong run. The
+real fix is tying each mail thread to the run that sent it — storing the outbound mail's
+`threadId` in the workflow state — which is not implemented yet.
+
 ## Tech Stack
 
 - **[Mastra](https://mastra.ai/)** — AI agent framework (agents, workflows, tools, memory, observability)
