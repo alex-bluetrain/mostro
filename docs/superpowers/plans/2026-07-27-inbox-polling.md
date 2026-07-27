@@ -1518,25 +1518,125 @@ git commit -m "feat: add the polling cycle that routes mail by suspended step"
 Configuración sobre el helper, cada uno con su schedule.
 
 **Files:**
+- Create: `src/mastra/lib/inbox/poll-step.ts`
+- Test: `src/mastra/lib/inbox/poll-step.test.ts`
 - Create: `src/mastra/workflows/diapers/diapers-poll.workflow.ts`
 - Create: `src/mastra/workflows/meds/meds-poll.workflow.ts`
 - Create: `src/mastra/workflows/refunds/refunds-poll.workflow.ts`
 - Modify: `src/mastra/index.ts:24-28,69,70`
 
 **Interfaces:**
-- Consumes: `runPollCycle`, `PollConfig` (Task 6); `mailExtractorAgent` (Task 4); las funciones de resume de `src/mastra/lib/*-run.ts`; los schemas `wait-*-resume.schema.ts`; `getDiapersRunId` / `getMedsRunId` / `getRefundsRunId`.
-- Produces: `diapersPollWorkflow`, `medsPollWorkflow`, `refundsPollWorkflow`.
+- Consumes: `runPollCycle`, `PollConfig`, `ResumeResult` (Task 6); `mailExtractorAgent` (Task 4); las funciones de resume de `src/mastra/lib/*-run.ts`; los schemas `wait-*-resume.schema.ts`; `getDiapersRunId` / `getMedsRunId` / `getRefundsRunId`.
+- Produces: `diapersPollWorkflow`, `medsPollWorkflow`, `refundsPollWorkflow`, `toResumeResult`.
 
-- [ ] **Step 1: Crear el workflow de diapers**
+**Dos problemas que este task tiene que resolver, detectados al revisar Task 6:**
+
+Primero, las funciones de `*-run.ts` devuelven `{ ok: true, result }` sin mirar `result.status`. `run.resume()` no lanza cuando un step falla: devuelve un resultado con `status: 'failed'` — el mismo motivo por el que `startDiapers` chequea el status explícitamente (`diapers-run.ts:47`). Sin ese chequeo acá, un workflow que reanuda pero después explota haría que el mail quede etiquetado `mostro-processed` y nadie se entere. Los adapters lo traducen con un helper compartido.
+
+Cuidado con un matiz: `status: 'suspended'` **no** es un fallo. Meds y refunds vuelven a suspenderse en la etapa siguiente después de reanudar, y eso es el camino feliz. Solo `'failed'` es fallo.
+
+Segundo, `runPollCycle` deja `reader.search` fuera de try/catch a propósito: si Gmail no responde no hay tanda que salvar. Pero el step tiene que loguear eso antes de que se propague, o el fallo aparece en el historial de triggers sin explicación.
+
+- [ ] **Step 1: Crear el helper compartido de los pollers**
+
+`src/mastra/lib/inbox/poll-step.ts`:
+
+```ts
+import { createStep } from '@mastra/core/workflows'
+import { z } from 'zod'
+import { runPollCycle, type PollConfig, type ResumeResult } from './poll-mailbox'
+
+type RunOutcome = {
+    ok: boolean
+    reason?: string
+    result?: { status?: string }
+}
+
+// run.resume() no lanza cuando un step falla: devuelve el resultado con status 'failed'.
+// Sin este chequeo, un workflow que reanuda pero después explota dejaría el mail
+// etiquetado como procesado y nadie se enteraría. 'suspended' NO es fallo: meds y refunds
+// vuelven a suspenderse en la etapa siguiente, que es el camino feliz.
+export function toResumeResult(outcome: RunOutcome): ResumeResult {
+    if (!outcome.ok) {
+        return { ok: false, reason: outcome.reason ?? 'sin motivo' }
+    }
+    if (outcome.result?.status === 'failed') {
+        return { ok: false, reason: 'el workflow reanudó pero falló al ejecutar' }
+    }
+    return { ok: true }
+}
+
+export const pollOutputSchema = z.object({ processed: z.number(), failed: z.number() })
+
+// runPollCycle deja reader.search sin guarda a propósito: si Gmail no responde no hay
+// tanda que salvar. Pero lo logueamos antes de propagar, para que el trigger fallido del
+// historial de schedules tenga una causa legible.
+export function createPollStep(id: string, config: PollConfig) {
+    return createStep({
+        id,
+        inputSchema: z.object({}),
+        outputSchema: pollOutputSchema,
+        execute: async ({ mastra }) => {
+            try {
+                return await runPollCycle(mastra, config)
+            } catch (error) {
+                console.error(`[${id}] el ciclo de polling no pudo completarse`, error)
+                throw error
+            }
+        },
+    })
+}
+```
+
+- [ ] **Step 2: Testear el helper de traducción**
+
+`src/mastra/lib/inbox/poll-step.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest'
+import { toResumeResult } from './poll-step'
+
+describe('toResumeResult', () => {
+    it('propaga el rechazo con su motivo', () => {
+        expect(toResumeResult({ ok: false, reason: 'not_suspended' }))
+            .toEqual({ ok: false, reason: 'not_suspended' })
+    })
+
+    it('pone un motivo por defecto cuando el rechazo no trae ninguno', () => {
+        expect(toResumeResult({ ok: false }).reason).toBe('sin motivo')
+    })
+
+    it('trata un run que terminó en failed como fallo, no como éxito', () => {
+        const result = toResumeResult({ ok: true, result: { status: 'failed' } })
+
+        expect(result.ok).toBe(false)
+        expect(result.reason).toContain('falló al ejecutar')
+    })
+
+    // Meds y refunds vuelven a suspenderse en la etapa siguiente: eso es el camino feliz.
+    it('trata un run que quedó suspendido como éxito', () => {
+        expect(toResumeResult({ ok: true, result: { status: 'suspended' } }))
+            .toEqual({ ok: true })
+    })
+
+    it('trata un run exitoso como éxito', () => {
+        expect(toResumeResult({ ok: true, result: { status: 'success' } }))
+            .toEqual({ ok: true })
+    })
+})
+```
+
+- [ ] **Step 3: Crear el workflow de diapers**
 
 `src/mastra/workflows/diapers/diapers-poll.workflow.ts`:
 
 ```ts
-import { createStep, createWorkflow } from '@mastra/core/workflows'
+import { createWorkflow } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { appConfig } from '../../config/app.config'
 import { confirmDiapersDate } from '../../lib/diapers-run'
-import { runPollCycle, type PollConfig } from '../../lib/inbox/poll-mailbox'
+import { createPollStep, pollOutputSchema, toResumeResult } from '../../lib/inbox/poll-step'
+import type { PollConfig } from '../../lib/inbox/poll-mailbox'
 import { waitDiapersConfirmationResumeSchema } from './schemas/wait-diapers-confirmation-resume.schema'
 import { getDiapersRunId } from './utils/diapers.utils'
 
@@ -1550,47 +1650,41 @@ const config: PollConfig = {
         'wait-diapers-confirmation': {
             schema: waitDiapersConfirmationResumeSchema,
             description: 'la confirmación del pedido de pañales, con la fecha de entrega, la cantidad y el domicilio',
-            resume: (mastra, data, yearMonth) => confirmDiapersDate(mastra as never, {
+            resume: async (mastra, data, yearMonth) => toResumeResult(await confirmDiapersDate(mastra as never, {
                 deliveryDate: data.deliveryDate as string,
                 deliveryAddress: data.deliveryAddress as string,
                 quantity: data.quantity as number,
                 yearMonth,
-            }),
+            })),
         },
     },
 }
 
-const pollStep = createStep({
-    id: 'poll-diapers-mailbox',
-    inputSchema: z.object({}),
-    outputSchema: z.object({ processed: z.number(), failed: z.number() }),
-    execute: async ({ mastra }) => runPollCycle(mastra, config),
-})
-
 export const diapersPollWorkflow = createWorkflow({
     id: 'diapers-poll',
     inputSchema: z.object({}),
-    outputSchema: z.object({ processed: z.number(), failed: z.number() }),
+    outputSchema: pollOutputSchema,
     schedule: {
         cron: '*/15 * * * *',
         timezone: 'America/Argentina/Buenos_Aires',
         inputData: {},
     },
 })
-    .then(pollStep)
+    .then(createPollStep('poll-diapers-mailbox', config))
     .commit()
 ```
 
-- [ ] **Step 2: Crear el workflow de meds**
+- [ ] **Step 4: Crear el workflow de meds**
 
 `src/mastra/workflows/meds/meds-poll.workflow.ts`:
 
 ```ts
-import { createStep, createWorkflow } from '@mastra/core/workflows'
+import { createWorkflow } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { appConfig } from '../../config/app.config'
 import { acknowledgeMedsOrder, confirmMedsDelivery } from '../../lib/meds-run'
-import { runPollCycle, type PollConfig } from '../../lib/inbox/poll-mailbox'
+import { createPollStep, pollOutputSchema, toResumeResult } from '../../lib/inbox/poll-step'
+import type { PollConfig } from '../../lib/inbox/poll-mailbox'
 import { waitMedsAcknowledgeResumeSchema } from './schemas/wait-meds-acknowledge-resume.schema'
 import { waitMedsConfirmationResumeSchema } from './schemas/wait-meds-confirmation-resume.schema'
 import { getMedsRunId } from './utils/meds.utils'
@@ -1602,55 +1696,51 @@ const config: PollConfig = {
     getRunId: getMedsRunId,
     steps: {
         // El acuse no aporta datos: su schema es vacío y el modelo solo decide si el
-        // mail es un acuse.
+        // mail es un acuse. Tras reanudarlo el run vuelve a suspenderse en la etapa
+        // siguiente, así que 'suspended' acá es el camino feliz.
         'wait-meds-acknowledge': {
             schema: waitMedsAcknowledgeResumeSchema,
             description: 'un acuse de recibo del pedido de medicamentos, sin fecha de entrega todavía',
-            resume: (mastra, _data, yearMonth) => acknowledgeMedsOrder(mastra as never, yearMonth),
+            resume: async (mastra, _data, yearMonth) =>
+                toResumeResult(await acknowledgeMedsOrder(mastra as never, yearMonth)),
         },
         'wait-meds-confirmation': {
             schema: waitMedsConfirmationResumeSchema,
             description: 'la confirmación de la entrega de los medicamentos, con la fecha y el domicilio',
-            resume: (mastra, data, yearMonth) => confirmMedsDelivery(mastra as never, {
+            resume: async (mastra, data, yearMonth) => toResumeResult(await confirmMedsDelivery(mastra as never, {
                 deliveryDate: data.deliveryDate as string,
                 deliveryAddress: data.deliveryAddress as string,
                 yearMonth,
-            }),
+            })),
         },
     },
 }
 
-const pollStep = createStep({
-    id: 'poll-meds-mailbox',
-    inputSchema: z.object({}),
-    outputSchema: z.object({ processed: z.number(), failed: z.number() }),
-    execute: async ({ mastra }) => runPollCycle(mastra, config),
-})
-
 export const medsPollWorkflow = createWorkflow({
     id: 'meds-poll',
     inputSchema: z.object({}),
-    outputSchema: z.object({ processed: z.number(), failed: z.number() }),
+    outputSchema: pollOutputSchema,
     schedule: {
         cron: '*/15 * * * *',
         timezone: 'America/Argentina/Buenos_Aires',
         inputData: {},
     },
 })
-    .then(pollStep)
+    .then(createPollStep('poll-meds-mailbox', config))
     .commit()
 ```
 
-- [ ] **Step 3: Crear el workflow de refunds**
+- [ ] **Step 5: Crear el workflow de refunds**
 
 `src/mastra/workflows/refunds/refunds-poll.workflow.ts`:
 
 ```ts
-import { createStep, createWorkflow } from '@mastra/core/workflows'
+import { createWorkflow } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { appConfig } from '../../config/app.config'
 import { acknowledgeRefund, confirmRefund, receiveDeposit } from '../../lib/refunds-run'
-import { runPollCycle, type PollConfig } from '../../lib/inbox/poll-mailbox'
+import { createPollStep, pollOutputSchema, toResumeResult } from '../../lib/inbox/poll-step'
+import type { PollConfig } from '../../lib/inbox/poll-mailbox'
 import { waitDepositResumeSchema } from './schemas/wait-deposit-resume.schema'
 import { waitRefundAckResumeSchema } from './schemas/wait-refund-ack-resume.schema'
 import { waitRefundConfirmationResumeSchema } from './schemas/wait-refund-confirmation-resume.schema'
@@ -1665,50 +1755,44 @@ const config: PollConfig = {
         'wait-refund-ack': {
             schema: waitRefundAckResumeSchema,
             description: 'un acuse de recibo del pedido de reembolso, sin resolución todavía',
-            resume: (mastra, _data, yearMonth) => acknowledgeRefund(mastra as never, yearMonth),
+            resume: async (mastra, _data, yearMonth) =>
+                toResumeResult(await acknowledgeRefund(mastra as never, yearMonth)),
         },
         'wait-refund-confirmation': {
             schema: waitRefundConfirmationResumeSchema,
             description: 'la confirmación de que el reembolso fue aprobado, con su número de referencia',
-            resume: (mastra, data, yearMonth) => confirmRefund(mastra as never, {
+            resume: async (mastra, data, yearMonth) => toResumeResult(await confirmRefund(mastra as never, {
                 refundReference: data.refundReference as string,
                 yearMonth,
-            }),
+            })),
         },
         'wait-deposit': {
             schema: waitDepositResumeSchema,
             description: 'el aviso de que el dinero del reembolso fue depositado, con el monto y la fecha',
-            resume: (mastra, data, yearMonth) => receiveDeposit(mastra as never, {
+            resume: async (mastra, data, yearMonth) => toResumeResult(await receiveDeposit(mastra as never, {
                 depositAmount: data.depositAmount as number,
                 depositDate: data.depositDate as string,
                 yearMonth,
-            }),
+            })),
         },
     },
 }
 
-const pollStep = createStep({
-    id: 'poll-refunds-mailbox',
-    inputSchema: z.object({}),
-    outputSchema: z.object({ processed: z.number(), failed: z.number() }),
-    execute: async ({ mastra }) => runPollCycle(mastra, config),
-})
-
 export const refundsPollWorkflow = createWorkflow({
     id: 'refunds-poll',
     inputSchema: z.object({}),
-    outputSchema: z.object({ processed: z.number(), failed: z.number() }),
+    outputSchema: pollOutputSchema,
     schedule: {
         cron: '*/15 * * * *',
         timezone: 'America/Argentina/Buenos_Aires',
         inputData: {},
     },
 })
-    .then(pollStep)
+    .then(createPollStep('poll-refunds-mailbox', config))
     .commit()
 ```
 
-- [ ] **Step 4: Registrar los workflows y el agente extractor**
+- [ ] **Step 6: Registrar los workflows y el agente extractor**
 
 En `src/mastra/index.ts`, agregar los imports junto a los existentes:
 
@@ -1732,7 +1816,7 @@ Y reemplazar las líneas 69-70 por:
 La clave `mailExtractor` tiene que coincidir con el `getAgent('mailExtractor')` de
 `mail-extractor.ts`.
 
-- [ ] **Step 5: Verificar tipos y arranque**
+- [ ] **Step 7: Verificar tipos y arranque**
 
 Run: `pnpm run typecheck`
 Expected: sin errores.
@@ -1740,10 +1824,10 @@ Expected: sin errores.
 Run: `pnpm test`
 Expected: PASS — todo lo anterior sigue verde.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add src/mastra/workflows/diapers/diapers-poll.workflow.ts src/mastra/workflows/meds/meds-poll.workflow.ts src/mastra/workflows/refunds/refunds-poll.workflow.ts src/mastra/index.ts
+git add src/mastra/lib/inbox/poll-step.ts src/mastra/lib/inbox/poll-step.test.ts src/mastra/workflows/diapers/diapers-poll.workflow.ts src/mastra/workflows/meds/meds-poll.workflow.ts src/mastra/workflows/refunds/refunds-poll.workflow.ts src/mastra/index.ts
 git commit -m "feat: add scheduled mailbox pollers for diapers, meds and refunds"
 ```
 
