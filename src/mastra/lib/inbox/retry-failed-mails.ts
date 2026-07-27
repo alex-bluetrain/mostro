@@ -1,14 +1,26 @@
-import { FAILED_LABEL, gmailReader, type GmailReader } from './gmail-reader'
+import { FAILED_LABEL, SEARCH_WINDOW, gmailReader, type GmailReader } from './gmail-reader'
 
 // Sacarles el label los devuelve al query del poller: el próximo ciclo los levanta.
 // Lo que se deja etiquetado queda descartado para siempre, que es el comportamiento
 // deseado para el ruido (publicidades, avisos generales del proveedor).
-export async function retryFailedMails(sender: string, reader: GmailReader = gmailReader): Promise<number> {
-    const messages = await reader.search(`from:${sender} label:${FAILED_LABEL}`)
-
-    for (const message of messages) {
+//
+// Sin embargo, si un mail falla y queda fuera de la ventana de búsqueda (SEARCH_WINDOW),
+// no se puede destrabar automáticamente: el poller nunca lo levantaría porque su query
+// tiene SEARCH_WINDOW incluido. Por eso devolvemos dos conteos: retried (destrabados)
+// y outOfWindow (etiquetados como fallidos pero fuera de la ventana, que pueden
+// recuperarse manualmente desde Gmail).
+export async function retryFailedMails(
+    sender: string,
+    reader: GmailReader = gmailReader,
+): Promise<{ retried: number; outOfWindow: number }> {
+    // Mails que sí se pueden destrabar: están dentro de la ventana
+    const inWindow = await reader.search(`from:${sender} label:${FAILED_LABEL} ${SEARCH_WINDOW}`)
+    for (const message of inWindow) {
         await reader.removeLabel(message.id, FAILED_LABEL)
     }
 
-    return messages.length
+    // Mails que quedaron fuera de la ventana: dejarles el label para que no se pierdan
+    const outOfWindow = await reader.search(`from:${sender} label:${FAILED_LABEL} -${SEARCH_WINDOW}`)
+
+    return { retried: inWindow.length, outOfWindow: outOfWindow.length }
 }
