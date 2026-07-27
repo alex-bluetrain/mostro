@@ -3,6 +3,11 @@ import { getGmailClient } from '../mailer/gmail-client'
 export const PROCESSED_LABEL = 'mostro-processed'
 export const FAILED_LABEL = 'mostro-failed'
 
+// La ventana que el poller mira. Vive acá y no incrustada en cada query para que el
+// reintento no pueda quedar desalineado: un mail que se destraba fuera de esta ventana
+// no lo levantaría nadie.
+export const SEARCH_WINDOW = 'newer_than:30d'
+
 export type InboxMessage = {
     id: string
     from: string
