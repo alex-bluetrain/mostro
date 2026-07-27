@@ -272,8 +272,10 @@ contención no viene del scope sino del código. El poller solo consulta un quer
 construido a partir del remitente configurado, y los handlers solo pueden invocar funciones
 de resume predefinidas. El modelo nunca elige a quién escribirle ni qué step reanudar.
 
-Los tres remitentes se agregan a `app.config.ts` como variables requeridas:
-`DIAPERS_SENDER`, `MEDS_SENDER`, `REFUNDS_SENDER`.
+No hacen falta variables de entorno nuevas para los remitentes. `DIAPERS_EMAIL_TO`,
+`MEDS_EMAIL_TO` y `REFUNDS_EMAIL_TO` ya identifican la casilla a la que mostro le escribe en
+cada dominio, que es la misma que responde. El poller las reutiliza para armar su query. Si
+algún día un proveedor contesta desde otra dirección, ahí se agrega una variable propia.
 
 ## Lo que se borra
 
