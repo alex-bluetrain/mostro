@@ -76,12 +76,14 @@ describe('extractFromMail', () => {
         expect(result.reason).toContain('rate limited')
     })
 
-    it('trata como no coincidente cuando el agente no está registrado', async () => {
-        const mastra = { getAgent: vi.fn().mockReturnValue(undefined) }
+    it('trata como no coincidente cuando el agente lanza error (no está registrado)', async () => {
+        const mastra = { getAgent: vi.fn().mockImplementation(() => {
+            throw new Error('MASTRA_GET_AGENT_BY_NAME_NOT_FOUND: mailExtractor not found')
+        }) }
 
         const result = await extractFromMail(mastra as never, args)
 
         expect(result.matches).toBe(false)
-        expect(result.reason).toContain('mailExtractor')
+        expect(result.reason).toContain('not found')
     })
 })

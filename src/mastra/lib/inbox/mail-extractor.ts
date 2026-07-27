@@ -39,11 +39,6 @@ export type Extract = (mastra: unknown, args: ExtractArgs) => Promise<Extraction
 type MastraLike = { getAgent: (id: string) => { generate: (prompt: string, options: unknown) => Promise<{ object?: unknown }> } | undefined }
 
 export const extractFromMail: Extract = async (mastra, { subject, body, description, schema }) => {
-    const agent = (mastra as MastraLike | undefined)?.getAgent('mailExtractor')
-    if (!agent) {
-        return { matches: false, reason: 'el agente mailExtractor no está registrado en mastra' }
-    }
-
     const prompt = `Se está esperando: ${description}
 
 Mail recibido
@@ -61,6 +56,11 @@ ${body}`
     })
 
     try {
+        const agent = (mastra as MastraLike | undefined)?.getAgent('mailExtractor')
+        if (!agent) {
+            return { matches: false, reason: 'el agente mailExtractor no está registrado en mastra' }
+        }
+
         const response = await agent.generate(prompt, {
             structuredOutput: { schema: wrapped, errorStrategy: 'strict' },
         })
