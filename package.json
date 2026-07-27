@@ -1,21 +1,23 @@
 {
   "name": "mostro",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A multi-agent Telegram bot for managing recurring family orders — diapers, medications, and refunds — built with Mastra.",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "author": "Alex Verstraeten <averstraeten@gmail.com>",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "packageManager": "pnpm@10.28.0",
   "scripts": {
-    "test": "vitest run",
     "dev": "mastra dev",
     "build": "mastra build",
     "start": "mastra start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "gmail:auth": "node --env-file=.env scripts/gmail-authorize.mjs"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
-  "engines": {
-    "node": ">=22.13.0"
   },
   "dependencies": {
     "@chat-adapter/telegram": "^4.32.0",
