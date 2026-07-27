@@ -3,6 +3,7 @@ import { Memory } from '@mastra/memory';
 import { getDiapersStatusTool } from '../tools/diapers-get-status-tool';
 import { requestDiapersTool } from '../tools/diapers-request-tool';
 import { subscribeDiapersTool } from '../tools/diapers-subscribe-tool';
+import { retryDiapersFailedMailTool } from '../tools/diapers-retry-failed-mail-tool';
 
 export const diapersAgent = new Agent({
     id: 'diapers-agent',
@@ -24,10 +25,11 @@ Your responsibilities:
 - If requestDiapersTool returns { ok: false, reason: 'requester_unidentified' }, do not retry — relay its message to the user verbatim so the supervisor can capture their name.
 - If requestDiapersTool returns { ok: false, reason: 'send_failed' }, the order was NOT placed. Do not retry it automatically — relay its message to the user verbatim and let them know they can ask again later.
 - If the user wants to be notified when the delivery date is confirmed, use subscribeDiapersTool.
+- Si un mail del proveedor no se pudo procesar y el usuario pide reintentarlo, usá retryDiapersFailedMailTool. Si devuelve { ok: false, error: 'only admins can retry failed mails' }, explicale que solo un admin puede hacerlo.
 
 Keep responses concise and friendly. Always communicate in the same language the user used.`;
     },
     model: 'openrouter/deepseek/deepseek-v4-flash',
-    tools: { getDiapersStatusTool, requestDiapersTool, subscribeDiapersTool },
+    tools: { getDiapersStatusTool, requestDiapersTool, subscribeDiapersTool, retryDiapersFailedMailTool },
     memory: new Memory(),
 });

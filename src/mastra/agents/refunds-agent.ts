@@ -3,6 +3,7 @@ import { Memory } from '@mastra/memory'
 import { getRefundsStatusTool } from '../tools/refunds-get-status-tool'
 import { requestRefundTool } from '../tools/refunds-request-tool'
 import { subscribeRefundsTool } from '../tools/refunds-subscribe-tool'
+import { retryRefundsFailedMailTool } from '../tools/refunds-retry-failed-mail-tool'
 
 export const refundsAgent = new Agent({
     id: 'refunds-agent',
@@ -20,9 +21,10 @@ Your responsibilities:
 - If requestRefundTool returns { ok: false, reason: 'requester_unidentified' }, do not retry — relay its message to the user verbatim so the supervisor can capture their name.
 - If requestRefundTool returns { ok: false, reason: 'send_failed' }, the refund was NOT requested. Do not retry it automatically — relay its message to the user verbatim and let them know they can ask again later.
 - If the user wants to be notified when the refund is acknowledged, confirmed, or when the deposit arrives, use subscribeRefundsTool.
+- Si un mail del procesador de reembolsos no se pudo procesar y el usuario pide reintentarlo, usá retryRefundsFailedMailTool. Si devuelve { ok: false, error: 'only admins can retry failed mails' }, explicale que solo un admin puede hacerlo.
 
 Keep responses concise and friendly. Always communicate in the same language the user used.`,
     model: 'openrouter/deepseek/deepseek-v4-flash',
-    tools: { getRefundsStatusTool, requestRefundTool, subscribeRefundsTool },
+    tools: { getRefundsStatusTool, requestRefundTool, subscribeRefundsTool, retryRefundsFailedMailTool },
     memory: new Memory(),
 })
