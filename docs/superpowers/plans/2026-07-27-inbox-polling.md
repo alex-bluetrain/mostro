@@ -1208,6 +1208,38 @@ describe('runPollCycle — fallos', () => {
         expect(result).toEqual({ processed: 0, failed: 1 })
     })
 
+    it('sigue procesando la tanda cuando el etiquetado falla', async () => {
+        const { config } = buildConfig()
+        const { deps } = buildDeps()
+        deps.reader.search = vi.fn().mockResolvedValue([
+            message({ id: 'a' }),
+            message({ id: 'b' }),
+        ])
+        deps.reader.addLabel = vi.fn()
+            .mockRejectedValueOnce(new Error('gmail 503'))
+            .mockResolvedValue(undefined)
+
+        const result = await runPollCycle({}, config, deps)
+
+        // El primero se reanudó igual: el fallo es solo de la etiqueta.
+        expect(result).toEqual({ processed: 2, failed: 0 })
+    })
+
+    it('sigue procesando la tanda cuando el aviso de fallo lanza', async () => {
+        const { config } = buildConfig()
+        const { deps } = buildDeps()
+        deps.reader.search = vi.fn().mockResolvedValue([
+            message({ id: 'a' }),
+            message({ id: 'b' }),
+        ])
+        deps.extract = vi.fn().mockResolvedValue({ matches: false, reason: 'ruido' })
+        deps.notifyFailure = vi.fn().mockRejectedValue(new Error('telegram caído'))
+
+        const result = await runPollCycle({}, config, deps)
+
+        expect(result).toEqual({ processed: 0, failed: 2 })
+    })
+
     it('sigue con el resto de los mails cuando uno falla', async () => {
         const { config } = buildConfig()
         const { deps, addLabel } = buildDeps()
@@ -1392,15 +1424,25 @@ export async function runPollCycle(
     let processed = 0
     let failed = 0
 
+    // Etiquetar y avisar son I/O que puede fallar. Si cualquiera de las dos propaga,
+    // los mails que faltan de la tanda quedan sin procesar — peor que no avisar de uno.
     const fail = async (message: InboxMessage, reason: string) => {
-        await resolved.reader.addLabel(message.id, FAILED_LABEL)
-        await resolved.notifyFailure(mastra, {
-            domain: config.domain,
-            from: message.from,
-            subject: message.subject,
-            reason,
-        })
         failed++
+        try {
+            await resolved.reader.addLabel(message.id, FAILED_LABEL)
+        } catch (error) {
+            console.error(`[poll-${config.domain}] no pude etiquetar ${message.id} como fallido`, error)
+        }
+        try {
+            await resolved.notifyFailure(mastra, {
+                domain: config.domain,
+                from: message.from,
+                subject: message.subject,
+                reason,
+            })
+        } catch (error) {
+            console.error(`[poll-${config.domain}] no pude avisar del fallo de ${message.id}`, error)
+        }
     }
 
     for (const message of messages) {
@@ -1441,7 +1483,15 @@ export async function runPollCycle(
             continue
         }
 
-        await resolved.reader.addLabel(message.id, PROCESSED_LABEL)
+        // El workflow ya se reanudó: el trabajo está hecho aunque la etiqueta no salga.
+        // Sin la etiqueta el mail vuelve a la cola y el próximo ciclo lo reintenta, pero
+        // ahí el run ya no está suspendido en ese step y cae a mostro-failed con motivo,
+        // que es visible. Propagar en cambio dejaría el resto de la tanda sin procesar.
+        try {
+            await resolved.reader.addLabel(message.id, PROCESSED_LABEL)
+        } catch (error) {
+            console.error(`[poll-${config.domain}] reanudé el workflow pero no pude etiquetar ${message.id} como procesado`, error)
+        }
         processed++
     }
 
