@@ -66,6 +66,29 @@ describe('extractFromMail', () => {
         expect(result.reason).toContain('no validaron')
     })
 
+    it('devuelve matches true con data {} cuando el schema es vacío y el modelo omite data', async () => {
+        const emptySchema = z.object({})
+        const { mastra } = buildMastra({ matches: true, reason: 'es el acuse del pedido' })
+
+        const result = await extractFromMail(mastra as never, { ...args, schema: emptySchema })
+
+        expect(result).toEqual({ matches: true, reason: 'es el acuse del pedido', data: {} })
+    })
+
+    it('sigue devolviendo matches false con un schema no vacío y data incompleta', async () => {
+        const { mastra } = buildMastra({
+            matches: true,
+            reason: 'ok',
+            data: { deliveryDate: '2026-03-11' }, // falta quantity, que el schema exige
+        })
+
+        const result = await extractFromMail(mastra as never, args)
+
+        expect(result.matches).toBe(false)
+        expect(result.reason).toContain('no validaron')
+        expect(result.data).toBeUndefined()
+    })
+
     it('trata como no coincidente un fallo del modelo', async () => {
         const generate = vi.fn().mockRejectedValue(new Error('rate limited'))
         const mastra = { getAgent: vi.fn().mockReturnValue({ generate }) }
