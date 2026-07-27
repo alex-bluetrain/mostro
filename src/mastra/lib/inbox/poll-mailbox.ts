@@ -22,6 +22,11 @@ export type PollConfig = {
 }
 
 export type PollDeps = {
+    // search() debe devolver los mails del más viejo al más nuevo: un acuse tiene que
+    // procesarse antes que la confirmación que lo sigue, o esta se evalúa contra un
+    // step que todavía no avanzó. gmailReader ya lo garantiza (gmail-reader.ts); un
+    // reader alternativo que no lo respete rompe el escenario central en silencio,
+    // sin que falle ningún test.
     reader: GmailReader
     extract: Extract
     notifyFailure: NotifyFailure
@@ -128,12 +133,22 @@ export async function runPollCycle(
             continue
         }
 
-        const extraction = await resolved.extract(mastra, {
-            subject: message.subject,
-            body: message.body,
-            description: step.description,
-            schema: step.schema,
-        })
+        // extractFromMail dice no lanzar nunca, pero arma el schema del wrapper fuera
+        // de su propio try/catch (mail-extractor.ts:52-56): un StepConfig.schema que no
+        // sea un Zod real hace que .optional() lance sincrónicamente y, al ser async,
+        // eso rechaza la promesa. Cubrimos esa fuga acá para no perder el resto de la tanda.
+        let extraction: Awaited<ReturnType<Extract>>
+        try {
+            extraction = await resolved.extract(mastra, {
+                subject: message.subject,
+                body: message.body,
+                description: step.description,
+                schema: step.schema,
+            })
+        } catch (error) {
+            await fail(message, `falló la extracción: ${error instanceof Error ? error.message : String(error)}`)
+            continue
+        }
 
         if (!extraction.matches) {
             await fail(message, extraction.reason)
