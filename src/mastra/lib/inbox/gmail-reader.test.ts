@@ -170,7 +170,7 @@ describe('createGmailReader().addLabel', () => {
             userId: 'me',
             id: 'm1',
             requestBody: { addLabelIds: ['L1'] },
-        })
+        }, { timeout: 15000 })
     })
 
     it('crea el label la primera vez', async () => {
@@ -181,12 +181,12 @@ describe('createGmailReader().addLabel', () => {
         expect(labelsCreate).toHaveBeenCalledWith({
             userId: 'me',
             requestBody: { name: 'mostro-failed', labelListVisibility: 'labelShow', messageListVisibility: 'show' },
-        })
+        }, { timeout: 15000 })
         expect(modify).toHaveBeenCalledWith({
             userId: 'me',
             id: 'm1',
             requestBody: { addLabelIds: ['L2'] },
-        })
+        }, { timeout: 15000 })
     })
 
     it('reintenta crear el label después de un fallo transitorio', async () => {
@@ -209,12 +209,12 @@ describe('createGmailReader().addLabel', () => {
         expect(labelsCreate).toHaveBeenCalledWith({
             userId: 'me',
             requestBody: { name: 'mostro-failed', labelListVisibility: 'labelShow', messageListVisibility: 'show' },
-        })
+        }, { timeout: 15000 })
         expect(modify).toHaveBeenLastCalledWith({
             userId: 'me',
             id: 'm1',
             requestBody: { addLabelIds: ['L_created'] },
-        })
+        }, { timeout: 15000 })
     })
 })
 
@@ -228,6 +228,55 @@ describe('createGmailReader().removeLabel', () => {
             userId: 'me',
             id: 'm1',
             requestBody: { removeLabelIds: ['L1'] },
-        })
+        }, { timeout: 15000 })
+    })
+})
+
+describe('createGmailReader — timeout y reintento en Gmail', () => {
+    it('pasa timeout a messages.list y a messages.get', async () => {
+        const { client, list, get } = buildClient()
+
+        await createGmailReader(client).search('from:pedidos@farmacia.test')
+
+        expect(list.mock.calls[0][1]).toEqual({ timeout: 15000 })
+        expect(get.mock.calls[0][1]).toEqual({ timeout: 15000 })
+    })
+
+    it('reintenta messages.list ante un fallo transitorio y termina devolviendo los mails', async () => {
+        vi.useFakeTimers()
+        const { client, list } = buildClient()
+        list.mockRejectedValueOnce(Object.assign(new Error('503'), { status: 503 }))
+        list.mockResolvedValueOnce({ data: { messages: [{ id: 'm1' }] } })
+
+        const pending = createGmailReader(client).search('q')
+        await vi.advanceTimersByTimeAsync(5000)
+        const messages = await pending
+
+        expect(list).toHaveBeenCalledTimes(2)
+        expect(messages).toHaveLength(1)
+        vi.useRealTimers()
+    })
+
+    it('reintenta modify ante un fallo transitorio y termina etiquetando', async () => {
+        vi.useFakeTimers()
+        const { client, modify } = buildClient()
+        modify.mockRejectedValueOnce(Object.assign(new Error('503'), { status: 503 }))
+        modify.mockResolvedValueOnce({})
+
+        const pending = createGmailReader(client).addLabel('m1', 'mostro-processed')
+        await vi.advanceTimersByTimeAsync(5000)
+        await pending
+
+        expect(modify).toHaveBeenCalledTimes(2)
+        vi.useRealTimers()
+    })
+
+    it('no reintenta modify ante un error no retriable', async () => {
+        const { client, modify } = buildClient()
+        modify.mockRejectedValue(Object.assign(new Error('rechazado'), { status: 403 }))
+
+        await expect(createGmailReader(client).addLabel('m1', 'mostro-processed')).rejects.toThrow('rechazado')
+
+        expect(modify).toHaveBeenCalledTimes(1)
     })
 })

@@ -1,4 +1,5 @@
 import { getGmailClient } from '../mailer/gmail-client'
+import { GMAIL_TIMEOUT_MS, withGmailRetry } from '../mailer/gmail-retry'
 
 export const PROCESSED_LABEL = 'mostro-processed'
 export const FAILED_LABEL = 'mostro-failed'
@@ -95,7 +96,7 @@ export function createGmailReader(client?: GmailClient): GmailReader {
 
         const promise = (async () => {
             const gmail = gmailFor()
-            const { data } = await gmail.users.labels.list({ userId: 'me' })
+            const { data } = await gmail.users.labels.list({ userId: 'me' }, { timeout: GMAIL_TIMEOUT_MS })
             const existing = data.labels?.find(label => label.name === name)
             if (existing?.id) {
                 return existing.id
@@ -104,7 +105,7 @@ export function createGmailReader(client?: GmailClient): GmailReader {
             const created = await gmail.users.labels.create({
                 userId: 'me',
                 requestBody: { name, labelListVisibility: 'labelShow', messageListVisibility: 'show' },
-            })
+            }, { timeout: GMAIL_TIMEOUT_MS })
             return created.data.id as string
         })().catch(error => {
             // Si la promesa rechaza, sácala del cache para que el siguiente intento reintente.
@@ -121,11 +122,13 @@ export function createGmailReader(client?: GmailClient): GmailReader {
     return {
         async search(query) {
             const gmail = gmailFor()
-            const { data } = await gmail.users.messages.list({ userId: 'me', q: query })
+            const { data } = await withGmailRetry(() =>
+                gmail.users.messages.list({ userId: 'me', q: query }, { timeout: GMAIL_TIMEOUT_MS }))
             const ids = (data.messages ?? []).map(m => m.id).filter((id): id is string => Boolean(id))
 
             const messages = await Promise.all(ids.map(async id => {
-                const { data: full } = await gmail.users.messages.get({ userId: 'me', id, format: 'full' })
+                const { data: full } = await withGmailRetry(() =>
+                    gmail.users.messages.get({ userId: 'me', id, format: 'full' }, { timeout: GMAIL_TIMEOUT_MS }))
                 const payload = full.payload as Payload | undefined
                 return {
                     id,
@@ -144,20 +147,24 @@ export function createGmailReader(client?: GmailClient): GmailReader {
 
         async addLabel(id, label) {
             const labelId = await labelIdFor(label)
-            await gmailFor().users.messages.modify({
+            // Con reintento: la falta de reintento acá es lo que dejaba un mail sin
+            // etiquetar ante un fallo transitorio, y eso es lo que hacía alcanzable que
+            // un acuse reingresara a la cola y se evaluara contra el step siguiente
+            // (ver el comentario sobre cuarentena en poll-mailbox.ts).
+            await withGmailRetry(() => gmailFor().users.messages.modify({
                 userId: 'me',
                 id,
                 requestBody: { addLabelIds: [labelId] },
-            })
+            }, { timeout: GMAIL_TIMEOUT_MS }))
         },
 
         async removeLabel(id, label) {
             const labelId = await labelIdFor(label)
-            await gmailFor().users.messages.modify({
+            await withGmailRetry(() => gmailFor().users.messages.modify({
                 userId: 'me',
                 id,
                 requestBody: { removeLabelIds: [labelId] },
-            })
+            }, { timeout: GMAIL_TIMEOUT_MS }))
         },
     }
 }
