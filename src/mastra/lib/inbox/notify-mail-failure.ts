@@ -32,10 +32,41 @@ const MAX_SANITIZED_LENGTH = 200
 // dato citado y no como prosa de control — colapsando saltos de línea/espacios,
 // sacando caracteres de control y cortando a un largo razonable. El encuadre
 // "[AVISO DEL SISTEMA — ...]" del summary es la otra mitad de la defensa.
+//
+// Los caracteres que se neutralizan se arman a partir de code points numéricos, no de
+// bytes literales en el fuente: meter el carácter invisible crudo en este archivo sería
+// tan frágil frente a un editor/git como el dato que queremos neutralizar, y no se
+// puede verificar a simple vista que sea el correcto. Rangos incluidos:
+// - 0x00-0x1F y 0x7F: controles C0 y DEL.
+// - 0xAB y 0xBB: comilla angular de apertura y de cierre — los delimitadores que citan
+//   subject/reason en el summary más abajo. Si el valor no puede contener el
+//   delimitador, no puede cerrarlo desde adentro y falsificar el resto del prompt como
+//   si viniera del sistema: un subject que intercalara su propia comilla de cierre,
+//   texto falso enmarcado como aviso del sistema, y una comilla de apertura nueva,
+//   sobrevivía intacto antes de este cambio y reabría la cita.
+// - 0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF: espacios de ancho cero. El \s+ de
+//   JavaScript no los considera espacio, así que sin esto sobreviven intactos a la
+//   normalización de espacios de más abajo.
+// - 0x202A-0x202E: controles de anulación/embedding bidireccional (LRE/RLE/PDF/LRO/RLO).
+//   No son caracteres de control C0/C1, así que escapaban al filtro anterior. Su
+//   impacto es visual (reordenan cómo se lee el texto en Telegram), no estructural,
+//   pero se neutralizan acá con el mismo criterio.
+const NEUTRALIZED_CODEPOINTS = [
+    ...Array.from({ length: 0x20 }, (_, i) => i), // 0x00-0x1F: controles C0
+    0x7f, // DEL
+    0xab, 0xbb, // « »
+    0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, // espacios de ancho cero
+    ...Array.from({ length: 5 }, (_, i) => 0x202a + i), // 0x202A-0x202E: override bidi
+]
+
+const NEUTRALIZED_CHARS = new RegExp(
+    `[${NEUTRALIZED_CODEPOINTS.map(cp => String.fromCodePoint(cp)).join('')}]`,
+    'g',
+)
+
 function sanitizeForPrompt(value: string): string {
-    const controlChars = new RegExp(`[${String.fromCharCode(0)}-${String.fromCharCode(0x1f)}${String.fromCharCode(0x7f)}]`, 'g')
     const collapsed = value
-        .replace(controlChars, ' ')
+        .replace(NEUTRALIZED_CHARS, ' ')
         .replace(/\s+/g, ' ')
         .trim()
 
@@ -93,9 +124,9 @@ export const notifyMailFailure: NotifyFailure = async (mastra, failure) => {
         // Sin el encuadre de aviso del sistema el supervisor interpreta la notificación
         // como una tarea e intenta actuar sobre ella en vez de reenviarla. Además, subject
         // y reason son origen externo (ver sanitizeForPrompt más arriba): se sanitizan y
-        // se citan entre « » antes de entrar al summary, que es lo único que llega al
-        // prompt del supervisor. payload conserva los valores completos sin sanitizar,
-        // porque no se interpola en ningún prompt.
+        // se citan entre comillas angulares antes de entrar al summary, que es lo único
+        // que llega al prompt del supervisor. payload conserva los valores completos sin
+        // sanitizar, porque no se interpola en ningún prompt.
         try {
             await supervisor.sendNotificationSignal(
                 {
