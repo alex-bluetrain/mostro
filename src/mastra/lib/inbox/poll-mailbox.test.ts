@@ -235,6 +235,25 @@ describe('runPollCycle — fallos', () => {
         expect(addLabel).toHaveBeenCalledWith('bueno', 'mostro-processed')
         expect(result).toEqual({ processed: 1, failed: 1 })
     })
+
+    it('marca failed y sigue con el resto de la tanda cuando el extractor rechaza', async () => {
+        const { config } = buildConfig()
+        const { deps, addLabel, notifyFailure } = buildDeps()
+        deps.reader.search = vi.fn().mockResolvedValue([
+            message({ id: 'malo' }),
+            message({ id: 'bueno' }),
+        ])
+        deps.extract = vi.fn()
+            .mockRejectedValueOnce(new Error('schema inválido'))
+            .mockResolvedValueOnce({ matches: true, reason: 'ok', data: { deliveryDate: '2026-03-11', quantity: 12 } })
+
+        const result = await runPollCycle({}, config, deps)
+
+        expect(addLabel).toHaveBeenCalledWith('malo', 'mostro-failed')
+        expect(addLabel).toHaveBeenCalledWith('bueno', 'mostro-processed')
+        expect(notifyFailure.mock.calls[0][1].reason).toContain('schema inválido')
+        expect(result).toEqual({ processed: 1, failed: 1 })
+    })
 })
 
 describe('readSuspendedStep', () => {
@@ -254,6 +273,30 @@ describe('readSuspendedStep', () => {
         const mastra = {
             getWorkflow: vi.fn().mockReturnValue({
                 getWorkflowRunById: vi.fn().mockResolvedValue(null),
+            }),
+        }
+
+        await expect(readSuspendedStep(mastra, 'diapersWorkflow', 'diapers-2026-07'))
+            .resolves.toBeNull()
+    })
+
+    it('devuelve el stepId cuando el run está suspendido', async () => {
+        const run = { status: 'suspended', suspendedPaths: { 'wait-diapers-confirmation': [0] } }
+        const mastra = {
+            getWorkflow: vi.fn().mockReturnValue({
+                getWorkflowRunById: vi.fn().mockResolvedValue(run),
+            }),
+        }
+
+        await expect(readSuspendedStep(mastra, 'diapersWorkflow', 'diapers-2026-07'))
+            .resolves.toBe('wait-diapers-confirmation')
+    })
+
+    it('devuelve null cuando el run existe pero no está suspendido', async () => {
+        const run = { status: 'running' }
+        const mastra = {
+            getWorkflow: vi.fn().mockReturnValue({
+                getWorkflowRunById: vi.fn().mockResolvedValue(run),
             }),
         }
 
