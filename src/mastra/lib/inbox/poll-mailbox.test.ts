@@ -203,6 +203,32 @@ describe('runPollCycle — fallos', () => {
         expect(result).toEqual({ processed: 2, failed: 0 })
     })
 
+    it('pone el mail en cuarentena con mostro-failed si falla el etiquetado de procesado', async () => {
+        const { config } = buildConfig()
+        const { deps, addLabel, notifyFailure } = buildDeps()
+        deps.reader.addLabel = vi.fn().mockRejectedValueOnce(new Error('gmail 503')).mockResolvedValue(undefined)
+
+        const result = await runPollCycle({}, config, deps)
+
+        expect(deps.reader.addLabel).toHaveBeenNthCalledWith(1, 'm1', 'mostro-processed')
+        expect(deps.reader.addLabel).toHaveBeenNthCalledWith(2, 'm1', 'mostro-failed')
+        // El workflow ya se reanudó: cuenta como procesado aunque la etiqueta
+        // original haya fallado y se haya puesto en cuarentena.
+        expect(result).toEqual({ processed: 1, failed: 0 })
+        expect(notifyFailure).not.toHaveBeenCalled()
+    })
+
+    it('no revienta si tanto el etiquetado de procesado como la cuarentena fallan', async () => {
+        const { config } = buildConfig()
+        const { deps } = buildDeps()
+        deps.reader.addLabel = vi.fn().mockRejectedValue(new Error('gmail caído'))
+
+        const result = await runPollCycle({}, config, deps)
+
+        expect(deps.reader.addLabel).toHaveBeenCalledTimes(2)
+        expect(result).toEqual({ processed: 1, failed: 0 })
+    })
+
     it('sigue procesando la tanda cuando el aviso de fallo lanza', async () => {
         const { config } = buildConfig()
         const { deps } = buildDeps()
