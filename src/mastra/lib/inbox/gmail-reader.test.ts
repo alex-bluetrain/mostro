@@ -84,6 +84,33 @@ describe('createGmailReader().search', () => {
         expect(message.body).toBe('hola')
     })
 
+    it('encuentra text/plain anidado más adentro que un multipart', async () => {
+        const { client, get } = buildClient()
+        get.mockResolvedValue({
+            data: {
+                id: 'm1',
+                internalDate: '1785000000000',
+                payload: {
+                    headers: [{ name: 'From', value: 'a@b.test' }, { name: 'Subject', value: 'x' }],
+                    mimeType: 'multipart/alternative',
+                    parts: [
+                        { mimeType: 'text/html', body: { data: encode('<p>html</p>') } },
+                        {
+                            mimeType: 'multipart/related',
+                            parts: [
+                                { mimeType: 'text/plain', body: { data: encode('texto plano anidado') } },
+                            ],
+                        },
+                    ],
+                },
+            },
+        })
+
+        const [message] = await createGmailReader(client).search('q')
+
+        expect(message.body).toBe('texto plano anidado')
+    })
+
     it('ordena los mails del más viejo al más nuevo', async () => {
         const { client, list, get } = buildClient()
         list.mockResolvedValue({ data: { messages: [{ id: 'nuevo' }, { id: 'viejo' }] } })
