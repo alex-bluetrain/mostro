@@ -111,6 +111,33 @@ describe('createGmailReader().search', () => {
         expect(message.body).toBe('texto plano anidado')
     })
 
+    it('prefiere text/plain hermano sobre multipart con solo html', async () => {
+        const { client, get } = buildClient()
+        get.mockResolvedValue({
+            data: {
+                id: 'm1',
+                internalDate: '1785000000000',
+                payload: {
+                    headers: [{ name: 'From', value: 'a@b.test' }, { name: 'Subject', value: 'x' }],
+                    mimeType: 'multipart/mixed',
+                    parts: [
+                        {
+                            mimeType: 'multipart/related',
+                            parts: [
+                                { mimeType: 'text/html', body: { data: encode('<p>solo html</p>') } },
+                            ],
+                        },
+                        { mimeType: 'text/plain', body: { data: encode('texto plano correcto') } },
+                    ],
+                },
+            },
+        })
+
+        const [message] = await createGmailReader(client).search('q')
+
+        expect(message.body).toBe('texto plano correcto')
+    })
+
     it('ordena los mails del más viejo al más nuevo', async () => {
         const { client, list, get } = buildClient()
         list.mockResolvedValue({ data: { messages: [{ id: 'nuevo' }, { id: 'viejo' }] } })
@@ -159,6 +186,34 @@ describe('createGmailReader().addLabel', () => {
             userId: 'me',
             id: 'm1',
             requestBody: { addLabelIds: ['L2'] },
+        })
+    })
+
+    it('reintenta crear el label después de un fallo transitorio', async () => {
+        const { client, modify, labelsList, labelsCreate } = buildClient()
+        const reader = createGmailReader(client)
+
+        // Primera llamada: labels.list falla
+        labelsList.mockRejectedValueOnce(new Error('Network error'))
+
+        await expect(reader.addLabel('m1', 'mostro-failed')).rejects.toThrow('Network error')
+
+        // Segunda llamada: labels.list funciona, label no existe, hay que crear
+        labelsList.mockResolvedValueOnce({ data: { labels: [] } })
+        labelsCreate.mockResolvedValueOnce({ data: { id: 'L_created' } })
+
+        // El siguiente intento debe reintentarlo (sin re-lanzar el error cacheado)
+        await reader.addLabel('m1', 'mostro-failed')
+
+        // Verifica que se intentó crear el label en la segunda llamada
+        expect(labelsCreate).toHaveBeenCalledWith({
+            userId: 'me',
+            requestBody: { name: 'mostro-failed', labelListVisibility: 'labelShow', messageListVisibility: 'show' },
+        })
+        expect(modify).toHaveBeenLastCalledWith({
+            userId: 'me',
+            id: 'm1',
+            requestBody: { addLabelIds: ['L_created'] },
         })
     })
 })
