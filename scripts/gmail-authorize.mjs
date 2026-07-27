@@ -12,7 +12,13 @@ const PORT = 53682
 // 127.0.0.1 y no localhost: en Windows localhost resuelve primero a ::1, y el server escucha
 // solo en IPv4, así que el navegador se comería un connection refused al volver del consent.
 const REDIRECT_URI = `http://127.0.0.1:${PORT}/oauth2callback`
-const SCOPE = 'https://www.googleapis.com/auth/gmail.send'
+// modify habilita leer y etiquetar además de enviar, que es lo que necesita el poller.
+// Gmail no ofrece scopes acotados por label: esto alcanza toda la casilla, y la contención
+// queda en el código (query fijo por remitente, funciones de resume predefinidas).
+const SCOPES = [
+    'https://www.googleapis.com/auth/gmail.modify',
+    'https://www.googleapis.com/auth/gmail.send',
+]
 
 const clientId = process.env.GMAIL_MAILER_CLIENT_ID
 const clientSecret = process.env.GMAIL_MAILER_CLIENT_SECRET
@@ -29,7 +35,7 @@ const oauth2 = new auth.OAuth2(clientId, clientSecret, REDIRECT_URI)
 const authUrl = oauth2.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: [SCOPE],
+    scope: SCOPES,
 })
 
 const server = http.createServer(async (req, res) => {

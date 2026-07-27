@@ -1,21 +1,9 @@
-import { auth, gmail } from '@googleapis/gmail'
 import { appConfig } from '../../config/app.config'
 import { buildRawMessage } from './mime'
+import { getGmailClient } from './gmail-client'
 
 const MAX_ATTEMPTS = 3
 const BASE_DELAY_MS = 500
-
-let client: ReturnType<typeof gmail> | undefined
-
-function getClient() {
-    if (!client) {
-        const oauth2 = new auth.OAuth2(appConfig.GMAIL_MAILER_CLIENT_ID, appConfig.GMAIL_MAILER_CLIENT_SECRET)
-        // Con el refresh token alcanza: el SDK renueva el access token solo.
-        oauth2.setCredentials({ refresh_token: appConfig.GMAIL_MAILER_REFRESH_TOKEN })
-        client = gmail({ version: 'v1', auth: oauth2 })
-    }
-    return client
-}
 
 function httpStatusOf(error: unknown): number | undefined {
     const candidate = error as { status?: number; response?: { status?: number } }
@@ -58,7 +46,7 @@ export async function sendEmail({
         try {
             // gaxios no pone timeout si no se lo pedimos: sin esto, un cuelgue de red puede
             // tardar los ~300s por defecto de undici, multiplicado por los 3 intentos.
-            await getClient().users.messages.send({ userId: 'me', requestBody: { raw } }, { timeout: 15000 })
+            await getGmailClient().users.messages.send({ userId: 'me', requestBody: { raw } }, { timeout: 15000 })
             return
         } catch (error) {
             lastError = error
