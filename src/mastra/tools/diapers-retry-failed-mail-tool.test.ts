@@ -11,21 +11,21 @@ const admin = { email: 'admin@gmail.com', name: 'Admin', role: 'admin' as const,
 
 function run(resourceId = 'admin@gmail.com') {
     return (retryDiapersFailedMailTool as never as {
-        execute: (input: unknown, context: unknown) => Promise<{ ok: boolean; retried?: number; error?: string }>
+        execute: (input: unknown, context: unknown) => Promise<{ ok: boolean; retried?: number; outOfWindow?: number; error?: string }>
     }).execute({}, { agent: { resourceId } })
 }
 
 beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(getUserByResourceId).mockResolvedValue(admin)
-    vi.mocked(retryFailedMails).mockResolvedValue(2)
+    vi.mocked(retryFailedMails).mockResolvedValue({ retried: 2, outOfWindow: 0 })
 })
 
 describe('retryDiapersFailedMailTool', () => {
     it('devuelve los mails a la cola cuando el llamador es admin', async () => {
         const result = await run()
 
-        expect(result).toEqual({ ok: true, retried: 2 })
+        expect(result).toEqual({ ok: true, retried: 2, outOfWindow: 0 })
         expect(retryFailedMails).toHaveBeenCalledWith('panales@proveedor.test')
     })
 

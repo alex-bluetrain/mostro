@@ -1,7 +1,7 @@
 import { createWorkflowStateReader } from '@mastra/core/workflows'
 import type { z } from 'zod'
 import { previousYearMonth, yearMonthOf } from '../date-scope'
-import { FAILED_LABEL, PROCESSED_LABEL, gmailReader, type GmailReader, type InboxMessage } from './gmail-reader'
+import { FAILED_LABEL, PROCESSED_LABEL, SEARCH_WINDOW, gmailReader, type GmailReader, type InboxMessage } from './gmail-reader'
 import { extractFromMail, type Extract } from './mail-extractor'
 import { notifyMailFailure, type NotifyFailure } from './notify-mail-failure'
 
@@ -91,7 +91,7 @@ export async function runPollCycle(
     deps: Partial<PollDeps> = {},
 ): Promise<{ processed: number; failed: number }> {
     const resolved: PollDeps = { ...defaultDeps, ...deps }
-    const query = `from:${config.sender} -label:${PROCESSED_LABEL} -label:${FAILED_LABEL} newer_than:30d`
+    const query = `from:${config.sender} -label:${PROCESSED_LABEL} -label:${FAILED_LABEL} ${SEARCH_WINDOW}`
     const messages = await resolved.reader.search(query)
 
     let processed = 0
