@@ -167,13 +167,24 @@ export async function runPollCycle(
         }
 
         // El workflow ya se reanudó: el trabajo está hecho aunque la etiqueta no salga.
-        // Sin la etiqueta el mail vuelve a la cola y el próximo ciclo lo reintenta, pero
-        // ahí el run ya no está suspendido en ese step y cae a mostro-failed con motivo,
-        // que es visible. Propagar en cambio dejaría el resto de la tanda sin procesar.
+        // Pero dejar el mail en la cola sin etiquetar solo es inofensivo para diapers,
+        // que tiene un único wait step: ahí el run ya no está suspendido y el mail cae a
+        // mostro-failed con motivo, visible, el próximo ciclo. En meds y refunds el run
+        // se vuelve a suspender en la etapa siguiente, así que el mail sin etiquetar
+        // vuelve a la cola y se evalúa contra ESE step nuevo. Un acuse típico trae fecha
+        // y domicilio, así que puede matchear "confirmación de entrega" y avanzar el run
+        // con datos de un mail que solo era un acuse — la familia recibe un aviso de
+        // entrega que nunca pasó. Por eso, si falla el etiquetado de procesado, ponemos
+        // el mail en cuarentena con FAILED_LABEL en vez de dejarlo reingresar a la cola.
         try {
             await resolved.reader.addLabel(message.id, PROCESSED_LABEL)
         } catch (error) {
             console.error(`[poll-${config.domain}] reanudé el workflow pero no pude etiquetar ${message.id} como procesado`, error)
+            try {
+                await resolved.reader.addLabel(message.id, FAILED_LABEL)
+            } catch (quarantineError) {
+                console.error(`[poll-${config.domain}] tampoco pude poner en cuarentena ${message.id}`, quarantineError)
+            }
         }
         processed++
     }
