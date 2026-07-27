@@ -15,7 +15,7 @@ participant "diapers-agent" as Agent
 participant "diapers-workflow\n(runId = diapers-YYYY-MM)" as WF
 participant "subscriberRepository\n(MongoDB)" as Subs
 participant "DIAPERS_EMAIL_TO\n(proveedor externo, por correo)" as Provider
-participant "diapers-poll\n(schedule cron */15 * * * *)" as Poll
+participant "diapers-poll\n(schedule cron 2,17,32,47 * * * *)" as Poll
 participant "extractor de mails\n(agente + schema del step)" as Extractor
 participant "Gmail de Mostro\n(inbox propio, gmail.modify)" as Gmail
 database "MongoDB (MongoDBStore)" as DB
@@ -60,7 +60,7 @@ end note
 
 ... hasta 15 minutos después ...
 
-Poll -> Poll: dispara por schedule de Mastra\n(cron "*/15 * * * *")
+Poll -> Poll: dispara por schedule de Mastra\n(cron "2,17,32,47 * * * *")
 Poll -> Gmail: search("from:<DIAPERS_EMAIL_TO>\n-label:mostro-processed -label:mostro-failed\nnewer_than:30d")
 Gmail --> Poll: mails sin procesar\n(ordenados del más viejo al más nuevo)
 
