@@ -1,6 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
-import { nowUnix, toUnix } from '../../../lib/unix-time'
+import { nowUnix, toUnix } from '@lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
 import { waitDepositResumeSchema } from '../schemas/wait-deposit-resume.schema'
 

@@ -8,7 +8,17 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "paths": {
+      "@business": [ "./src/business/index.ts" ],
+      "@business/*": [ "./src/business/*" ],
+      "@agents/*": [ "./src/mastra/agents/*" ],
+      "@config/*": [ "./src/mastra/config/*" ],
+      "@lib/*": [ "./src/mastra/lib/*" ],
+      "@scorers/*": [ "./src/mastra/scorers/*" ],
+      "@tools/*": [ "./src/mastra/tools/*" ],
+      "@workflows/*": [ "./src/mastra/workflows/*" ]
+    }
   },
-  "include": ["src/**/*"]
+  "include": [ "src/**/*", "tests/**/*" ]
 }

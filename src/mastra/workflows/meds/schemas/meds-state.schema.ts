@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { unixTimestampSchema } from '../../../lib/unix-time'
+import { unixTimestampSchema } from '@lib/unix-time'
 
 export const medsStateSchema = z.object({
     status: z.enum([

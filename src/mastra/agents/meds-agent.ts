@@ -1,9 +1,9 @@
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
-import { getMedsStatusTool } from '../tools/meds-get-status-tool';
-import { requestMedsTool } from '../tools/meds-request-tool';
-import { subscribeMedsTool } from '../tools/meds-subscribe-tool';
-import { retryMedsFailedMailTool } from '../tools/meds-retry-failed-mail-tool';
+import { getMedsStatusTool } from '@tools/meds-get-status-tool';
+import { requestMedsTool } from '@tools/meds-request-tool';
+import { subscribeMedsTool } from '@tools/meds-subscribe-tool';
+import { retryMedsFailedMailTool } from '@tools/meds-retry-failed-mail-tool';
 
 export const medsAgent = new Agent({
   id: 'meds-agent',

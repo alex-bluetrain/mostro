@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { Invite, type IInvite } from '../models/invite.model';
-import { nowUnix } from '../../mastra/lib/unix-time';
+import { nowUnix } from '@lib/unix-time';
 
 export const INVITE_TTL_SECONDS = 7 * 24 * 60 * 60;
 

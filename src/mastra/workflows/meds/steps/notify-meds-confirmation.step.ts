@@ -1,8 +1,8 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
-import { subscriberRepository } from '../../../../business/repositories'
-import { resolveTelegramThread } from '../../../lib/resolve-telegram-thread'
-import { formatUnixDate, nowUnix } from '../../../lib/unix-time'
+import { subscriberRepository } from '@business/repositories'
+import { resolveTelegramThread } from '@lib/resolve-telegram-thread'
+import { formatUnixDate, nowUnix } from '@lib/unix-time'
 import { medsStateSchema } from '../schemas/meds-state.schema'
 import { notifyMedsConfirmationOutputSchema } from '../schemas/notify-meds-confirmation-output.schema'
 

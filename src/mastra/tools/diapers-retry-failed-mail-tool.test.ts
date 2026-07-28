@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../../business/identity', () => ({ getUserByResourceId: vi.fn() }))
-vi.mock('../lib/inbox/retry-failed-mails', () => ({ retryFailedMails: vi.fn() }))
+vi.mock('@business/identity', () => ({ getUserByResourceId: vi.fn() }))
+vi.mock('@lib/inbox/retry-failed-mails', () => ({ retryFailedMails: vi.fn() }))
 
-import { getUserByResourceId } from '../../business/identity'
-import { retryFailedMails } from '../lib/inbox/retry-failed-mails'
+import { getUserByResourceId } from '@business/identity'
+import { retryFailedMails } from '@lib/inbox/retry-failed-mails'
 import { retryDiapersFailedMailTool } from './diapers-retry-failed-mail-tool'
 
 const admin = { email: 'admin@gmail.com', name: 'Admin', role: 'admin' as const, addedAt: 1 }

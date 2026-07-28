@@ -1,8 +1,8 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
-import { subscriberRepository } from '../../../../business/repositories'
-import { resolveTelegramThread } from '../../../lib/resolve-telegram-thread'
-import { nowUnix } from '../../../lib/unix-time'
+import { subscriberRepository } from '@business/repositories'
+import { resolveTelegramThread } from '@lib/resolve-telegram-thread'
+import { nowUnix } from '@lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
 
 export const notifyRefundConfirmationStep = createStep({

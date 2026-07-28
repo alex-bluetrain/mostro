@@ -1,5 +1,5 @@
 import ngrok from '@ngrok/ngrok';
-import { appConfig } from './config/app.config';
+import { appConfig } from '@config/app.config';
 
 export async function startNgrokTunnel(port: number) {
     const domain = appConfig.NGROK_DOMAIN;

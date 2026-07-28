@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createTelegramGate, type TelegramGateDeps } from '../src/mastra/lib/telegram-gate'
-import type { IUser } from '../src/business'
+import { createTelegramGate, type TelegramGateDeps } from '@lib/telegram-gate'
+import type { IUser } from '@business'
 
 const member: IUser = { email: 'ana@gmail.com', telegramId: '111', name: 'Ana', role: 'member', addedAt: 1 }
 

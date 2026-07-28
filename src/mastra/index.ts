@@ -12,7 +12,7 @@ import { mostroSupervisor } from './agents/mostro-supervisor';
 import { createTelegramStartHandler } from './lib/telegram-start';
 import { toolCallAppropriatenessScorer, completenessScorer, translationScorer } from './scorers/weather-scorer';
 import mongoose from 'mongoose';
-import { userRepository } from '../business/repositories';
+import { userRepository } from '@business/repositories';
 import { startNgrokTunnel } from './ngrok';
 import { createGoogleAuth } from './lib/google-auth';
 import { appConfig } from './config/app.config';

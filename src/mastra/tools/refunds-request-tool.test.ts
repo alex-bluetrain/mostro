@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-vi.mock('../../business/identity', () => ({
+vi.mock('@business/identity', () => ({
   getUserByResourceId: vi.fn(),
 }))
-vi.mock('../lib/refunds-run', () => ({
+vi.mock('@lib/refunds-run', () => ({
   startRefundRequest: vi.fn(),
 }))
 
 import { requestRefundTool } from './refunds-request-tool'
-import { getUserByResourceId } from '../../business/identity'
-import { startRefundRequest } from '../lib/refunds-run'
+import { getUserByResourceId } from '@business/identity'
+import { startRefundRequest } from '@lib/refunds-run'
 
 const ctx = { mastra: {}, agent: { resourceId: 'ana@gmail.com' } }
 function run(input: any, context: any = ctx) {

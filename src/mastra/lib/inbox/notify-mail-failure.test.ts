@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../../../business/repositories', () => ({
+vi.mock('@business/repositories', () => ({
     subscriberRepository: { list: vi.fn() },
 }))
-vi.mock('../resolve-telegram-thread', () => ({
+vi.mock('@lib/resolve-telegram-thread', () => ({
     resolveTelegramThread: vi.fn(),
 }))
 
-import { subscriberRepository } from '../../../business/repositories'
-import { resolveTelegramThread } from '../resolve-telegram-thread'
+import { subscriberRepository } from '@business/repositories'
+import { resolveTelegramThread } from '@lib/resolve-telegram-thread'
 import { notifyMailFailure } from './notify-mail-failure'
 
 const failure = {

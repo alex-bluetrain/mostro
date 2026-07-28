@@ -312,7 +312,7 @@ vi.mock('../lib/diapers-run', () => ({
 
 import { requestDiapersTool } from './diapers-request-tool'
 import { getUserByResourceId } from '../../business/identity'
-import { startDiapers } from '../lib/diapers-run'
+import { startDiapers } from '@lib/diapers-run'
 
 const ctx = { mastra: {}, agent: { resourceId: 'ana@gmail.com' } }
 function run(input: any, context: any = ctx) {
@@ -492,7 +492,7 @@ vi.mock('../lib/refunds-run', () => ({
 
 import { requestRefundTool } from './refunds-request-tool'
 import { getUserByResourceId } from '../../business/identity'
-import { startRefundRequest } from '../lib/refunds-run'
+import { startRefundRequest } from '@lib/refunds-run'
 
 const ctx = { mastra: {}, agent: { resourceId: 'ana@gmail.com' } }
 function run(input: any, context: any = ctx) {
@@ -798,7 +798,7 @@ vi.mock('../lib/meds-run', () => ({
 
 import { requestMedsTool } from './meds-request-tool'
 import { getUserByResourceId } from '../../business/identity'
-import { startMedsOrder } from '../lib/meds-run'
+import { startMedsOrder } from '@lib/meds-run'
 
 const ctx = { mastra: {}, agent: { resourceId: 'ana@gmail.com' } }
 function run(input: any, context: any = ctx) {

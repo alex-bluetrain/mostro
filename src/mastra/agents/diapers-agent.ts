@@ -1,9 +1,9 @@
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
-import { getDiapersStatusTool } from '../tools/diapers-get-status-tool';
-import { requestDiapersTool } from '../tools/diapers-request-tool';
-import { subscribeDiapersTool } from '../tools/diapers-subscribe-tool';
-import { retryDiapersFailedMailTool } from '../tools/diapers-retry-failed-mail-tool';
+import { getDiapersStatusTool } from '@tools/diapers-get-status-tool';
+import { requestDiapersTool } from '@tools/diapers-request-tool';
+import { subscribeDiapersTool } from '@tools/diapers-subscribe-tool';
+import { retryDiapersFailedMailTool } from '@tools/diapers-retry-failed-mail-tool';
 
 export const diapersAgent = new Agent({
     id: 'diapers-agent',

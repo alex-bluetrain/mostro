@@ -1,5 +1,5 @@
-import { userRepository } from '../../business/repositories'
-import type { IUser } from '../../business'
+import { userRepository } from '@business/repositories'
+import type { IUser } from '@business'
 
 // Tipos estructurales mínimos sobre el storage de Mastra para que los tests
 // puedan stubear sin arrastrar la instancia completa.

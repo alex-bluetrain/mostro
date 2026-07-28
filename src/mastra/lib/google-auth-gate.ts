@@ -1,4 +1,4 @@
-import { userRepository } from '../../business/repositories'
+import { userRepository } from '@business/repositories'
 
 export type GoogleAuthGateDeps = {
     findByEmail: (email: string) => Promise<{ name: string } | null>

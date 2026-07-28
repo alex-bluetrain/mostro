@@ -1,6 +1,6 @@
 import { createWorkflow } from '@mastra/core/workflows'
 import { z } from 'zod'
-import { pollOutputSchema } from '../../lib/inbox/poll-step'
+import { pollOutputSchema } from '@lib/inbox/poll-step'
 import { pollRefundsMailbox } from './steps/poll-refunds-mailbox.step'
 
 export const refundsPollWorkflow = createWorkflow({

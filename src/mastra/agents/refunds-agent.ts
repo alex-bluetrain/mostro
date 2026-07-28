@@ -1,9 +1,9 @@
 import { Agent } from '@mastra/core/agent'
 import { Memory } from '@mastra/memory'
-import { getRefundsStatusTool } from '../tools/refunds-get-status-tool'
-import { requestRefundTool } from '../tools/refunds-request-tool'
-import { subscribeRefundsTool } from '../tools/refunds-subscribe-tool'
-import { retryRefundsFailedMailTool } from '../tools/refunds-retry-failed-mail-tool'
+import { getRefundsStatusTool } from '@tools/refunds-get-status-tool'
+import { requestRefundTool } from '@tools/refunds-request-tool'
+import { subscribeRefundsTool } from '@tools/refunds-subscribe-tool'
+import { retryRefundsFailedMailTool } from '@tools/refunds-retry-failed-mail-tool'
 
 export const refundsAgent = new Agent({
     id: 'refunds-agent',

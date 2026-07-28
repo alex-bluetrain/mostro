@@ -1,5 +1,5 @@
-import { subscriberRepository } from '../../../business/repositories'
-import { resolveTelegramThread } from '../resolve-telegram-thread'
+import { subscriberRepository } from '@business/repositories'
+import { resolveTelegramThread } from '@lib/resolve-telegram-thread'
 
 export type MailFailure = {
     domain: 'diapers' | 'meds' | 'refunds'
