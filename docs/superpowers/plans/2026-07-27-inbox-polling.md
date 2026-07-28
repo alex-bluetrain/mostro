@@ -1930,7 +1930,7 @@ vi.mock('../../business/identity', () => ({ getUserByResourceId: vi.fn() }))
 vi.mock('../lib/inbox/retry-failed-mails', () => ({ retryFailedMails: vi.fn() }))
 
 import { getUserByResourceId } from '../../business/identity'
-import { retryFailedMails } from '../lib/inbox/retry-failed-mails'
+import { retryFailedMails } from '@lib/inbox/retry-failed-mails'
 import { retryDiapersFailedMailTool } from './diapers-retry-failed-mail-tool'
 
 const admin = { email: 'admin@gmail.com', name: 'Admin', role: 'admin' as const, addedAt: 1 }
@@ -1987,9 +1987,9 @@ Expected: FAIL — no existe el módulo.
 ```ts
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { appConfig } from '../config/app.config'
+import { appConfig } from '@config/app.config'
 import { getUserByResourceId } from '../../business/identity'
-import { retryFailedMails } from '../lib/inbox/retry-failed-mails'
+import { retryFailedMails } from '@lib/inbox/retry-failed-mails'
 
 export const retryDiapersFailedMailTool = createTool({
     id: 'retry-diapers-failed-mail',

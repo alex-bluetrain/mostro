@@ -1,7 +1,7 @@
 import type { Mastra } from '@mastra/core/mastra'
 import { createWorkflowStateReader } from '@mastra/core/workflows'
-import type { DiapersState } from '../workflows/diapers/types/diapers-state.type'
-import { getDiapersRunId } from '../workflows/diapers/utils/diapers.utils'
+import type { DiapersState } from '@workflows/diapers/types/diapers-state.type'
+import { getDiapersRunId } from '@workflows/diapers/utils/diapers.utils'
 import { getCurrentYearMonth } from './date-scope'
 
 function getDiapersWorkflow(mastra: Mastra) {

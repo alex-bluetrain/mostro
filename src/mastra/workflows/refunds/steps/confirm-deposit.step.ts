@@ -1,10 +1,10 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
-import { appConfig } from '../../../config/app.config'
-import { yearMonthFromRunId } from '../../../lib/date-scope'
-import { sendEmail } from '../../../lib/mailer/gmail-mailer'
-import { depositConfirmedEmail } from '../../../lib/mailer/templates/refunds'
-import { nowUnix } from '../../../lib/unix-time'
+import { appConfig } from '@config/app.config'
+import { yearMonthFromRunId } from '@lib/date-scope'
+import { sendEmail } from '@lib/mailer/gmail-mailer'
+import { depositConfirmedEmail } from '@lib/mailer/templates/refunds'
+import { nowUnix } from '@lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
 
 export const confirmDepositStep = createStep({

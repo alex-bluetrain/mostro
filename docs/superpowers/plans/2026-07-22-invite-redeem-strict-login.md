@@ -496,7 +496,7 @@ Reemplazar el contenido completo de `src/mastra/lib/google-auth.ts` por:
 
 ```typescript
 import { MastraAuthGoogle, type GoogleUser } from '@mastra/auth-google'
-import { appConfig } from '../config/app.config'
+import { appConfig } from '@config/app.config'
 import { userRepository } from '../../business/repositories'
 import { assertInvitedAndSyncName } from './google-auth-gate'
 
@@ -674,7 +674,7 @@ Crear `src/mastra/lib/invite-email.ts`:
 
 ```typescript
 import { Composio } from '@composio/core'
-import { appConfig } from '../config/app.config'
+import { appConfig } from '@config/app.config'
 
 export type InviteEmailParams = {
     to: string
@@ -774,7 +774,7 @@ vi.mock('../lib/invite-email', () => ({
 import { createInviteTool } from './create-invite-tool';
 import { inviteRepository, userRepository } from '../../business/repositories';
 import { getUserByResourceId } from '../../business/identity';
-import { sendInviteEmail } from '../lib/invite-email';
+import { sendInviteEmail } from '@lib/invite-email';
 
 const admin = { email: 'admin@gmail.com', name: 'Admin', role: 'admin' as const, addedAt: 1 };
 const invite = { code: 'abc123', email: 'new@gmail.com', createdBy: 'admin@gmail.com', createdAt: 1, expiresAt: 999 };
@@ -842,10 +842,10 @@ Reemplazar el contenido completo de `src/mastra/tools/create-invite-tool.ts` por
 ```typescript
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { appConfig } from '../config/app.config'
+import { appConfig } from '@config/app.config'
 import { inviteRepository, userRepository } from '../../business/repositories'
 import { getUserByResourceId } from '../../business/identity'
-import { sendInviteEmail } from '../lib/invite-email'
+import { sendInviteEmail } from '@lib/invite-email'
 
 export const createInviteTool = createTool({
     id: 'create-invite',

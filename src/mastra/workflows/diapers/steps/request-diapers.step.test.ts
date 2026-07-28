@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-vi.mock('../../../lib/mailer/gmail-mailer', () => ({
+vi.mock('@lib/mailer/gmail-mailer', () => ({
   sendEmail: vi.fn(),
 }))
 
 import { requestDiapers } from './request-diapers.step'
-import { sendEmail } from '../../../lib/mailer/gmail-mailer'
+import { sendEmail } from '@lib/mailer/gmail-mailer'
 
 const setState = vi.fn()
 

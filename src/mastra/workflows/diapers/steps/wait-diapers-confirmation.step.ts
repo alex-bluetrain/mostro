@@ -1,6 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
-import { toUnix } from '../../../lib/unix-time'
+import { toUnix } from '@lib/unix-time'
 import { diapersStateSchema } from '../schemas/diapers-state.schema'
 import { waitDiapersConfirmationResumeSchema } from '../schemas/wait-diapers-confirmation-resume.schema'
 

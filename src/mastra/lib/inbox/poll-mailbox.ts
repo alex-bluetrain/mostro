@@ -1,6 +1,6 @@
 import { createWorkflowStateReader } from '@mastra/core/workflows'
 import type { z } from 'zod'
-import { previousYearMonth, yearMonthOf } from '../date-scope'
+import { previousYearMonth, yearMonthOf } from '@lib/date-scope'
 import { FAILED_LABEL, PROCESSED_LABEL, SEARCH_WINDOW, gmailReader, type GmailReader, type InboxMessage } from './gmail-reader'
 import { extractFromMail, type Extract } from './mail-extractor'
 import { notifyMailFailure, type NotifyFailure } from './notify-mail-failure'

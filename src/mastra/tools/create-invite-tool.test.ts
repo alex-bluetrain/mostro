@@ -1,19 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-vi.mock('../config/app.config', () => ({
+vi.mock('@config/app.config', () => ({
   appConfig: { TELEGRAM_BOT_USERNAME: 'mostro_bot' },
 }));
-vi.mock('../../business/repositories', () => ({
+vi.mock('@business/repositories', () => ({
   inviteRepository: { create: vi.fn() },
   userRepository: { findByEmail: vi.fn() },
 }));
-vi.mock('../../business/identity', () => ({
+vi.mock('@business/identity', () => ({
   getUserByResourceId: vi.fn(),
 }));
 
 import { createInviteTool } from './create-invite-tool';
-import { inviteRepository, userRepository } from '../../business/repositories';
-import { getUserByResourceId } from '../../business/identity';
+import { inviteRepository, userRepository } from '@business/repositories';
+import { getUserByResourceId } from '@business/identity';
 
 const admin = { email: 'admin@gmail.com', name: 'Admin', role: 'admin' as const, addedAt: 1 };
 const invite = { code: 'abc123', email: 'new@gmail.com', createdBy: 'admin@gmail.com', createdAt: 1, expiresAt: 999 };

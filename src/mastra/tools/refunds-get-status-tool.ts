@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { readRefundsStatus } from '../lib/refunds-run'
-import { refundsStateSchema } from '../workflows/refunds/schemas/refunds-state.schema'
+import { readRefundsStatus } from '@lib/refunds-run'
+import { refundsStateSchema } from '@workflows/refunds/schemas/refunds-state.schema'
 
 export const getRefundsStatusTool = createTool({
     id: 'get-refunds-status',

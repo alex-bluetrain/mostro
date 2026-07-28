@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { readMedsStatus } from '../lib/meds-run'
-import { medsStateSchema } from '../workflows/meds/schemas/meds-state.schema'
+import { readMedsStatus } from '@lib/meds-run'
+import { medsStateSchema } from '@workflows/meds/schemas/meds-state.schema'
 
 export const getMedsStatusTool = createTool({
     id: 'get-meds-status',

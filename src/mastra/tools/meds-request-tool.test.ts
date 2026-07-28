@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-vi.mock('../../business/identity', () => ({
+vi.mock('@business/identity', () => ({
   getUserByResourceId: vi.fn(),
 }))
-vi.mock('../lib/meds-run', () => ({
+vi.mock('@lib/meds-run', () => ({
   startMedsOrder: vi.fn(),
 }))
 
 import { requestMedsTool } from './meds-request-tool'
-import { getUserByResourceId } from '../../business/identity'
-import { startMedsOrder } from '../lib/meds-run'
+import { getUserByResourceId } from '@business/identity'
+import { startMedsOrder } from '@lib/meds-run'
 
 const ctx = { mastra: {}, agent: { resourceId: 'ana@gmail.com' } }
 function run(input: any, context: any = ctx) {

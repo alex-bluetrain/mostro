@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-vi.mock('../../business/identity', () => ({
+vi.mock('@business/identity', () => ({
   getUserByResourceId: vi.fn(),
 }))
-vi.mock('../lib/diapers-run', () => ({
+vi.mock('@lib/diapers-run', () => ({
   startDiapers: vi.fn(),
 }))
 
 import { requestDiapersTool } from './diapers-request-tool'
-import { getUserByResourceId } from '../../business/identity'
-import { startDiapers } from '../lib/diapers-run'
+import { getUserByResourceId } from '@business/identity'
+import { startDiapers } from '@lib/diapers-run'
 
 const ctx = { mastra: {}, agent: { resourceId: 'ana@gmail.com' } }
 function run(input: any, context: any = ctx) {

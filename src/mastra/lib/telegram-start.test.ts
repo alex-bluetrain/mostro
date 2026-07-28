@@ -7,7 +7,7 @@ import {
   PROVISION_FAILED_MESSAGE,
   type TelegramStartDeps,
 } from './telegram-start';
-import type { IInvite, IUser } from '../../business';
+import type { IInvite, IUser } from '@business';
 
 const invite: IInvite = {
   code: 'abc123',

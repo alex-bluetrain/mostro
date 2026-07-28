@@ -1,6 +1,6 @@
 import type { ChannelHandler } from '@mastra/core/channels'
-import { userRepository } from '../../business/repositories'
-import type { IUser } from '../../business'
+import { userRepository } from '@business/repositories'
+import type { IUser } from '@business'
 
 export type TelegramGateDeps = {
     getUserByTelegramId: (telegramId: string) => Promise<IUser | null>

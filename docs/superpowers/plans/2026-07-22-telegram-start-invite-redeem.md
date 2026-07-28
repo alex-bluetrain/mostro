@@ -42,8 +42,8 @@ import {
     KNOWN_USER_GREETING,
     INVALID_INVITE_MESSAGE,
     type TelegramStartDeps,
-} from '../src/mastra/lib/telegram-start'
-import type { IUser, IInvite } from '../src/business'
+} from '@lib/telegram-start'
+import type { IUser, IInvite } from '@business'
 
 const member: IUser = { email: 'ana@gmail.com', telegramId: '111', name: 'Ana', role: 'member', addedAt: 1 }
 const validInvite: IInvite = { code: 'abc123XYZ_-9', email: 'nueva@gmail.com', name: 'Nueva', createdBy: 'admin@gmail.com', createdAt: 1, expiresAt: 2, usedBy: '222' }
@@ -241,8 +241,8 @@ Replace the full contents of `tests/telegram-gate.test.ts` with:
 
 ```typescript
 import { describe, expect, it, vi } from 'vitest'
-import { createTelegramGate, type TelegramGateDeps } from '../src/mastra/lib/telegram-gate'
-import type { IUser } from '../src/business'
+import { createTelegramGate, type TelegramGateDeps } from '@lib/telegram-gate'
+import type { IUser } from '@business'
 
 const member: IUser = { email: 'ana@gmail.com', telegramId: '111', name: 'Ana', role: 'member', addedAt: 1 }
 

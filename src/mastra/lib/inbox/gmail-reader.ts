@@ -1,5 +1,5 @@
-import { getGmailClient } from '../mailer/gmail-client'
-import { GMAIL_TIMEOUT_MS, withGmailRetry } from '../mailer/gmail-retry'
+import { getGmailClient } from '@lib/mailer/gmail-client'
+import { GMAIL_TIMEOUT_MS, withGmailRetry } from '@lib/mailer/gmail-retry'
 
 export const PROCESSED_LABEL = 'mostro-processed'
 export const FAILED_LABEL = 'mostro-failed'

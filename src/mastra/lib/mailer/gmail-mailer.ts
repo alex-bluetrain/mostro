@@ -1,4 +1,4 @@
-import { appConfig } from '../../config/app.config'
+import { appConfig } from '@config/app.config'
 import { buildRawMessage } from './mime'
 import { getGmailClient } from './gmail-client'
 import { GMAIL_TIMEOUT_MS, isInvalidGrant, withGmailRetry } from './gmail-retry'

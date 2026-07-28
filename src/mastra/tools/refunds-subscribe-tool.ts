@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { subscriberRepository } from '../../business/repositories'
-import { emailFromResourceId } from '../../business/identity'
+import { subscriberRepository } from '@business/repositories'
+import { emailFromResourceId } from '@business/identity'
 
 export const subscribeRefundsTool = createTool({
     id: 'subscribe-refunds-notifications',

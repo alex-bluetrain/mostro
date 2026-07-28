@@ -1,8 +1,8 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { appConfig } from '../config/app.config'
-import { inviteRepository, userRepository } from '../../business/repositories'
-import { getUserByResourceId } from '../../business/identity'
+import { appConfig } from '@config/app.config'
+import { inviteRepository, userRepository } from '@business/repositories'
+import { getUserByResourceId } from '@business/identity'
 
 export const createInviteTool = createTool({
     id: 'create-invite',

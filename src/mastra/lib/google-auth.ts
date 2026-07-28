@@ -1,6 +1,6 @@
 import { MastraAuthGoogle, type GoogleUser } from '@mastra/auth-google'
-import { appConfig } from '../config/app.config'
-import { userRepository } from '../../business/repositories'
+import { appConfig } from '@config/app.config'
+import { userRepository } from '@business/repositories'
 import { assertInvitedAndSyncName } from './google-auth-gate'
 
 // El webhook del canal Telegram vive bajo /api/* (protegido por default del

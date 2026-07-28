@@ -1407,7 +1407,7 @@ vi.mock('../lib/refunds-run', () => ({
 }))
 
 import { webhookRefundsDepositRoute } from './webhook-refunds-deposit.route'
-import { receiveDeposit } from '../lib/refunds-run'
+import { receiveDeposit } from '@lib/refunds-run'
 
 const body = { yearMonth: '2026-07', depositAmount: 15000, depositDate: '2026-07-13' }
 

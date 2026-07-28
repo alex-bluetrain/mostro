@@ -141,7 +141,7 @@ Crear `tests/users.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest'
-import { telegramIdFromResourceId } from '../src/mastra/lib/users'
+import { telegramIdFromResourceId } from '@lib/users'
 
 describe('telegramIdFromResourceId', () => {
     it('extrae el id de un resourceId de telegram', () => {
@@ -173,7 +173,7 @@ Expected: FAIL — `Cannot find module '../src/mastra/lib/users'` (o similar).
 
 ```ts
 import { MongoClient, type Db } from 'mongodb'
-import { appConfig } from '../config/app.config'
+import { appConfig } from '@config/app.config'
 
 let client: MongoClient | null = null
 
@@ -192,7 +192,7 @@ export async function getDb(): Promise<Db> {
 
 ```ts
 import type { Collection } from 'mongodb'
-import { appConfig } from '../config/app.config'
+import { appConfig } from '@config/app.config'
 import { getDb } from './mongo-client'
 import { nowUnix } from './unix-time'
 
@@ -292,7 +292,7 @@ Crear `tests/invites.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest'
-import { generateInviteCode } from '../src/mastra/lib/invites'
+import { generateInviteCode } from '@lib/invites'
 
 describe('generateInviteCode', () => {
     it('genera códigos URL-safe (aptos para t.me/bot?start=CODE)', () => {
@@ -402,9 +402,9 @@ Crear `tests/telegram-gate.test.ts`:
 
 ```ts
 import { describe, expect, it, vi } from 'vitest'
-import { createTelegramGate, parseStartCode, type TelegramGateDeps } from '../src/mastra/lib/telegram-gate'
-import type { User } from '../src/mastra/lib/users'
-import type { Invite } from '../src/mastra/lib/invites'
+import { createTelegramGate, parseStartCode, type TelegramGateDeps } from '@lib/telegram-gate'
+import type { User } from '@lib/users'
+import type { Invite } from '@lib/invites'
 
 describe('parseStartCode', () => {
     it('extrae el código de /start CODE', () => {
@@ -583,9 +583,9 @@ git commit -m "feat: telegram access gate with silent drop and invite deep-link 
 ```ts
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { appConfig } from '../config/app.config'
-import { createInvite } from '../lib/invites'
-import { getUserByResourceId } from '../lib/users'
+import { appConfig } from '@config/app.config'
+import { createInvite } from '@lib/invites'
+import { getUserByResourceId } from '@lib/users'
 
 export const createInviteTool = createTool({
     id: 'create-invite',
@@ -623,7 +623,7 @@ export const createInviteTool = createTool({
 ```ts
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { setUserName, telegramIdFromResourceId } from '../lib/users'
+import { setUserName, telegramIdFromResourceId } from '@lib/users'
 
 export const setMyNameTool = createTool({
     id: 'set-my-name',
@@ -675,9 +675,9 @@ git commit -m "feat: admin invite tool and set-my-name tool"
 Agregar imports:
 
 ```ts
-import { createTelegramGate } from '../lib/telegram-gate';
-import { createInviteTool } from '../tools/create-invite-tool';
-import { setMyNameTool } from '../tools/set-my-name-tool';
+import { createTelegramGate } from '@lib/telegram-gate';
+import { createInviteTool } from '@tools/create-invite-tool';
+import { setMyNameTool } from '@tools/set-my-name-tool';
 ```
 
 En `MOSTRO_SUPERVISOR_INSTRUCTIONS`, agregar antes de `Behaviour Rules:`:
@@ -820,7 +820,7 @@ export async function startDiapers(
 `diapers-request-tool.ts` — reemplazar el `execute` (y agregar el import):
 
 ```ts
-import { getUserByResourceId } from '../lib/users'
+import { getUserByResourceId } from '@lib/users'
 ```
 
 ```ts

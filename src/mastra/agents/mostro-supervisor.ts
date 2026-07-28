@@ -5,11 +5,11 @@ import { weatherAgent } from './weather-agent';
 import { diapersAgent } from './diapers-agent';
 import { medsAgent } from './meds-agent';
 import { refundsAgent } from './refunds-agent';
-import { createTelegramGate } from '../lib/telegram-gate';
-import { createResolveResourceId } from '../lib/resolve-resource-id';
-import type { SubAgentKey } from '../lib/sub-agent-keys';
-import { createInviteTool } from '../tools/create-invite-tool';
-import { setMyNameTool } from '../tools/set-my-name-tool';
+import { createTelegramGate } from '@lib/telegram-gate';
+import { createResolveResourceId } from '@lib/resolve-resource-id';
+import type { SubAgentKey } from '@lib/sub-agent-keys';
+import { createInviteTool } from '@tools/create-invite-tool';
+import { setMyNameTool } from '@tools/set-my-name-tool';
 
 export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, a supervisor agent that coordinates specialized agents to help the user.
 

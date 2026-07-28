@@ -1,5 +1,5 @@
 import { User, type IUser } from '../models/user.model';
-import { nowUnix } from '../../mastra/lib/unix-time';
+import { nowUnix } from '@lib/unix-time';
 
 export class UserRepository {
   async findByEmail(email: string): Promise<IUser | null> {

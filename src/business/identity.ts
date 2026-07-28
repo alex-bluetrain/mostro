@@ -1,5 +1,5 @@
 import { userRepository } from './repositories';
-import { subAgentKeys } from '../mastra/lib/sub-agent-keys';
+import { subAgentKeys } from '@lib/sub-agent-keys';
 import type { IUser } from './models/user.model';
 
 // Sub-agent delegation derives the child resourceId as `${resourceId}-${agentName}`

@@ -1,5 +1,5 @@
-import { userRepository, inviteRepository } from '../../business/repositories'
-import type { IUser, IInvite } from '../../business'
+import { userRepository, inviteRepository } from '@business/repositories'
+import type { IUser, IInvite } from '@business'
 
 export type TelegramStartDeps = {
     getUserByTelegramId: (telegramId: string) => Promise<IUser | null>

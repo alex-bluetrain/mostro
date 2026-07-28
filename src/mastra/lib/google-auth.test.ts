@@ -12,7 +12,7 @@ vi.mock('@mastra/auth-google', () => {
     return { MastraAuthGoogle }
 })
 
-vi.mock('../config/app.config', () => ({
+vi.mock('@config/app.config', () => ({
     appConfig: {
         GOOGLE_SSO_CLIENT_ID: 'client-id',
         GOOGLE_SSO_CLIENT_SECRET: 'client-secret',
@@ -21,7 +21,7 @@ vi.mock('../config/app.config', () => ({
     },
 }))
 
-vi.mock('../../business/repositories', () => ({
+vi.mock('@business/repositories', () => ({
     userRepository: {
         findByEmail: vi.fn(),
         setUserName: vi.fn(),
@@ -29,7 +29,7 @@ vi.mock('../../business/repositories', () => ({
 }))
 
 import { createGoogleAuth } from './google-auth'
-import { userRepository } from '../../business/repositories'
+import { userRepository } from '@business/repositories'
 
 type CallbackAuth = { handleCallback: (code: string, state: string) => Promise<typeof handleCallbackResult> }
 
