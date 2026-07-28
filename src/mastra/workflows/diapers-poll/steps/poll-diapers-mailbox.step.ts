@@ -1,7 +1,7 @@
-import { appConfig } from '../../../config/app.config'
-import { confirmDiapersDate } from '../../../lib/diapers-run'
-import { createPollStep, toResumeResult } from '../../../lib/inbox/poll-step'
-import type { PollConfig } from '../../../lib/inbox/poll-mailbox'
+import { appConfig } from '@config/app.config'
+import { confirmDiapersDate } from '@lib/diapers-run'
+import { createPollStep, toResumeResult } from '@lib/inbox/poll-step'
+import type { PollConfig } from '@lib/inbox/poll-mailbox'
 import { waitDiapersConfirmationResumeSchema } from '../../diapers/schemas/wait-diapers-confirmation-resume.schema'
 import { getDiapersRunId } from '../../diapers/utils/diapers.utils'
 

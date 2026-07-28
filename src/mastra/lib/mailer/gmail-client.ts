@@ -1,5 +1,5 @@
 import { auth, gmail } from '@googleapis/gmail'
-import { appConfig } from '../../config/app.config'
+import { appConfig } from '@config/app.config'
 
 let client: ReturnType<typeof gmail> | undefined
 

@@ -291,7 +291,7 @@ export const inviteRepository = new InviteRepository();
 
 ```typescript
 import { userRepository } from './repositories';
-import { subAgentKeys } from '../mastra/lib/sub-agent-keys';
+import { subAgentKeys } from '@lib/sub-agent-keys';
 import type { IUser } from './models/user.model';
 
 export type ParsedResourceId =
@@ -383,7 +383,7 @@ Replace imports in tools/workflows:
 
 **Before:**
 ```typescript
-import { getUserByEmail, linkTelegramId } from '../lib/users';
+import { getUserByEmail, linkTelegramId } from '@lib/users';
 ```
 
 **After:**
@@ -433,7 +433,7 @@ Repositories are easily mockable:
 
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
-import { userRepository } from '../business/repositories';
+import { userRepository } from '@business/repositories';
 import { setMyNameTool } from './set-my-name-tool';
 
 describe('setMyNameTool', () => {

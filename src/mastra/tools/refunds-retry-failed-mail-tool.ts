@@ -1,8 +1,8 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { appConfig } from '../config/app.config'
-import { getUserByResourceId } from '../../business/identity'
-import { retryFailedMails } from '../lib/inbox/retry-failed-mails'
+import { appConfig } from '@config/app.config'
+import { getUserByResourceId } from '@business/identity'
+import { retryFailedMails } from '@lib/inbox/retry-failed-mails'
 
 export const retryRefundsFailedMailTool = createTool({
     id: 'retry-refunds-failed-mail',

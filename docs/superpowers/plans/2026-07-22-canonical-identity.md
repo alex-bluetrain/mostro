@@ -55,7 +55,7 @@
 
 ```ts
 import { describe, expect, it } from 'vitest'
-import { parseResourceId } from '../src/mastra/lib/users'
+import { parseResourceId } from '@lib/users'
 
 describe('parseResourceId', () => {
     it('parsea un resourceId de telegram', () => {
@@ -103,7 +103,7 @@ Expected: FAIL — `parseResourceId` no existe; tipos de gate desactualizados.
 
 ```ts
 import type { Collection } from 'mongodb'
-import { appConfig } from '../config/app.config'
+import { appConfig } from '@config/app.config'
 import { getDb } from './mongo-client'
 import { nowUnix } from './unix-time'
 
@@ -325,7 +325,7 @@ export const createInviteTool = createTool({
 Reemplazar el import de users y el `execute`:
 
 ```ts
-import { setUserNameByResourceId } from '../lib/users'
+import { setUserNameByResourceId } from '@lib/users'
 ```
 
 ```ts
@@ -385,7 +385,7 @@ Contenido completo:
 
 ```ts
 import { MastraAuthGoogle } from '@mastra/auth-google'
-import { appConfig } from '../config/app.config'
+import { appConfig } from '@config/app.config'
 import { getUserByEmail } from './users'
 
 // El webhook del canal Telegram vive bajo /api/* (protegido por default del
@@ -449,7 +449,7 @@ git commit -m "feat: authorize web login against the users collection"
 Import (junto a los existentes):
 
 ```ts
-import { getUserByTelegramId } from '../lib/users';
+import { getUserByTelegramId } from '@lib/users';
 ```
 
 En la config de `channels` (hermano de `adapters` y `handlers`, estilo con punto y coma del archivo):

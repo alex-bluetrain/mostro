@@ -1,7 +1,7 @@
 import type { Mastra } from '@mastra/core/mastra'
 import { createWorkflowStateReader } from '@mastra/core/workflows'
-import type { RefundsState } from '../workflows/refunds/types/refunds-state.type'
-import { getRefundsRunId } from '../workflows/refunds/utils/refunds.utils'
+import type { RefundsState } from '@workflows/refunds/types/refunds-state.type'
+import { getRefundsRunId } from '@workflows/refunds/utils/refunds.utils'
 import { getCurrentYearMonth } from './date-scope'
 
 function getRefundsWorkflow(mastra: Mastra) {

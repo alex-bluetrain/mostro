@@ -593,7 +593,7 @@ Open `src/mastra/index.ts` and add these lines **before** the `startNgrokTunnel(
 
 ```typescript
 import mongoose from 'mongoose';
-import { userRepository } from '../business/repositories';
+import { userRepository } from '@business/repositories';
 ```
 
 Then replace:
@@ -656,7 +656,7 @@ Create file `src/business/identity.ts`:
 
 ```typescript
 import { userRepository } from './repositories';
-import { subAgentKeys } from '../mastra/lib/sub-agent-keys';
+import { subAgentKeys } from '@lib/sub-agent-keys';
 import type { IUser } from './models/user.model';
 
 export type ParsedResourceId =
@@ -739,7 +739,7 @@ git commit -m "feat: add identity resolution module"
 In `src/mastra/tools/set-my-name-tool.ts`, replace the only import line that reads:
 
 ```typescript
-import { setUserNameByResourceId } from '../lib/users'
+import { setUserNameByResourceId } from '@lib/users'
 ```
 
 With:
@@ -755,7 +755,7 @@ Nothing else in the file changes — `setUserNameByResourceId` keeps the exact s
 In `src/mastra/tools/meds-request-tool.ts`, replace the import line:
 
 ```typescript
-import { getUserByResourceId } from '../lib/users'
+import { getUserByResourceId } from '@lib/users'
 ```
 
 With:
@@ -771,7 +771,7 @@ Nothing else changes — same signature, same call site (`const user = resourceI
 Same change in `src/mastra/tools/refunds-request-tool.ts`:
 
 ```typescript
-import { getUserByResourceId } from '../lib/users'
+import { getUserByResourceId } from '@lib/users'
 ```
 
 →
@@ -785,7 +785,7 @@ import { getUserByResourceId } from '../../business/identity'
 Same change in `src/mastra/tools/diapers-request-tool.ts`:
 
 ```typescript
-import { getUserByResourceId } from '../lib/users'
+import { getUserByResourceId } from '@lib/users'
 ```
 
 →
@@ -828,7 +828,7 @@ git commit -m "refactor: use identity resolution module in tools"
 In `src/mastra/tools/diapers-subscribe-tool.ts`, replace:
 
 ```typescript
-import { addSubscriber } from '../lib/diapers-subscribers'
+import { addSubscriber } from '@lib/diapers-subscribers'
 ```
 
 With:
@@ -854,7 +854,7 @@ await subscriberRepository.add('diapers', { resourceId, threadId })
 In `src/mastra/tools/meds-subscribe-tool.ts`, replace:
 
 ```typescript
-import { addMedsSubscriber } from '../lib/meds-subscribers'
+import { addMedsSubscriber } from '@lib/meds-subscribers'
 ```
 
 With:
@@ -880,7 +880,7 @@ await subscriberRepository.add('meds', { resourceId, threadId })
 In `src/mastra/tools/refunds-subscribe-tool.ts`, replace:
 
 ```typescript
-import { addRefundsSubscriber } from '../lib/refunds-subscribers'
+import { addRefundsSubscriber } from '@lib/refunds-subscribers'
 ```
 
 With:
@@ -1126,9 +1126,9 @@ Current content of `src/mastra/tools/create-invite-tool.ts`:
 ```typescript
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { appConfig } from '../config/app.config'
-import { createInvite } from '../lib/invites'
-import { getUserByResourceId } from '../lib/users'
+import { appConfig } from '@config/app.config'
+import { createInvite } from '@lib/invites'
+import { getUserByResourceId } from '@lib/users'
 
 export const createInviteTool = createTool({
     id: 'create-invite',
@@ -1167,7 +1167,7 @@ Replace it with:
 ```typescript
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { appConfig } from '../config/app.config'
+import { appConfig } from '@config/app.config'
 import { inviteRepository } from '../../business/repositories'
 import { getUserByResourceId } from '../../business/identity'
 
@@ -1368,7 +1368,7 @@ return (await userRepository.findByEmail(user.email)) !== null
 In `src/mastra/agents/mostro-supervisor.ts`, replace:
 
 ```typescript
-import { getUserByTelegramId } from '../lib/users';
+import { getUserByTelegramId } from '@lib/users';
 ```
 
 With:

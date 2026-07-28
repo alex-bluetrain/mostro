@@ -109,7 +109,7 @@ Replace the contents of `src/business/identity.ts` with:
 
 ```typescript
 import { userRepository } from './repositories';
-import { subAgentKeys } from '../mastra/lib/sub-agent-keys';
+import { subAgentKeys } from '@lib/sub-agent-keys';
 import type { IUser } from './models/user.model';
 
 // Sub-agent delegation derives the child resourceId as `${resourceId}-${agentName}`
@@ -279,7 +279,7 @@ with:
 Add the import at the top:
 
 ```typescript
-import { createResolveResourceId } from '../lib/resolve-resource-id';
+import { createResolveResourceId } from '@lib/resolve-resource-id';
 ```
 
 Remove the now-unused import `import { userRepository } from '../../business/repositories';` (verify with `git grep -n "userRepository" src/mastra/agents/mostro-supervisor.ts` that no other usage remains in the file first).

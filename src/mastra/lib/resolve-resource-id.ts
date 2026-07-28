@@ -1,5 +1,5 @@
-import { userRepository } from '../../business/repositories'
-import type { IUser } from '../../business'
+import { userRepository } from '@business/repositories'
+import type { IUser } from '@business'
 
 export type ResolveResourceIdDeps = {
     getUserByTelegramId: (telegramId: string) => Promise<IUser | null>

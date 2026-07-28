@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { readDiapersStatus } from '../lib/diapers-run'
-import { diapersStateSchema } from '../workflows/diapers/schemas/diapers-state.schema'
+import { readDiapersStatus } from '@lib/diapers-run'
+import { diapersStateSchema } from '@workflows/diapers/schemas/diapers-state.schema'
 
 export const getDiapersStatusTool = createTool({
     id: 'get-diapers-status',
