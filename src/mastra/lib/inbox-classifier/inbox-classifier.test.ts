@@ -66,4 +66,71 @@ describe('InboxClassifier', () => {
             requestBody: { addLabelIds: ['L1'] },
         })
     })
+
+    it('crea el label cuando no existe todavía', async () => {
+        const { gmail, labelsList, labelsCreate, modify } = buildGmail()
+        labelsList.mockResolvedValue({ data: { labels: [] } })
+        const { mastra } = buildMastra([
+            { query: 'from:farmacia.test' },
+            { label: 'clasificado-pedido' },
+        ])
+
+        const classifier = new InboxClassifier(mastra as never, config, gmail)
+        await classifier.init()
+        await classifier.run()
+
+        expect(labelsCreate).toHaveBeenCalledWith({
+            userId: 'me',
+            requestBody: { name: 'clasificado-pedido', labelListVisibility: 'labelShow', messageListVisibility: 'show' },
+        })
+        expect(modify).toHaveBeenCalledWith({
+            userId: 'me',
+            id: 'm1',
+            requestBody: { addLabelIds: ['L2'] },
+        })
+    })
+
+    it('procesa los mails de más viejo a más nuevo (list devuelve más nuevo primero)', async () => {
+        const { gmail, list, get } = buildGmail()
+        list.mockResolvedValue({ data: { messages: [{ id: 'nuevo' }, { id: 'viejo' }] } })
+        get.mockImplementation(async ({ id }: { id: string }) => ({
+            data: { id, payload: { mimeType: 'text/plain', body: { data: encode(`contenido de ${id}`) } } },
+        }))
+        const { mastra, generate } = buildMastra([
+            { query: 'q' },
+            { label: 'clasificado-pedido' },
+            { label: 'clasificado-pedido' },
+        ])
+
+        const classifier = new InboxClassifier(mastra as never, config, gmail)
+        await classifier.init()
+        await classifier.run()
+
+        expect(generate.mock.calls[1][0]).toContain('contenido de viejo')
+        expect(generate.mock.calls[2][0]).toContain('contenido de nuevo')
+    })
+
+    it('un fallo en un mail no corta el procesamiento del resto', async () => {
+        const { gmail, get, modify } = buildGmail()
+        get.mockRejectedValueOnce(new Error('Gmail caído'))
+        const { mastra } = buildMastra([{ query: 'q' }])
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+        const classifier = new InboxClassifier(mastra as never, config, gmail)
+        await classifier.init()
+        await classifier.run()
+
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('m1'), expect.any(Error))
+        expect(modify).not.toHaveBeenCalled()
+        warn.mockRestore()
+    })
+
+    it('lanza si se llama run() antes de init()', async () => {
+        const { gmail } = buildGmail()
+        const { mastra } = buildMastra([])
+
+        const classifier = new InboxClassifier(mastra as never, config, gmail)
+
+        await expect(classifier.run()).rejects.toThrow('llamá a init()')
+    })
 })
