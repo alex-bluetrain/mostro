@@ -3,7 +3,6 @@ import type { z } from 'zod'
 import { previousYearMonth, yearMonthOf } from '@lib/date-scope'
 import { gmailReader, type GmailReader, type InboxMessage } from './gmail-reader'
 import { extractFromMail, type Extract } from './mail-extractor'
-import { notifyMailFailure, type NotifyFailure } from './notify-mail-failure'
 
 // El protocolo de estado del poller sobre la casilla: qué mails ya se procesaron y
 // cuáles fallaron. Son política de esta capa, no del reader — el reader pone y saca
@@ -24,9 +23,22 @@ export type StepConfig = {
     resume: (mastra: unknown, data: Record<string, unknown>, yearMonth: string) => Promise<ResumeResult>
 }
 
+export type PollFailure = { from: string; subject: string; reason: string }
+
 export type PollConfig = {
-    domain: 'diapers' | 'meds' | 'refunds'
-    sender: string
+    // Identidad del consumidor para los logs. String libre: este motor no conoce
+    // los dominios de negocio.
+    domain: string
+    // Filtro grueso, server-side (query de Gmail): acota lo que se baja de la casilla.
+    // Es eficiencia, no semántica — el que decide es matches.
+    query?: string
+    // Filtro fino, client-side: decide si el mail le incumbe a ESTE consumidor. Un
+    // mail que no matchea se saltea sin etiquetar: puede ser de otro consumidor, y
+    // el que no es de nadie se descarta solo al salir de SEARCH_WINDOW.
+    matches: (message: InboxMessage) => boolean
+    // Cómo avisar un fallo de procesamiento. Inyectado: este motor no sabe de
+    // suscriptores ni de Telegram.
+    onFailure: (mastra: unknown, failure: PollFailure) => Promise<unknown>
     workflowId: string
     getRunId: (yearMonth: string) => string
     steps: Record<string, StepConfig>
@@ -37,7 +49,6 @@ export type PollDeps = {
     // por receivedAt antes de iterarla.
     reader: GmailReader
     extract: Extract
-    notifyFailure: NotifyFailure
     readSuspendedStep: (mastra: unknown, workflowId: string, runId: string) => Promise<string | null>
 }
 
@@ -71,7 +82,6 @@ export async function readSuspendedStep(
 const defaultDeps: PollDeps = {
     reader: gmailReader,
     extract: extractFromMail,
-    notifyFailure: notifyMailFailure,
     readSuspendedStep,
 }
 
@@ -99,7 +109,9 @@ export async function runPollCycle(
     deps: Partial<PollDeps> = {},
 ): Promise<{ processed: number; failed: number }> {
     const resolved: PollDeps = { ...defaultDeps, ...deps }
-    const query = `from:${config.sender} -label:${PROCESSED_LABEL} -label:${FAILED_LABEL} ${SEARCH_WINDOW}`
+    const query = [config.query, `-label:${PROCESSED_LABEL}`, `-label:${FAILED_LABEL}`, SEARCH_WINDOW]
+        .filter(Boolean)
+        .join(' ')
     // Del más viejo al más nuevo: un acuse tiene que procesarse antes que la
     // confirmación que lo sigue, o el segundo mail se evalúa contra un step que todavía
     // no avanzó. El orden es un invariante de ESTE motor, no del reader: Gmail lista
@@ -120,8 +132,7 @@ export async function runPollCycle(
             console.error(`[poll-${config.domain}] no pude etiquetar ${message.id} como fallido`, error)
         }
         try {
-            await resolved.notifyFailure(mastra, {
-                domain: config.domain,
+            await config.onFailure(mastra, {
                 from: message.from,
                 subject: message.subject,
                 reason,
@@ -132,6 +143,9 @@ export async function runPollCycle(
     }
 
     for (const message of messages) {
+        // "No es mío" no es un fallo: otro consumidor puede reclamarlo en su ciclo.
+        if (!config.matches(message)) continue
+
         // Por mail y no una vez por ciclo: si el primero avanza el run a la etapa
         // siguiente, el segundo tiene que evaluarse contra el step nuevo.
         const open = await resolveOpenRun(mastra, config, resolved, message)

@@ -2,6 +2,7 @@ import { appConfig } from '@config/app.config'
 import { acknowledgeRefund, confirmRefund, receiveDeposit } from '@lib/refunds-run'
 import { createPollStep, toResumeResult } from '@lib/inbox/poll-step'
 import type { PollConfig } from '@lib/inbox/poll-mailbox'
+import { notifyMailFailure } from '@lib/inbox/notify-mail-failure'
 import { waitDepositResumeSchema } from '../../refunds/schemas/wait-deposit-resume.schema'
 import { waitRefundAckResumeSchema } from '../../refunds/schemas/wait-refund-ack-resume.schema'
 import { waitRefundConfirmationResumeSchema } from '../../refunds/schemas/wait-refund-confirmation-resume.schema'
@@ -9,7 +10,9 @@ import { getRefundsRunId } from '../../refunds/utils/refunds.utils'
 
 const config: PollConfig = {
     domain: 'refunds',
-    sender: appConfig.REFUNDS_EMAIL_TO,
+    query: `from:${appConfig.REFUNDS_EMAIL_TO}`,
+    matches: message => message.from === appConfig.REFUNDS_EMAIL_TO.toLowerCase(),
+    onFailure: (mastra, failure) => notifyMailFailure(mastra, { domain: 'refunds', ...failure }),
     workflowId: 'refundsWorkflow',
     getRunId: getRefundsRunId,
     steps: {

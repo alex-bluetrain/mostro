@@ -2,13 +2,18 @@ import { appConfig } from '@config/app.config'
 import { confirmDiapersDate } from '@lib/diapers-run'
 import { createPollStep, toResumeResult } from '@lib/inbox/poll-step'
 import type { PollConfig } from '@lib/inbox/poll-mailbox'
+import { notifyMailFailure } from '@lib/inbox/notify-mail-failure'
 import { waitDiapersConfirmationResumeSchema } from '../../diapers/schemas/wait-diapers-confirmation-resume.schema'
 import { getDiapersRunId } from '../../diapers/utils/diapers.utils'
 
 const config: PollConfig = {
     domain: 'diapers',
     // El proveedor responde desde la misma casilla a la que le escribimos.
-    sender: appConfig.DIAPERS_EMAIL_TO,
+    query: `from:${appConfig.DIAPERS_EMAIL_TO}`,
+    // El reader normaliza from a minúsculas; la query de Gmail era case-insensitive
+    // y el toLowerCase preserva esa tolerancia.
+    matches: message => message.from === appConfig.DIAPERS_EMAIL_TO.toLowerCase(),
+    onFailure: (mastra, failure) => notifyMailFailure(mastra, { domain: 'diapers', ...failure }),
     workflowId: 'diapersWorkflow',
     getRunId: getDiapersRunId,
     steps: {
