@@ -12,6 +12,7 @@ function message(overrides: Partial<InboxMessage> = {}): InboxMessage {
         subject: 'Confirmación',
         body: 'Entregamos 12 el 11/03.',
         receivedAt: new Date('2026-07-15T10:00:00Z'),
+        headers: [],
         ...overrides,
     }
 }
