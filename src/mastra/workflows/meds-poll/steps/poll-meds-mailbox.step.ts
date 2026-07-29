@@ -10,7 +10,10 @@ import { getMedsRunId } from '../../meds/utils/meds.utils'
 const config: PollConfig = {
     domain: 'meds',
     query: `from:${appConfig.MEDS_EMAIL_TO}`,
-    matches: message => message.from === appConfig.MEDS_EMAIL_TO.toLowerCase(),
+    // El reader normaliza from con trim().toLowerCase(); alineamos la misma
+    // normalización acá o un espacio de más en el env vuelve este filtro un
+    // no-op permanente.
+    matches: message => message.from === appConfig.MEDS_EMAIL_TO.trim().toLowerCase(),
     onFailure: (mastra, failure) => notifyMailFailure(mastra, { domain: 'meds', ...failure }),
     workflowId: 'medsWorkflow',
     getRunId: getMedsRunId,

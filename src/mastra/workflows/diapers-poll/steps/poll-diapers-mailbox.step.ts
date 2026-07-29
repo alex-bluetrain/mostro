@@ -10,9 +10,10 @@ const config: PollConfig = {
     domain: 'diapers',
     // El proveedor responde desde la misma casilla a la que le escribimos.
     query: `from:${appConfig.DIAPERS_EMAIL_TO}`,
-    // El reader normaliza from a minúsculas; la query de Gmail era case-insensitive
-    // y el toLowerCase preserva esa tolerancia.
-    matches: message => message.from === appConfig.DIAPERS_EMAIL_TO.toLowerCase(),
+    // El reader normaliza from con trim().toLowerCase(); alineamos la misma
+    // normalización acá o un espacio de más en el env vuelve este filtro un
+    // no-op permanente.
+    matches: message => message.from === appConfig.DIAPERS_EMAIL_TO.trim().toLowerCase(),
     onFailure: (mastra, failure) => notifyMailFailure(mastra, { domain: 'diapers', ...failure }),
     workflowId: 'diapersWorkflow',
     getRunId: getDiapersRunId,

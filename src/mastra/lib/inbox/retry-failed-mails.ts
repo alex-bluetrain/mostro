@@ -3,7 +3,10 @@ import { gmailReader, type GmailReader } from './gmail-reader'
 
 // Sacarles el label los devuelve al query del poller: el próximo ciclo los levanta.
 // Lo que se deja etiquetado queda descartado para siempre, que es el comportamiento
-// deseado para el ruido (publicidades, avisos generales del proveedor).
+// deseado para el ruido con etiqueta: mails que sí matchearon el filtro del dominio
+// pero fallaron en la extracción o en la reanudación. El ruido de otro remitente
+// (publicidades, avisos generales de un proveedor que nunca pasa el filtro de
+// `matches`) ni siquiera llega a etiquetarse — el poller lo saltea en silencio.
 //
 // Sin embargo, si un mail falla y queda fuera de la ventana de búsqueda (SEARCH_WINDOW),
 // no se puede destrabar automáticamente: el poller nunca lo levantaría porque su query

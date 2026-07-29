@@ -79,7 +79,10 @@ which stage a mail belonged to, a misclassification would resume the wrong step.
 reads the suspended step *before* calling the model, and only asks the model to confirm a match
 against that one step's schema and extract its fields. The model never chooses a destination.
 
-A mail that fails to match anything gets `mostro-failed` and drops out of the queue. An admin can
+A mail that doesn't belong to the domain (a different sender) is skipped without a label and
+without a notice — it stays in the queue and gets re-evaluated every cycle until it ages out of
+the search window. A mail that *does* match the domain but fails extraction or fails to resume
+gets `mostro-failed` and drops out of the queue. An admin can
 ask Mostro to retry a domain's failed mail (the `retry-*-failed-mail` tools), which removes the
 label so the next cycle picks it back up. Failed mail older than the 30-day search window falls
 outside that query entirely; the retry tools count those separately and report that they need
