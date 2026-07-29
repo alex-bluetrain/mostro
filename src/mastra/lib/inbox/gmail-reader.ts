@@ -15,6 +15,11 @@ export type InboxMessage = {
     subject: string
     body: string
     receivedAt: Date
+    // Solo los headers del nodo raíz (los del mail: From, Subject, Message-ID...);
+    // los de las parts internas son metadata de encoding sin interés. Misma forma
+    // array-de-pares que la API (los headers pueden repetirse y el orden importa),
+    // pero sin los nulls del codegen de Google: Gmail siempre manda name y value.
+    headers: Array<{ name: string; value: string }>
 }
 
 export type GmailReader = {
@@ -34,6 +39,10 @@ type Payload = {
 function headerOf(payload: Payload | undefined, name: string): string {
     const header = payload?.headers?.find(h => h.name?.toLowerCase() === name.toLowerCase())
     return header?.value ?? ''
+}
+
+function headersOf(payload: Payload | undefined): Array<{ name: string; value: string }> {
+    return (payload?.headers ?? []).flatMap(h => (h.name && h.value ? [{ name: h.name, value: h.value }] : []))
 }
 
 // "Farmacia <pedidos@farmacia.test>" -> "pedidos@farmacia.test". Sin display name
@@ -136,6 +145,7 @@ export function createGmailReader(client?: GmailClient): GmailReader {
                     subject: headerOf(payload, 'Subject'),
                     body: bodyOf(payload),
                     receivedAt: new Date(Number(full.internalDate ?? 0)),
+                    headers: headersOf(payload),
                 }
             }))
 
