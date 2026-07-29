@@ -58,7 +58,23 @@ describe('createGmailReader().search', () => {
     })
 
     it('expone los headers del nodo raíz, sin nulls', async () => {
-        const { client } = buildClient()
+        const { client, get } = buildClient()
+        get.mockResolvedValue({
+            data: {
+                id: 'm1',
+                internalDate: '1785000000000',
+                payload: {
+                    headers: [
+                        { name: 'From', value: 'Farmacia <pedidos@farmacia.test>' },
+                        { name: 'Subject', value: 'Confirmación de pedido' },
+                        { name: 'X-Malformed', value: null },
+                        { name: null, value: 'sin-nombre' },
+                    ],
+                    mimeType: 'text/plain',
+                    body: { data: encode('Entregamos el 11/03.') },
+                },
+            },
+        })
 
         const [message] = await createGmailReader(client).search('q')
 
