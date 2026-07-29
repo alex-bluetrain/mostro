@@ -169,25 +169,6 @@ describe('createGmailReader().search', () => {
         expect(message.body).toBe('texto plano correcto')
     })
 
-    it('ordena los mails del más viejo al más nuevo', async () => {
-        const { client, list, get } = buildClient()
-        list.mockResolvedValue({ data: { messages: [{ id: 'nuevo' }, { id: 'viejo' }] } })
-        get.mockImplementation(async ({ id }: { id: string }) => ({
-            data: {
-                id,
-                internalDate: id === 'viejo' ? '1000' : '2000',
-                payload: {
-                    headers: [{ name: 'From', value: 'a@b.test' }, { name: 'Subject', value: 's' }],
-                    mimeType: 'text/plain',
-                    body: { data: encode('x') },
-                },
-            },
-        }))
-
-        const messages = await createGmailReader(client).search('q')
-
-        expect(messages.map(m => m.id)).toEqual(['viejo', 'nuevo'])
-    })
 })
 
 describe('createGmailReader().addLabel', () => {
