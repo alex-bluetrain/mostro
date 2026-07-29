@@ -14,10 +14,13 @@ src/mastra/
 ├── tools/        <dominio>-<accion>-tool.ts
 ├── scorers/      <dominio>-scorer.ts
 ├── lib/          <dominio>-<propósito>.ts (run, subscribers), helpers compartidos
-│   └── inbox/    módulo compartido de polling de casilla (gmail-reader, gmail-message,
-│                 mail-extractor, poll-mailbox, poll-step, notify-mail-failure,
-│                 retry-failed-mails):
-│                 sin prefijo de dominio, porque lo consumen los tres <dominio>-poll.workflow.ts
+│   ├── inbox/    módulo compartido de polling de casilla (gmail-reader, gmail-message,
+│   │             mail-extractor, poll-mailbox, poll-step, notify-mail-failure,
+│   │             retry-failed-mails):
+│   │             sin prefijo de dominio, porque lo consumen los tres <dominio>-poll.workflow.ts
+│   └── inbox-classifier/   módulo nuevo y aislado (InboxClassifier: constructor + ciclo
+│                 init/run, strip-mail-body): clasificador de inbox genérico, agnóstico de
+│                 cualquier dominio, sin relación de código con `lib/inbox/`
 ├── config/       <propósito>.config.ts
 ├── workflows/
 │   ├── <workflow-name>/             un directorio por workflow, no por dominio

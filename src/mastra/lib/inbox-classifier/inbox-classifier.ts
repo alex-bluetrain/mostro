@@ -15,6 +15,8 @@ export type InboxClassifierConfig = {
     outcomes: ClassifierOutcome[]
 }
 
+type MastraLike = { getAgent: (id: string) => { generate: (prompt: string, opts: unknown) => Promise<{ object?: unknown }> } }
+
 export class InboxClassifier {
     private query: string | undefined
     private readonly gmail: GmailClient
@@ -35,12 +37,15 @@ export class InboxClassifier {
 
     async init(): Promise<void> {
         this.query = await translateQuery(this.mastra, this.config.queryDescription)
+        console.info(`[inbox-classifier] query traducida: ${this.query}`)
     }
 
     async run(): Promise<void> {
-        if (!this.query) throw new Error('InboxClassifier: llamá a init() antes de run()')
+        if (this.query === undefined) throw new Error('InboxClassifier: llamá a init() antes de run()')
 
         const { data } = await this.gmail.users.messages.list({ userId: 'me', q: this.query })
+        // Gmail's messages.list devuelve de más nuevo a más viejo y no tiene parámetro de orden
+        // ascendente, así que invertir alcanza para procesar de más viejo a más nuevo sin ordenar por fecha.
         const ids = (data.messages ?? []).map(m => m.id).filter((id): id is string => Boolean(id)).reverse()
 
         for (const id of ids) {
@@ -80,8 +85,8 @@ export class InboxClassifier {
 }
 
 async function translateQuery(mastra: unknown, queryDescription: string): Promise<string> {
-    const agent = (mastra as { getAgent: (id: string) => { generate: (prompt: string, opts: unknown) => Promise<{ object?: unknown }> } }).getAgent('inboxClassifier')
-    const schema = z.object({ query: z.string() })
+    const agent = (mastra as MastraLike).getAgent('inboxClassifier')
+    const schema = z.object({ query: z.string().min(1) })
     const prompt = `Convertí esta descripción a una query de búsqueda de Gmail (sintaxis de users.messages.list: from:, newer_than:, label:, -label:, etc.).
 
 Descripción: ${queryDescription}`
@@ -90,7 +95,7 @@ Descripción: ${queryDescription}`
 }
 
 async function classify(mastra: unknown, text: string, outcomes: ClassifierOutcome[]): Promise<string> {
-    const agent = (mastra as { getAgent: (id: string) => { generate: (prompt: string, opts: unknown) => Promise<{ object?: unknown }> } }).getAgent('inboxClassifier')
+    const agent = (mastra as MastraLike).getAgent('inboxClassifier')
     const labels = outcomes.map(o => o.label) as [string, ...string[]]
     const schema = z.object({ label: z.enum(labels) })
     const prompt = `Clasificá este mail contra los siguientes resultados posibles. Elegí exactamente uno.

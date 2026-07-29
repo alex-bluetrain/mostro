@@ -14,7 +14,15 @@ export function stripMailBody(payload: unknown): string {
     if (plain) return new EmailReplyParser().read(decode(plain)).getVisibleText()
 
     const html = findPart(root, 'text/html')
-    if (html) return cheerio.load(decode(html)).text()
+    if (html) {
+        const $ = cheerio.load(decode(html))
+        $('script, style, head').remove()
+        // cheerio's .text() just concatenates text nodes, so adjacent block elements (e.g.
+        // <td>Fecha</td><td>11/03</td>) come out glued together with no whitespace. Appending a
+        // space after each common block element before extracting text keeps them separated.
+        $('td, th, tr, p, div, br, li, h1, h2, h3, h4, h5, h6').append(' ')
+        return $.text().replace(/\s+/g, ' ').trim()
+    }
 
     return ''
 }

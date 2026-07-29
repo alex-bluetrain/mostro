@@ -5,7 +5,7 @@ function encode(text: string) {
     return Buffer.from(text, 'utf-8').toString('base64url')
 }
 
-function buildGmail(overrides: Record<string, unknown> = {}) {
+function buildGmail() {
     const list = vi.fn().mockResolvedValue({ data: { messages: [{ id: 'm1' }] } })
     const get = vi.fn().mockResolvedValue({
         data: {
@@ -23,7 +23,6 @@ function buildGmail(overrides: Record<string, unknown> = {}) {
                 messages: { list, get, modify },
                 labels: { list: labelsList, create: labelsCreate },
             },
-            ...overrides,
         } as never,
         list, get, modify, labelsList, labelsCreate,
     }
@@ -111,9 +110,16 @@ describe('InboxClassifier', () => {
     })
 
     it('un fallo en un mail no corta el procesamiento del resto', async () => {
-        const { gmail, get, modify } = buildGmail()
+        const { gmail, list, get, modify } = buildGmail()
+        list.mockResolvedValue({ data: { messages: [{ id: 'm2' }, { id: 'm1' }] } })
         get.mockRejectedValueOnce(new Error('Gmail caído'))
-        const { mastra } = buildMastra([{ query: 'q' }])
+        get.mockResolvedValueOnce({
+            data: {
+                id: 'm2',
+                payload: { mimeType: 'text/plain', body: { data: encode('Confirmamos la entrega.') } },
+            },
+        })
+        const { mastra } = buildMastra([{ query: 'q' }, { label: 'clasificado-pedido' }])
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
         const classifier = new InboxClassifier(mastra as never, config, gmail)
@@ -121,7 +127,11 @@ describe('InboxClassifier', () => {
         await classifier.run()
 
         expect(warn).toHaveBeenCalledWith(expect.stringContaining('m1'), expect.any(Error))
-        expect(modify).not.toHaveBeenCalled()
+        expect(modify).toHaveBeenCalledWith({
+            userId: 'me',
+            id: 'm2',
+            requestBody: { addLabelIds: ['L1'] },
+        })
         warn.mockRestore()
     })
 
