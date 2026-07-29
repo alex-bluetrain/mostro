@@ -18,10 +18,13 @@ function message(overrides: Partial<InboxMessage> = {}): InboxMessage {
 }
 
 function buildConfig(resume = vi.fn().mockResolvedValue({ ok: true })) {
+    const onFailure = vi.fn().mockResolvedValue(1)
     return {
         config: {
-            domain: 'diapers' as const,
-            sender: 'pedidos@farmacia.test',
+            domain: 'diapers',
+            query: 'from:pedidos@farmacia.test',
+            matches: (m: InboxMessage) => m.from === 'pedidos@farmacia.test',
+            onFailure,
             workflowId: 'diapersWorkflow',
             getRunId: (ym: string) => `diapers-${ym}`,
             steps: {
@@ -33,6 +36,7 @@ function buildConfig(resume = vi.fn().mockResolvedValue({ ok: true })) {
             },
         },
         resume,
+        onFailure,
     }
 }
 
@@ -45,12 +49,11 @@ function buildDeps(overrides: Record<string, unknown> = {}) {
         reason: 'confirma la entrega',
         data: { deliveryDate: '2026-03-11', quantity: 12 },
     })
-    const notifyFailure = vi.fn().mockResolvedValue(1)
     const readSuspendedStep = vi.fn().mockResolvedValue('wait-diapers-confirmation')
 
     return {
-        deps: { reader: { search, addLabel, removeLabel }, extract, notifyFailure, readSuspendedStep, ...overrides },
-        search, addLabel, removeLabel, extract, notifyFailure, readSuspendedStep,
+        deps: { reader: { search, addLabel, removeLabel }, extract, readSuspendedStep, ...overrides },
+        search, addLabel, removeLabel, extract, readSuspendedStep,
     }
 }
 
@@ -71,14 +74,14 @@ describe('runPollCycle — query', () => {
 
 describe('runPollCycle — camino feliz', () => {
     it('reanuda el workflow y marca el mail como procesado', async () => {
-        const { config, resume } = buildConfig()
-        const { deps, addLabel, notifyFailure } = buildDeps()
+        const { config, resume, onFailure } = buildConfig()
+        const { deps, addLabel } = buildDeps()
 
         const result = await runPollCycle({}, config, deps)
 
         expect(resume).toHaveBeenCalledWith({}, { deliveryDate: '2026-03-11', quantity: 12 }, '2026-07')
         expect(addLabel).toHaveBeenCalledWith('m1', 'mostro-processed')
-        expect(notifyFailure).not.toHaveBeenCalled()
+        expect(onFailure).not.toHaveBeenCalled()
         expect(result).toEqual({ processed: 1, failed: 0 })
     })
 
@@ -123,16 +126,15 @@ describe('runPollCycle — resolución del mes', () => {
 
 describe('runPollCycle — fallos', () => {
     it('marca failed y avisa cuando no hay run suspendido en ningún mes', async () => {
-        const { config, resume } = buildConfig()
-        const { deps, addLabel, notifyFailure } = buildDeps()
+        const { config, resume, onFailure } = buildConfig()
+        const { deps, addLabel } = buildDeps()
         deps.readSuspendedStep = vi.fn().mockResolvedValue(null)
 
         const result = await runPollCycle({}, config, deps)
 
         expect(resume).not.toHaveBeenCalled()
         expect(addLabel).toHaveBeenCalledWith('m1', 'mostro-failed')
-        expect(notifyFailure).toHaveBeenCalledWith({}, expect.objectContaining({
-            domain: 'diapers',
+        expect(onFailure).toHaveBeenCalledWith({}, expect.objectContaining({
             from: 'pedidos@farmacia.test',
             subject: 'Confirmación',
         }))
@@ -140,50 +142,50 @@ describe('runPollCycle — fallos', () => {
     })
 
     it('marca failed cuando el step suspendido no está en el mapa del dominio', async () => {
-        const { config, resume } = buildConfig()
-        const { deps, addLabel, notifyFailure } = buildDeps()
+        const { config, resume, onFailure } = buildConfig()
+        const { deps, addLabel } = buildDeps()
         deps.readSuspendedStep = vi.fn().mockResolvedValue('notify-users')
 
         await runPollCycle({}, config, deps)
 
         expect(resume).not.toHaveBeenCalled()
         expect(addLabel).toHaveBeenCalledWith('m1', 'mostro-failed')
-        const failure = notifyFailure.mock.calls[0][1]
+        const failure = onFailure.mock.calls[0][1]
         expect(failure.reason).toContain('notify-users')
     })
 
     it('marca failed con el motivo del extractor cuando el mail no corresponde', async () => {
-        const { config, resume } = buildConfig()
-        const { deps, addLabel, notifyFailure } = buildDeps()
+        const { config, resume, onFailure } = buildConfig()
+        const { deps, addLabel } = buildDeps()
         deps.extract = vi.fn().mockResolvedValue({ matches: false, reason: 'es un aviso de vacaciones' })
 
         await runPollCycle({}, config, deps)
 
         expect(resume).not.toHaveBeenCalled()
         expect(addLabel).toHaveBeenCalledWith('m1', 'mostro-failed')
-        expect(notifyFailure.mock.calls[0][1].reason).toBe('es un aviso de vacaciones')
+        expect(onFailure.mock.calls[0][1].reason).toBe('es un aviso de vacaciones')
     })
 
     it('marca failed cuando la función de resume rechaza', async () => {
         const resume = vi.fn().mockResolvedValue({ ok: false, reason: 'not_suspended' })
-        const { config } = buildConfig(resume)
-        const { deps, addLabel, notifyFailure } = buildDeps()
+        const { config, onFailure } = buildConfig(resume)
+        const { deps, addLabel } = buildDeps()
 
         await runPollCycle({}, config, deps)
 
         expect(addLabel).toHaveBeenCalledWith('m1', 'mostro-failed')
-        expect(notifyFailure.mock.calls[0][1].reason).toContain('not_suspended')
+        expect(onFailure.mock.calls[0][1].reason).toContain('not_suspended')
     })
 
     it('marca failed cuando la función de resume lanza', async () => {
         const resume = vi.fn().mockRejectedValue(new Error('mongo caído'))
-        const { config } = buildConfig(resume)
-        const { deps, addLabel, notifyFailure } = buildDeps()
+        const { config, onFailure } = buildConfig(resume)
+        const { deps, addLabel } = buildDeps()
 
         const result = await runPollCycle({}, config, deps)
 
         expect(addLabel).toHaveBeenCalledWith('m1', 'mostro-failed')
-        expect(notifyFailure.mock.calls[0][1].reason).toContain('mongo caído')
+        expect(onFailure.mock.calls[0][1].reason).toContain('mongo caído')
         expect(result).toEqual({ processed: 0, failed: 1 })
     })
 
@@ -205,8 +207,8 @@ describe('runPollCycle — fallos', () => {
     })
 
     it('pone el mail en cuarentena con mostro-failed si falla el etiquetado de procesado', async () => {
-        const { config } = buildConfig()
-        const { deps, addLabel, notifyFailure } = buildDeps()
+        const { config, onFailure } = buildConfig()
+        const { deps } = buildDeps()
         deps.reader.addLabel = vi.fn().mockRejectedValueOnce(new Error('gmail 503')).mockResolvedValue(undefined)
 
         const result = await runPollCycle({}, config, deps)
@@ -216,7 +218,7 @@ describe('runPollCycle — fallos', () => {
         // El workflow ya se reanudó: cuenta como procesado aunque la etiqueta
         // original haya fallado y se haya puesto en cuarentena.
         expect(result).toEqual({ processed: 1, failed: 0 })
-        expect(notifyFailure).not.toHaveBeenCalled()
+        expect(onFailure).not.toHaveBeenCalled()
     })
 
     it('no revienta si tanto el etiquetado de procesado como la cuarentena fallan', async () => {
@@ -238,7 +240,7 @@ describe('runPollCycle — fallos', () => {
             message({ id: 'b' }),
         ])
         deps.extract = vi.fn().mockResolvedValue({ matches: false, reason: 'ruido' })
-        deps.notifyFailure = vi.fn().mockRejectedValue(new Error('telegram caído'))
+        config.onFailure = vi.fn().mockRejectedValue(new Error('telegram caído'))
 
         const result = await runPollCycle({}, config, deps)
 
@@ -264,8 +266,8 @@ describe('runPollCycle — fallos', () => {
     })
 
     it('marca failed y sigue con el resto de la tanda cuando el extractor rechaza', async () => {
-        const { config } = buildConfig()
-        const { deps, addLabel, notifyFailure } = buildDeps()
+        const { config, onFailure } = buildConfig()
+        const { deps, addLabel } = buildDeps()
         deps.reader.search = vi.fn().mockResolvedValue([
             message({ id: 'malo' }),
             message({ id: 'bueno' }),
@@ -278,7 +280,7 @@ describe('runPollCycle — fallos', () => {
 
         expect(addLabel).toHaveBeenCalledWith('malo', 'mostro-failed')
         expect(addLabel).toHaveBeenCalledWith('bueno', 'mostro-processed')
-        expect(notifyFailure.mock.calls[0][1].reason).toContain('schema inválido')
+        expect(onFailure.mock.calls[0][1].reason).toContain('schema inválido')
         expect(result).toEqual({ processed: 1, failed: 1 })
     })
 })
@@ -336,8 +338,9 @@ describe('runPollCycle — estado que avanza dentro de la misma tanda', () => {
     it('relee el step suspendido por cada mail, no una vez por ciclo', async () => {
         const resume = vi.fn().mockResolvedValue({ ok: true })
         const config = {
-            domain: 'meds' as const,
-            sender: 'farmacia@proveedor.test',
+            domain: 'meds',
+            matches: (m: InboxMessage) => m.from === 'pedidos@farmacia.test',
+            onFailure: vi.fn().mockResolvedValue(1),
             workflowId: 'medsWorkflow',
             getRunId: (ym: string) => `meds-${ym}`,
             steps: {
@@ -380,5 +383,31 @@ describe('runPollCycle — orden de la tanda', () => {
 
         expect(extract.mock.calls[0][1].body).toBe('primero')
         expect(extract.mock.calls[1][1].body).toBe('segundo')
+    })
+})
+
+describe('runPollCycle — filtro del consumidor', () => {
+    it('saltea sin etiquetar ni avisar el mail que no matchea el filtro', async () => {
+        const { config, resume, onFailure } = buildConfig()
+        const { deps, addLabel } = buildDeps()
+        deps.reader.search = vi.fn().mockResolvedValue([message({ from: 'otro@remitente.test' })])
+
+        const result = await runPollCycle({}, config, deps)
+
+        expect(resume).not.toHaveBeenCalled()
+        expect(addLabel).not.toHaveBeenCalled()
+        expect(onFailure).not.toHaveBeenCalled()
+        expect(result).toEqual({ processed: 0, failed: 0 })
+    })
+
+    it('arma la query con los labels y la ventana aunque no haya query del consumidor', async () => {
+        const { config } = buildConfig()
+        delete (config as { query?: string }).query
+        const { deps, search } = buildDeps()
+
+        await runPollCycle({}, config, deps)
+
+        const query = search.mock.calls[0][0] as string
+        expect(query).toBe('-label:mostro-processed -label:mostro-failed newer_than:30d')
     })
 })

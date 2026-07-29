@@ -2,13 +2,16 @@ import { appConfig } from '@config/app.config'
 import { acknowledgeMedsOrder, confirmMedsDelivery } from '@lib/meds-run'
 import { createPollStep, toResumeResult } from '@lib/inbox/poll-step'
 import type { PollConfig } from '@lib/inbox/poll-mailbox'
+import { notifyMailFailure } from '@lib/inbox/notify-mail-failure'
 import { waitMedsAcknowledgeResumeSchema } from '../../meds/schemas/wait-meds-acknowledge-resume.schema'
 import { waitMedsConfirmationResumeSchema } from '../../meds/schemas/wait-meds-confirmation-resume.schema'
 import { getMedsRunId } from '../../meds/utils/meds.utils'
 
 const config: PollConfig = {
     domain: 'meds',
-    sender: appConfig.MEDS_EMAIL_TO,
+    query: `from:${appConfig.MEDS_EMAIL_TO}`,
+    matches: message => message.from === appConfig.MEDS_EMAIL_TO.toLowerCase(),
+    onFailure: (mastra, failure) => notifyMailFailure(mastra, { domain: 'meds', ...failure }),
     workflowId: 'medsWorkflow',
     getRunId: getMedsRunId,
     steps: {
