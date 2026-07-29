@@ -50,7 +50,22 @@ describe('createGmailReader().search', () => {
             subject: 'Confirmación de pedido',
             body: 'Entregamos el 11/03.',
             receivedAt: new Date(1785000000000),
+            headers: [
+                { name: 'From', value: 'Farmacia <pedidos@farmacia.test>' },
+                { name: 'Subject', value: 'Confirmación de pedido' },
+            ],
         }])
+    })
+
+    it('expone los headers del nodo raíz, sin nulls', async () => {
+        const { client } = buildClient()
+
+        const [message] = await createGmailReader(client).search('q')
+
+        expect(message.headers).toEqual([
+            { name: 'From', value: 'Farmacia <pedidos@farmacia.test>' },
+            { name: 'Subject', value: 'Confirmación de pedido' },
+        ])
     })
 
     it('devuelve lista vacía cuando no hay mails', async () => {
