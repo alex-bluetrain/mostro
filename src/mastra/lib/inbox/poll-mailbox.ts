@@ -22,11 +22,8 @@ export type PollConfig = {
 }
 
 export type PollDeps = {
-    // search() debe devolver los mails del más viejo al más nuevo: un acuse tiene que
-    // procesarse antes que la confirmación que lo sigue, o esta se evalúa contra un
-    // step que todavía no avanzó. gmailReader ya lo garantiza (gmail-reader.ts); un
-    // reader alternativo que no lo respete rompe el escenario central en silencio,
-    // sin que falle ningún test.
+    // El orden de lo que devuelve search() no importa: runPollCycle ordena la tanda
+    // por receivedAt antes de iterarla.
     reader: GmailReader
     extract: Extract
     notifyFailure: NotifyFailure
@@ -92,7 +89,12 @@ export async function runPollCycle(
 ): Promise<{ processed: number; failed: number }> {
     const resolved: PollDeps = { ...defaultDeps, ...deps }
     const query = `from:${config.sender} -label:${PROCESSED_LABEL} -label:${FAILED_LABEL} ${SEARCH_WINDOW}`
-    const messages = await resolved.reader.search(query)
+    // Del más viejo al más nuevo: un acuse tiene que procesarse antes que la
+    // confirmación que lo sigue, o el segundo mail se evalúa contra un step que todavía
+    // no avanzó. El orden es un invariante de ESTE motor, no del reader: Gmail lista
+    // del más nuevo al más viejo y un reader alternativo no tiene por qué saberlo.
+    const found = await resolved.reader.search(query)
+    const messages = [...found].sort((a, b) => a.receivedAt.getTime() - b.receivedAt.getTime())
 
     let processed = 0
     let failed = 0

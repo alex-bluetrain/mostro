@@ -366,3 +366,19 @@ describe('runPollCycle — estado que avanza dentro de la misma tanda', () => {
         expect(result).toEqual({ processed: 2, failed: 0 })
     })
 })
+
+describe('runPollCycle — orden de la tanda', () => {
+    it('procesa del más viejo al más nuevo aunque el reader devuelva al revés', async () => {
+        const { config } = buildConfig()
+        const { deps, extract } = buildDeps()
+        deps.reader.search = vi.fn().mockResolvedValue([
+            message({ id: 'nuevo', body: 'segundo', receivedAt: new Date('2026-07-15T10:00:00Z') }),
+            message({ id: 'viejo', body: 'primero', receivedAt: new Date('2026-07-10T10:00:00Z') }),
+        ])
+
+        await runPollCycle({}, config, deps)
+
+        expect(extract.mock.calls[0][1].body).toBe('primero')
+        expect(extract.mock.calls[1][1].body).toBe('segundo')
+    })
+})
