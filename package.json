@@ -32,11 +32,14 @@
     "@mastra/mongodb": "^1.11.1",
     "@mastra/observability": "^1.15.2",
     "@ngrok/ngrok": "^1.7.0",
+    "cheerio": "^1.2.0",
+    "email-reply-parser": "^2.3.9",
     "mongodb": "^7.5.0",
     "mongoose": "^8.24.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/email-reply-parser": "^1.4.2",
     "@types/node": "^26.1.0",
     "mastra": "^1.17.0",
     "typescript": "^6.0.3",
