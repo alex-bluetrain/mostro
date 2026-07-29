@@ -62,41 +62,55 @@ end note
 
 Poll -> Poll: dispara por schedule de Mastra\n(cron "2,17,32,47 * * * *")
 Poll -> Gmail: search("from:<DIAPERS_EMAIL_TO>\n-label:mostro-processed -label:mostro-failed\nnewer_than:30d")
-Gmail --> Poll: mails sin procesar\n(ordenados del más viejo al más nuevo)
+Gmail --> Poll: mails sin procesar\n(orden de Gmail: no importa)
+Poll -> Poll: ordena la tanda\n(del más viejo al más nuevo)
 
 loop por cada mail
-  Poll -> WF: readSuspendedStep(diapers-YYYY-MM)\nprueba el mes del mail; si ahí no hay\nrun abierto, prueba el mes anterior
-  WF --> Poll: stepId = "wait-diapers-confirmation"
-  Poll -> Extractor: extractFromMail(\n  schema del step, descripción del step,\n  asunto + cuerpo del mail)
-  note right of Extractor
-    El modelo solo lee prosa y decide si
-    ESTE mail matchea ESTE step. Nunca
-    elige a qué step va: eso ya lo fijó
-    readSuspendedStep antes de llamarlo.
-  end note
-  Extractor --> Poll: { matches: true, data }\n| { matches: false, reason }
+  Poll -> Poll: config.matches(mail)?\n(filtro del consumidor: el remitente\nes <DIAPERS_EMAIL_TO>)
 
-  alt matches
-    Poll -> WF: confirmDiapersDate()\n-> run.resume({ resumeData })
-    activate WF
-    WF -> WF: status = diapers_date_confirmed
-    WF -> WF: **step 3: notify-users**
-    WF -> Subs: listSubscribers()
-    loop por cada { resourceId, threadId }
-      WF -> Supervisor: sendNotificationSignal({\n  source: 'diapers', kind: 'delivery-confirmed',\n  priority: 'high', summary, payload })
-      Supervisor -> User: reenvía el aviso tal cual\n(regla: nunca delegar/ejecutar tools con esto)
-    end
-    WF -> WF: status = diapers_notification_sent
-    deactivate WF
-    Poll -> Gmail: addLabel(mostro-processed)
-  else no matchea, o la reanudación falla
-    Poll -> Gmail: addLabel(mostro-failed)
-    Poll -> Supervisor: notifyMailFailure()\n(aviso de sistema a los suscriptores por Telegram)
+  alt no matchea el filtro del consumidor
     note right of Poll
-      El mail sale de la cola. Un admin puede
-      pedir el reintento (retry-diapers-failed-mail);
-      eso solo saca el label mostro-failed.
+      No es mío: puede ser de otro consumidor
+      compartiendo la misma casilla, o ruido.
+      Se saltea sin etiquetar y sin aviso
+      (solo un console.debug). Reingresa a la
+      cola y se re-evalúa cada ciclo hasta salir
+      de la ventana de 30 días.
     end note
+  else matchea el filtro del consumidor
+    Poll -> WF: readSuspendedStep(diapers-YYYY-MM)\nprueba el mes del mail; si ahí no hay\nrun abierto, prueba el mes anterior
+    WF --> Poll: stepId = "wait-diapers-confirmation"
+    Poll -> Extractor: extractFromMail(\n  schema del step, descripción del step,\n  asunto + cuerpo del mail)
+    note right of Extractor
+      El modelo solo lee prosa y decide si
+      ESTE mail matchea ESTE step. Nunca
+      elige a qué step va: eso ya lo fijó
+      readSuspendedStep antes de llamarlo.
+    end note
+    Extractor --> Poll: { matches: true, data }\n| { matches: false, reason }
+
+    alt matches
+      Poll -> WF: confirmDiapersDate()\n-> run.resume({ resumeData })
+      activate WF
+      WF -> WF: status = diapers_date_confirmed
+      WF -> WF: **step 3: notify-users**
+      WF -> Subs: listSubscribers()
+      loop por cada { resourceId, threadId }
+        WF -> Supervisor: sendNotificationSignal({\n  source: 'diapers', kind: 'delivery-confirmed',\n  priority: 'high', summary, payload })
+        Supervisor -> User: reenvía el aviso tal cual\n(regla: nunca delegar/ejecutar tools con esto)
+      end
+      WF -> WF: status = diapers_notification_sent
+      deactivate WF
+      Poll -> Gmail: addLabel(mostro-processed)
+    else no matchea el extractor, o la reanudación falla
+      Poll -> Gmail: addLabel(mostro-failed)
+      Poll -> Supervisor: notifyMailFailure()\n(aviso de sistema a los suscriptores por Telegram)
+      note right of Poll
+        El mail sale de la cola. Un admin puede
+        pedir el reintento (retry-diapers-failed-mail);
+        eso solo saca el label mostro-failed.
+      end note
+    end
   end
 end
 
@@ -128,10 +142,16 @@ diapers_date_confirmed --> diapers_notification_sent : notify-users\n(sendNotifi
 diapers_notification_sent --> [*]
 
 note right of diapers_requested
-  Un mail que no matchea, o cuya reanudación
-  falla, no mueve el estado del workflow: queda
-  etiquetado mostro-failed en Gmail y sale de la
-  cola. El run sigue suspendido en el mismo step.
+  Un mail que no matchea el filtro del consumidor
+  (otro remitente) no mueve el estado: se saltea
+  sin etiquetar y reingresa a la cola, evaluado de
+  nuevo cada ciclo hasta salir de la ventana de 30
+  días. Un mail que sí matchea el filtro pero no
+  matchea el extractor, o cuya reanudación falla,
+  tampoco mueve el estado, pero queda etiquetado
+  mostro-failed en Gmail y sale de la cola. En
+  ambos casos el run sigue suspendido en el mismo
+  step.
 end note
 @enduml
 ```
@@ -145,7 +165,7 @@ end note
 | Workflow de pedido | `src/mastra/workflows/diapers/diapers.workflow.ts` | Encadena los 3 steps del pedido |
 | Workflow de polling | `src/mastra/workflows/diapers-poll/diapers-poll.workflow.ts` | `schedule` cron cada 15 min; declara qué step espera qué schema/descripción |
 | Steps | `src/mastra/workflows/diapers/steps/*.ts` | Lógica de cada etapa del pedido |
-| Motor de polling (compartido) | `src/mastra/lib/inbox/{gmail-reader,mail-extractor,poll-mailbox,poll-step,notify-mail-failure,retry-failed-mails}.ts` | Buscar mails, extraer campos, resolver el run/step abierto, etiquetar, avisar fallos — compartido por diapers/meds/refunds |
+| Motor de polling (compartido) | `src/mastra/lib/inbox/{gmail-reader,mail-extractor,poll-mailbox,poll-step,retry-failed-mails}.ts` | Buscar mails, ordenar la tanda, filtrar por dominio (`config.matches`), resolver el run/step abierto, extraer campos, etiquetar — compartido por diapers/meds/refunds. Avisar un fallo NO es del motor: lo inyecta cada dominio vía `onFailure` (`notify-mail-failure.ts`) |
 | Helpers de ejecución | `src/mastra/lib/diapers-run.ts` | `readDiapersStatus`, `startDiapers`, `confirmDiapersDate` — la capa de resume, sin cambios: mismo guard de run existente + suspendido + step correcto |
 | Suscriptores | `src/business/repositories/subscriber.repository.ts` (`subscriberRepository`) | Lista de emails suscriptos por dominio, persistida en MongoDB |
 | Storage | `MongoDBStore` (vía `MastraCompositeStore` en `src/mastra/index.ts`) | Persiste estado/run del workflow |
@@ -171,10 +191,13 @@ end note
   *suscribirse* a que le avisen (`subscribe`), o —si es admin— pedir el reintento de un mail
   fallido (`retry-diapers-failed-mail`), que le saca el label `mostro-failed` para que el próximo
   ciclo lo levante.
-- **Mail que no matchea o falla**: queda etiquetado `mostro-failed` y sale de la cola; se avisa por
-  Telegram a los suscriptores del dominio. Si el mail fallido tiene más de 30 días, cae fuera de la
-  ventana de búsqueda (`newer_than:30d`) y el reintento no lo destraba solo: el tool lo cuenta
-  aparte y avisa que hay que revisarlo a mano en Gmail.
+- **Mail que no matchea el filtro del consumidor** (otro remitente, o ruido): se saltea sin
+  etiquetar y sin aviso. NO sale de la cola — se re-evalúa cada ciclo hasta salir de la ventana de
+  30 días (`newer_than:30d`).
+- **Mail que matchea el filtro pero no matchea el extractor, o cuya reanudación falla**: queda
+  etiquetado `mostro-failed` y ahí sí sale de la cola; se avisa por Telegram a los suscriptores del
+  dominio. Si tiene más de 30 días, cae fuera de la ventana de búsqueda y el reintento no lo
+  destraba solo: el tool lo cuenta aparte y avisa que hay que revisarlo a mano en Gmail.
 - **Scope**: `runId` determinístico por mes (`diapers-YYYY-MM`) — el pedido es **compartido
   globalmente**, no por usuario (igual que "meds"; a diferencia de "refunds", que es por
   `orderId`).
@@ -192,4 +215,5 @@ workflow Mastra con steps `wait-*` que suspenden hasta que el ciclo de polling d
 (`<dominio>-poll`, cada 15 min) encuentra y matchea un mail, steps `notify-*` que avisan a
 suscriptores vía `sendNotificationSignal` al supervisor, y persistencia en `MongoDBStore`. El
 motor de polling (`src/mastra/lib/inbox/`) es el mismo código para los tres; lo que cambia por
-dominio es el remitente esperado, el `workflowId`, y el mapa de step → schema/descripción.
+dominio es `query` y `matches` (el filtro que decide si un mail es del dominio), `onFailure` (cómo
+avisa un fallo), el `workflowId`, y el mapa de step → schema/descripción.

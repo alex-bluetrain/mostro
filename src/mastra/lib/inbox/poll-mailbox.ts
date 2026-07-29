@@ -144,7 +144,10 @@ export async function runPollCycle(
 
     for (const message of messages) {
         // "No es mío" no es un fallo: otro consumidor puede reclamarlo en su ciclo.
-        if (!config.matches(message)) continue
+        if (!config.matches(message)) {
+            console.debug(`[poll-${config.domain}] descarte esperado: ${message.id} de ${message.from} no matchea el filtro de este dominio`)
+            continue
+        }
 
         // Por mail y no una vez por ciclo: si el primero avanza el run a la etapa
         // siguiente, el segundo tiene que evaluarse contra el step nuevo.
@@ -194,15 +197,15 @@ export async function runPollCycle(
         }
 
         // El workflow ya se reanudó: el trabajo está hecho aunque la etiqueta no salga.
-        // Pero dejar el mail en la cola sin etiquetar solo es inofensivo para diapers,
-        // que tiene un único wait step: ahí el run ya no está suspendido y el mail cae a
-        // mostro-failed con motivo, visible, el próximo ciclo. En meds y refunds el run
-        // se vuelve a suspender en la etapa siguiente, así que el mail sin etiquetar
-        // vuelve a la cola y se evalúa contra ESE step nuevo. Un acuse típico trae fecha
-        // y domicilio, así que puede matchear "confirmación de entrega" y avanzar el run
-        // con datos de un mail que solo era un acuse — la familia recibe un aviso de
-        // entrega que nunca pasó. Por eso, si falla el etiquetado de procesado, ponemos
-        // el mail en cuarentena con FAILED_LABEL en vez de dejarlo reingresar a la cola.
+        // Pero dejar el mail en la cola sin etiquetar solo es inofensivo si el consumidor
+        // no tiene más wait steps por delante: ahí el run ya no está suspendido y el mail
+        // cae a mostro-failed con motivo, visible, el próximo ciclo. Si el consumidor tiene
+        // más de un step que espera mails, en cambio, el run se vuelve a suspender en la
+        // etapa siguiente, así que el mail sin etiquetar reingresa a la cola y se evalúa
+        // contra ESE step nuevo — que puede aceptarlo con datos que no le corresponden y
+        // avanzar el run con información equivocada. Por eso, si falla el etiquetado de
+        // procesado, ponemos el mail en cuarentena con FAILED_LABEL en vez de dejarlo
+        // reingresar a la cola.
         try {
             await resolved.reader.addLabel(message.id, PROCESSED_LABEL)
         } catch (error) {
