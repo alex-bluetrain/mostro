@@ -169,6 +169,28 @@ describe('createGmailReader().search', () => {
         expect(message.body).toBe('texto plano correcto')
     })
 
+    it('mapea correctamente varios ids a sus mensajes correspondientes', async () => {
+        const { client, list, get } = buildClient()
+        list.mockResolvedValue({ data: { messages: [{ id: 'mail1' }, { id: 'mail2' }] } })
+        get.mockImplementation(async ({ id }: { id: string }) => ({
+            data: {
+                id,
+                internalDate: '1785000000000',
+                payload: {
+                    headers: [{ name: 'From', value: 'a@b.test' }, { name: 'Subject', value: 's' }],
+                    mimeType: 'text/plain',
+                    body: { data: encode(id === 'mail1' ? 'contenido del primer mail' : 'contenido del segundo mail') },
+                },
+            },
+        }))
+
+        const messages = await createGmailReader(client).search('q')
+
+        expect(messages).toHaveLength(2)
+        expect(messages.find(m => m.id === 'mail1')?.body).toBe('contenido del primer mail')
+        expect(messages.find(m => m.id === 'mail2')?.body).toBe('contenido del segundo mail')
+    })
+
 })
 
 describe('createGmailReader().addLabel', () => {
