@@ -11,6 +11,8 @@ export type InboxMessage = {
     // los de las parts internas son metadata de encoding sin interés. Misma forma
     // array-de-pares que la API (los headers pueden repetirse y el orden importa),
     // pero sin los nulls del codegen de Google: Gmail siempre manda name y value.
+    // Sin consumidores todavía: se expone para habilitar filtros futuros por header
+    // (por ejemplo, atar un mail a su run vía Message-ID / In-Reply-To).
     headers: Array<{ name: string; value: string }>
 }
 
@@ -34,7 +36,9 @@ function headerOf(payload: Payload | undefined, name: string): string {
 }
 
 function headersOf(payload: Payload | undefined): Array<{ name: string; value: string }> {
-    return (payload?.headers ?? []).flatMap(h => (h.name && h.value ? [{ name: h.name, value: h.value }] : []))
+    // name sí requiere contenido (un header sin nombre no sirve), pero value tolera
+    // string vacío: un `Subject:` vacío es un header legítimo y no debe perderse.
+    return (payload?.headers ?? []).flatMap(h => (h.name && h.value != null ? [{ name: h.name, value: h.value }] : []))
 }
 
 // "Farmacia <pedidos@farmacia.test>" -> "pedidos@farmacia.test". Sin display name

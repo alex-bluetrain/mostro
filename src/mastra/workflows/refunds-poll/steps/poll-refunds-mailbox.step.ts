@@ -11,7 +11,10 @@ import { getRefundsRunId } from '../../refunds/utils/refunds.utils'
 const config: PollConfig = {
     domain: 'refunds',
     query: `from:${appConfig.REFUNDS_EMAIL_TO}`,
-    matches: message => message.from === appConfig.REFUNDS_EMAIL_TO.toLowerCase(),
+    // El reader normaliza from con trim().toLowerCase(); alineamos la misma
+    // normalización acá o un espacio de más en el env vuelve este filtro un
+    // no-op permanente.
+    matches: message => message.from === appConfig.REFUNDS_EMAIL_TO.trim().toLowerCase(),
     onFailure: (mastra, failure) => notifyMailFailure(mastra, { domain: 'refunds', ...failure }),
     workflowId: 'refundsWorkflow',
     getRunId: getRefundsRunId,
