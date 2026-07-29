@@ -1,9 +1,20 @@
 import { createWorkflowStateReader } from '@mastra/core/workflows'
 import type { z } from 'zod'
 import { previousYearMonth, yearMonthOf } from '@lib/date-scope'
-import { FAILED_LABEL, PROCESSED_LABEL, SEARCH_WINDOW, gmailReader, type GmailReader, type InboxMessage } from './gmail-reader'
+import { gmailReader, type GmailReader, type InboxMessage } from './gmail-reader'
 import { extractFromMail, type Extract } from './mail-extractor'
 import { notifyMailFailure, type NotifyFailure } from './notify-mail-failure'
+
+// El protocolo de estado del poller sobre la casilla: qué mails ya se procesaron y
+// cuáles fallaron. Son política de esta capa, no del reader — el reader pone y saca
+// cualquier label que le pidan.
+export const PROCESSED_LABEL = 'mostro-processed'
+export const FAILED_LABEL = 'mostro-failed'
+
+// La ventana que mira cada ciclo. Vive acá y no incrustada en cada query para que el
+// reintento (retry-failed-mails.ts) no pueda quedar desalineado: un mail que se
+// destraba fuera de esta ventana no lo levantaría nadie.
+export const SEARCH_WINDOW = 'newer_than:30d'
 
 export type ResumeResult = { ok: boolean; reason?: string }
 
