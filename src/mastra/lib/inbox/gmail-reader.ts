@@ -149,10 +149,7 @@ export function createGmailReader(client?: GmailClient): GmailReader {
                 }
             }))
 
-            // Del más viejo al más nuevo: un acuse anterior tiene que procesarse antes
-            // que la confirmación que lo sigue, o el segundo mail se evalúa contra un
-            // step que todavía no avanzó.
-            return messages.sort((a, b) => a.receivedAt.getTime() - b.receivedAt.getTime())
+            return messages
         },
 
         async addLabel(id, label) {
