@@ -33,6 +33,24 @@ describe('stripMailBody', () => {
         expect(stripMailBody(payload)).toBe('Confirmamos la entrega para el 11/03.')
     })
 
+    it('descarta el contenido de <style>/<script> y separa celdas de tabla con espacio', () => {
+        const payload = {
+            mimeType: 'text/html',
+            body: {
+                data: encode(`<html><head><style>.foo { color: red; }</style></head><body>
+                    <script>alert('no debería aparecer');</script>
+                    <table><tr><td>Fecha</td><td>11/03</td></tr></table>
+                </body></html>`),
+            },
+        }
+
+        const result = stripMailBody(payload)
+
+        expect(result).not.toContain('color: red')
+        expect(result).not.toContain('alert')
+        expect(result).toContain('Fecha 11/03')
+    })
+
     it('prefiere text/plain sobre text/html cuando ambos están presentes', () => {
         const payload = {
             mimeType: 'multipart/alternative',

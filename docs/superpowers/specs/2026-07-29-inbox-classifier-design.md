@@ -248,3 +248,7 @@ ${text}`
 - Disparador: cron, tool o workflow que invoque `new InboxClassifier(...).init()` + `.run()`.
 - Notificación real de fallos (hoy es un `console.warn` placeholder).
 - Cache de label→id entre llamadas de `resolveLabelId`.
+- Paginación/`maxResults` en `messages.list`: hoy solo se procesa la primera página. Con un backlog
+  de más de 100 mails, los más viejos de ese backlog nunca se clasifican.
+- Exclusión de mails ya etiquetados en la query traducida: un futuro disparador que llame `run()`
+  repetidamente reclasificaría todos los mails en cada corrida, no solo los nuevos.
