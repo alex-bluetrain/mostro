@@ -24,6 +24,7 @@ import { diapersPollWorkflow } from './workflows/diapers-poll/diapers-poll.workf
 import { medsPollWorkflow } from './workflows/meds-poll/meds-poll.workflow';
 import { refundsPollWorkflow } from './workflows/refunds-poll/refunds-poll.workflow';
 import { mailExtractorAgent } from './lib/inbox/mail-extractor';
+import { inboxClassifierAgent } from './agents/inbox-classifier-agent';
 
 const port = appConfig.PORT;
 const ngrokOrigin = appConfig.NGROK_DOMAIN ? `https://${appConfig.NGROK_DOMAIN}` : undefined;
@@ -60,7 +61,7 @@ export const mastra = new Mastra({
         weatherWorkflow, diapersWorkflow, medsWorkflow, refundsWorkflow,
         diapersPollWorkflow, medsPollWorkflow, refundsPollWorkflow,
     },
-    agents: { weatherAgent, diapersAgent, medsAgent, refundsAgent, mostroSupervisor, mailExtractor: mailExtractorAgent },
+    agents: { weatherAgent, diapersAgent, medsAgent, refundsAgent, mostroSupervisor, mailExtractor: mailExtractorAgent, inboxClassifier: inboxClassifierAgent },
     scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer },
     storage: new MastraCompositeStore({
         id: 'composite-storage',
