@@ -1,14 +1,6 @@
 import { getGmailClient } from '@lib/mailer/gmail-client'
 import { GMAIL_TIMEOUT_MS, withGmailRetry } from '@lib/mailer/gmail-retry'
 
-export const PROCESSED_LABEL = 'mostro-processed'
-export const FAILED_LABEL = 'mostro-failed'
-
-// La ventana que el poller mira. Vive acá y no incrustada en cada query para que el
-// reintento no pueda quedar desalineado: un mail que se destraba fuera de esta ventana
-// no lo levantaría nadie.
-export const SEARCH_WINDOW = 'newer_than:30d'
-
 export type InboxMessage = {
     id: string
     from: string
@@ -154,10 +146,8 @@ export function createGmailReader(client?: GmailClient): GmailReader {
 
         async addLabel(id, label) {
             const labelId = await labelIdFor(label)
-            // Con reintento: la falta de reintento acá es lo que dejaba un mail sin
-            // etiquetar ante un fallo transitorio, y eso es lo que hacía alcanzable que
-            // un acuse reingresara a la cola y se evaluara contra el step siguiente
-            // (ver el comentario sobre cuarentena en poll-mailbox.ts).
+            // Con reintento: etiquetar es la escritura que persiste estado; un fallo
+            // transitorio no debe dejarla a medias.
             await withGmailRetry(() => gmailFor().users.messages.modify({
                 userId: 'me',
                 id,

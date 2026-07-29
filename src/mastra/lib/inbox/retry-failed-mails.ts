@@ -1,4 +1,5 @@
-import { FAILED_LABEL, SEARCH_WINDOW, gmailReader, type GmailReader } from './gmail-reader'
+import { FAILED_LABEL, SEARCH_WINDOW } from './poll-mailbox'
+import { gmailReader, type GmailReader } from './gmail-reader'
 
 // Sacarles el label los devuelve al query del poller: el próximo ciclo los levanta.
 // Lo que se deja etiquetado queda descartado para siempre, que es el comportamiento
