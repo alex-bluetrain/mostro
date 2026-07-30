@@ -1,5 +1,5 @@
 import { FAILED_LABEL, SEARCH_WINDOW } from './poll-mailbox'
-import { gmailReader, type GmailReader } from './gmail-reader'
+import { gmailReader, type InboxReader } from './gmail-reader'
 
 // Sacarles el label los devuelve al query del poller: el próximo ciclo los levanta.
 // Lo que se deja etiquetado queda descartado para siempre, que es el comportamiento
@@ -15,7 +15,7 @@ import { gmailReader, type GmailReader } from './gmail-reader'
 // recuperarse manualmente desde Gmail).
 export async function retryFailedMails(
     sender: string,
-    reader: GmailReader = gmailReader,
+    reader: InboxReader = gmailReader,
 ): Promise<{ retried: number; outOfWindow: number }> {
     // Mails que sí se pueden destrabar: están dentro de la ventana
     const inWindow = await reader.search(`from:${sender} label:${FAILED_LABEL} ${SEARCH_WINDOW}`)

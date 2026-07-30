@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { z } from 'zod'
 import { runPollCycle, readSuspendedStep } from './poll-mailbox'
-import type { InboxMessage } from './gmail-reader'
+import type { InboxMessage } from './gmail-message'
+
 
 const confirmSchema = z.object({ deliveryDate: z.string(), quantity: z.number() })
 
@@ -52,7 +53,12 @@ function buildDeps(overrides: Record<string, unknown> = {}) {
     const readSuspendedStep = vi.fn().mockResolvedValue('wait-diapers-confirmation')
 
     return {
-        deps: { reader: { search, addLabel, removeLabel }, extract, readSuspendedStep, ...overrides },
+        deps: {
+            reader: { search, addLabel, removeLabel },
+            extract,
+            readSuspendedStep,
+            ...overrides,
+        },
         search, addLabel, removeLabel, extract, readSuspendedStep,
     }
 }
