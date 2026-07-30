@@ -1,7 +1,8 @@
 import { createWorkflowStateReader } from '@mastra/core/workflows'
 import type { z } from 'zod'
 import { previousYearMonth, yearMonthOf } from '@lib/date-scope'
-import { gmailReader, type GmailReader, type InboxMessage } from './gmail-reader'
+import type { InboxMessage } from './gmail-message'
+import { gmailReader, type InboxReader } from './gmail-reader'
 import { extractFromMail, type Extract } from './mail-extractor'
 
 // El protocolo de estado del poller sobre la casilla: qué mails ya se procesaron y
@@ -47,7 +48,7 @@ export type PollConfig = {
 export type PollDeps = {
     // El orden de lo que devuelve search() no importa: runPollCycle ordena la tanda
     // por receivedAt antes de iterarla.
-    reader: GmailReader
+    reader: InboxReader
     extract: Extract
     readSuspendedStep: (mastra: unknown, workflowId: string, runId: string) => Promise<string | null>
 }

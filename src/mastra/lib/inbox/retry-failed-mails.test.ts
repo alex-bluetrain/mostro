@@ -24,11 +24,7 @@ describe('retryFailedMails', () => {
         const removeLabel = vi.fn()
         const search = vi.fn().mockResolvedValue([])
 
-        const result = await retryFailedMails('a@b.test', {
-            search,
-            removeLabel,
-            addLabel: vi.fn(),
-        })
+        const result = await retryFailedMails('a@b.test', { search, removeLabel, addLabel: vi.fn() })
 
         expect(result).toEqual({ retried: 0, outOfWindow: 0 })
         expect(removeLabel).not.toHaveBeenCalled()
