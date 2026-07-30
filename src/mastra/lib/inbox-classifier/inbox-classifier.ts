@@ -1,4 +1,5 @@
 import { auth, gmail } from '@googleapis/gmail'
+import type { Mastra } from '@mastra/core/mastra'
 import { z } from 'zod'
 import { appConfig } from '@config/app.config'
 import { stripMailBody } from './strip-mail-body'
@@ -15,14 +16,12 @@ export type InboxClassifierConfig = {
     outcomes: ClassifierOutcome[]
 }
 
-type MastraLike = { getAgent: (id: string) => { generate: (prompt: string, opts: unknown) => Promise<{ object?: unknown }> } }
-
 export class InboxClassifier {
     private query: string | undefined
     private readonly gmail: GmailClient
 
     constructor(
-        private readonly mastra: unknown,
+        private readonly mastra: Mastra,
         private readonly config: InboxClassifierConfig,
         gmailClientOverride?: GmailClient,
     ) {
@@ -84,8 +83,8 @@ export class InboxClassifier {
     }
 }
 
-async function translateQuery(mastra: unknown, queryDescription: string): Promise<string> {
-    const agent = (mastra as MastraLike).getAgent('inboxClassifier')
+async function translateQuery(mastra: Mastra, queryDescription: string): Promise<string> {
+    const agent = mastra.getAgent('inboxClassifier')
     const schema = z.object({ query: z.string().min(1) })
     const prompt = `Convertí esta descripción a una query de búsqueda de Gmail (sintaxis de users.messages.list: from:, newer_than:, label:, -label:, etc.).
 
@@ -94,8 +93,8 @@ Descripción: ${queryDescription}`
     return schema.parse(response.object).query
 }
 
-async function classify(mastra: unknown, text: string, outcomes: ClassifierOutcome[]): Promise<string> {
-    const agent = (mastra as MastraLike).getAgent('inboxClassifier')
+async function classify(mastra: Mastra, text: string, outcomes: ClassifierOutcome[]): Promise<string> {
+    const agent = mastra.getAgent('inboxClassifier')
     const labels = outcomes.map(o => o.label) as [string, ...string[]]
     const schema = z.object({ label: z.enum(labels) })
     const prompt = `Clasificá este mail contra los siguientes resultados posibles. Elegí exactamente uno.
