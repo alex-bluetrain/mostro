@@ -165,7 +165,7 @@ end note
 | Workflow de pedido | `src/mastra/workflows/diapers/diapers.workflow.ts` | Encadena los 3 steps del pedido |
 | Workflow de polling | `src/mastra/workflows/diapers-poll/diapers-poll.workflow.ts` | `schedule` cron cada 15 min; declara qué step espera qué schema/descripción |
 | Steps | `src/mastra/workflows/diapers/steps/*.ts` | Lógica de cada etapa del pedido |
-| Motor de polling (compartido) | `src/mastra/lib/inbox/{gmail-reader,mail-extractor,poll-mailbox,poll-step,retry-failed-mails}.ts` | Buscar mails, ordenar la tanda, filtrar por dominio (`config.matches`), resolver el run/step abierto, extraer campos, etiquetar — compartido por diapers/meds/refunds. Avisar un fallo NO es del motor: lo inyecta cada dominio vía `onFailure` (`notify-mail-failure.ts`) |
+| Motor de polling (compartido) | `src/mastra/lib/inbox/{gmail-reader,gmail-message,mail-extractor,poll-mailbox,poll-step,retry-failed-mails}.ts` | Buscar mails, ordenar la tanda, filtrar por dominio (`config.matches`), resolver el run/step abierto, extraer campos, etiquetar — compartido por diapers/meds/refunds. Avisar un fallo NO es del motor: lo inyecta cada dominio vía `onFailure` (`notify-mail-failure.ts`) |
 | Helpers de ejecución | `src/mastra/lib/diapers-run.ts` | `readDiapersStatus`, `startDiapers`, `confirmDiapersDate` — la capa de resume, sin cambios: mismo guard de run existente + suspendido + step correcto |
 | Suscriptores | `src/business/repositories/subscriber.repository.ts` (`subscriberRepository`) | Lista de emails suscriptos por dominio, persistida en MongoDB |
 | Storage | `MongoDBStore` (vía `MastraCompositeStore` en `src/mastra/index.ts`) | Persiste estado/run del workflow |
