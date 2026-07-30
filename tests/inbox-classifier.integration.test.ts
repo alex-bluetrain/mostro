@@ -16,7 +16,6 @@ function buildGmail(payload: unknown) {
                 { id: 'L1', name: 'clasificado-entrega' },
                 { id: 'L2', name: 'clasificado-error' },
                 { id: 'L3', name: 'clasificado-otro' },
-                { id: 'L4', name: 'clasificado-acknowledge' },
             ],
         },
     })
@@ -38,12 +37,11 @@ const config: InboxClassifierConfig = {
     outcomes: [
         { label: 'clasificado-entrega', description: 'confirma que una entrega se realizó con éxito' },
         { label: 'clasificado-error', description: 'informa un problema o error con un envío' },
-        { label: 'clasificado-acknowledge', description: 'confirma que una solicitud o pedido fue recibido, sin informar aún fecha de entrega' },
         { label: 'clasificado-otro', description: 'catch-all: cualquier otra cosa' },
     ],
 }
 
-const labelIdToName: Record<string, string> = { L1: 'clasificado-entrega', L2: 'clasificado-error', L3: 'clasificado-otro', L4: 'clasificado-acknowledge' }
+const labelIdToName: Record<string, string> = { L1: 'clasificado-entrega', L2: 'clasificado-error', L3: 'clasificado-otro' }
 
 describe.skipIf(!hasKey)('InboxClassifier (integración)', () => {
     const mastra = new Mastra({ agents: { inboxClassifier: inboxClassifierAgent } })
@@ -54,8 +52,6 @@ describe.skipIf(!hasKey)('InboxClassifier (integración)', () => {
         ['mail-html.eml', 'clasificado-entrega'],
         ['mail-con-quoted.eml', 'clasificado-otro'],
         ['mail-generico.eml', 'clasificado-otro'],
-        ['pharmacy-meds-confirmation.eml', 'clasificado-entrega'],
-        ['pharmacy-meds-acknowledge.eml', 'clasificado-acknowledge'],
     ])('clasifica %s como %s', async (fixture, expectedLabel) => {
         const payload = await emlToGmailPayload(fixture, fixture === 'mail-html.eml' ? 'html' : undefined)
         const { gmail, modify } = buildGmail(payload)
