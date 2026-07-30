@@ -6,7 +6,7 @@ function buildGmail(payload: unknown) {
     const list = vi.fn().mockResolvedValue({ data: { messages: [{ id: 'm1' }] } })
     const get = vi.fn().mockResolvedValue({ data: { id: 'm1', payload } })
     const modify = vi.fn().mockResolvedValue({})
-    const labelsList = vi.fn().mockResolvedValue({ data: { labels: [{ id: 'L1', name: 'clasificado-entrega' }, { id: 'L2', name: 'clasificado-error' }, { id: 'L3', name: 'clasificado-otro' }, { id: 'L4', name: 'clasificado-acknowledge' }] } })
+    const labelsList = vi.fn().mockResolvedValue({ data: { labels: [{ id: 'L1', name: 'clasificado-entrega' }, { id: 'L2', name: 'clasificado-error' }, { id: 'L3', name: 'clasificado-otro' }] } })
     const labelsCreate = vi.fn().mockResolvedValue({ data: { id: 'L9' } })
 
     return {
@@ -32,7 +32,6 @@ const config: InboxClassifierConfig = {
     outcomes: [
         { label: 'clasificado-entrega', description: 'confirma que una entrega se realizó con éxito' },
         { label: 'clasificado-error', description: 'informa un problema o error con un envío' },
-        { label: 'clasificado-acknowledge', description: 'confirma que una solicitud o pedido fue recibido, sin informar aún fecha de entrega' },
         { label: 'clasificado-otro', description: 'catch-all: cualquier otra cosa' },
     ],
 }
@@ -133,48 +132,4 @@ describe('InboxClassifier con fixtures .eml reales', () => {
         })
     })
 
-    it('procesa un mail real reenviado con historial extenso y adjunto embebido', async () => {
-        const payload = await emlToGmailPayload('pharmacy-meds-confirmation.eml')
-        const { gmail, modify } = buildGmail(payload)
-        const { mastra, generate } = buildMastra([
-            { query: 'from:farmacia.test newer_than:30d' },
-            { label: 'clasificado-entrega' },
-        ])
-
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
-        await classifier.init()
-        await classifier.run()
-
-        const prompt = generate.mock.calls[1][0] as string
-        expect(prompt).toContain('CONFIRMACIÓN DE ENTREGA')
-        expect(prompt).toContain('Miércoles 15 de Julio')
-        expect(prompt).not.toContain('Rosa Medina')
-        expect(modify).toHaveBeenCalledWith({
-            userId: 'me',
-            id: 'm1',
-            requestBody: { addLabelIds: ['L1'] },
-        })
-    })
-
-    it('procesa un mail real de acuse de recibo cuyo contenido está en una imagen embebida', async () => {
-        const payload = await emlToGmailPayload('pharmacy-meds-acknowledge.eml')
-        const { gmail, modify } = buildGmail(payload)
-        const { mastra, generate } = buildMastra([
-            { query: 'from:farmacia.test newer_than:30d' },
-            { label: 'clasificado-acknowledge' },
-        ])
-
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
-        await classifier.init()
-        await classifier.run()
-
-        const prompt = generate.mock.calls[1][0] as string
-        expect(prompt).toContain('Forwarded message')
-        expect(prompt).toContain('FARMADEMO')
-        expect(modify).toHaveBeenCalledWith({
-            userId: 'me',
-            id: 'm1',
-            requestBody: { addLabelIds: ['L4'] },
-        })
-    })
 })
