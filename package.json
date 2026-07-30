@@ -40,7 +40,9 @@
   },
   "devDependencies": {
     "@types/email-reply-parser": "^1.4.2",
+    "@types/mailparser": "^3.4.6",
     "@types/node": "^26.1.0",
+    "mailparser": "^3.7.4",
     "mastra": "^1.17.0",
     "typescript": "^6.0.3",
     "vite-tsconfig-paths": "^6.1.1",

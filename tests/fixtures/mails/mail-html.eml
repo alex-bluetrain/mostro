@@ -1,0 +1,22 @@
+From: Farmacia Proveedor <farmacia@proveedor.test>
+To: Mostro <bot@example.com>
+Subject: Detalle de entrega - pedido #4823
+Date: Wed, 29 Jul 2026 11:00:00 -0300
+Content-Type: multipart/alternative; boundary="boundary-mail-html-fixture"
+
+--boundary-mail-html-fixture
+Content-Type: text/html; charset=utf-8
+
+<html>
+<head><style>body { font-family: sans-serif; }</style></head>
+<body>
+<p>Detalle de la entrega:</p>
+<table>
+<tr><td>Fecha</td><td>29/07/2026</td></tr>
+<tr><td>Pedido</td><td>4823</td></tr>
+<tr><td>Estado</td><td>Entregado</td></tr>
+</table>
+</body>
+</html>
+
+--boundary-mail-html-fixture--
