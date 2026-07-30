@@ -1,7 +1,7 @@
 // Criterio de reintento y timeout compartido entre el mailer (gmail-mailer.ts) y el
-// lector de la casilla (../inbox/gmail-reader.ts): los dos hablan con la misma API de
-// Gmail sobre el mismo cliente compartido (./gmail-client.ts) y tienen que tratar los
-// mismos errores transitorios de la misma forma. No duplicar este criterio en el reader.
+// InboxClassifier (../inbox-classifier/inbox-classifier.ts): los dos hablan con la misma
+// API de Gmail sobre el mismo cliente compartido (./gmail-client.ts) y tienen que tratar
+// los mismos errores transitorios de la misma forma. No duplicar este criterio ahi.
 
 const MAX_ATTEMPTS = 3
 const BASE_DELAY_MS = 500

@@ -23,7 +23,6 @@ import { weatherWorkflow } from './workflows/weather/weather.workflow';
 import { diapersPollWorkflow } from './workflows/diapers-poll/diapers-poll.workflow';
 import { medsPollWorkflow } from './workflows/meds-poll/meds-poll.workflow';
 import { refundsPollWorkflow } from './workflows/refunds-poll/refunds-poll.workflow';
-import { mailExtractorAgent } from './lib/inbox/mail-extractor';
 import { inboxClassifierAgent } from './agents/inbox-classifier-agent';
 
 const port = appConfig.PORT;
@@ -61,7 +60,7 @@ export const mastra = new Mastra({
         weatherWorkflow, diapersWorkflow, medsWorkflow, refundsWorkflow,
         diapersPollWorkflow, medsPollWorkflow, refundsPollWorkflow,
     },
-    agents: { weatherAgent, diapersAgent, medsAgent, refundsAgent, mostroSupervisor, mailExtractor: mailExtractorAgent, inboxClassifier: inboxClassifierAgent },
+    agents: { weatherAgent, diapersAgent, medsAgent, refundsAgent, mostroSupervisor, inboxClassifier: inboxClassifierAgent },
     scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer },
     storage: new MastraCompositeStore({
         id: 'composite-storage',

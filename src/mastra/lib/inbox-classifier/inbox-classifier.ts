@@ -1,14 +1,40 @@
-import { auth, gmail } from '@googleapis/gmail'
+import type { gmail } from '@googleapis/gmail'
 import type { Mastra } from '@mastra/core/mastra'
 import { z } from 'zod'
-import { appConfig } from '@config/app.config'
+import { getGmailClient } from '@lib/mailer/gmail-client'
 import { stripMailBody } from './strip-mail-body'
+import { resolveMailYearMonth } from './resolve-mail-year-month'
 
 export type GmailClient = ReturnType<typeof gmail>
+
+// Etiqueta terminal para un mail que matcheó la query pero no se pudo procesar: no había
+// run abierto, la extracción no validó, o el workflow rechazó la reanudación.
+export const FAILED_LABEL = 'mostro/failed'
+
+export type HandleContext = {
+    mastra: Mastra
+    text: string
+    yearMonth: string
+    data: unknown
+}
+
+export type HandleResult = { ok: true } | { ok: false; reason: string }
+
+// Adapta el {ok, reason?} que devuelven los helpers *-run.ts al HandleResult que espera el
+// classifier, descartando campos internos (status, suspendedStep, etc) que no le importan acá.
+export function toHandleResult(result: { ok: boolean; reason?: string }): HandleResult {
+    return result.ok ? { ok: true } : { ok: false, reason: result.reason ?? 'unknown' }
+}
 
 export type ClassifierOutcome = {
     label: string
     description: string
+    // Si el outcome tiene datos que extraer del mail (ej: fecha de entrega), el schema
+    // valida la extracción antes de que llegue a handle().
+    extract?: z.ZodType
+    // Ausente en el catch-all: ahí no hay nada que hacer más que etiquetar. Presente en
+    // los outcomes que tienen que tocar un workflow.
+    handle?: (ctx: HandleContext) => Promise<HandleResult>
 }
 
 export type InboxClassifierConfig = {
@@ -25,17 +51,15 @@ export class InboxClassifier {
         private readonly config: InboxClassifierConfig,
         gmailClientOverride?: GmailClient,
     ) {
-        if (gmailClientOverride) {
-            this.gmail = gmailClientOverride
-        } else {
-            const oauth2 = new auth.OAuth2(appConfig.GMAIL_MAILER_CLIENT_ID, appConfig.GMAIL_MAILER_CLIENT_SECRET)
-            oauth2.setCredentials({ refresh_token: appConfig.GMAIL_MAILER_REFRESH_TOKEN })
-            this.gmail = gmail({ version: 'v1', auth: oauth2 })
-        }
+        this.gmail = gmailClientOverride ?? getGmailClient()
     }
 
     async init(): Promise<void> {
-        this.query = await translateQuery(this.mastra, this.config.queryDescription)
+        const translated = await translateQuery(this.mastra, this.config.queryDescription)
+        // La idempotencia no puede depender de que el modelo se acuerde de excluir las
+        // etiquetas ya aplicadas: eso lo agrega el código, una vez, después de traducir.
+        const exclusions = [...this.config.outcomes.map(o => `-label:${o.label}`), `-label:${FAILED_LABEL}`]
+        this.query = [translated, ...exclusions].join(' ')
         console.info(`[inbox-classifier] query traducida: ${this.query}`)
     }
 
@@ -49,14 +73,43 @@ export class InboxClassifier {
 
         for (const id of ids) {
             try {
-                const { data: raw } = await this.gmail.users.messages.get({ userId: 'me', id, format: 'full' })
-                const text = stripMailBody(raw.payload)
-                const label = await classify(this.mastra, text, this.config.outcomes)
-                await this.applyLabel(id, label)
+                await this.processMessage(id)
             } catch (error) {
-                console.warn(`[inbox-classifier] no pude clasificar/etiquetar ${id}`, error)
-                // TODO: notificar el fallo (placeholder para etapa futura)
+                console.error(`[inbox-classifier] no pude procesar ${id}`, error)
+                await this.tryApplyLabel(id, FAILED_LABEL)
             }
+        }
+    }
+
+    private async processMessage(id: string): Promise<void> {
+        const { data: raw } = await this.gmail.users.messages.get({ userId: 'me', id, format: 'full' })
+        const text = stripMailBody(raw.payload)
+        const internalDate = raw.internalDate ? new Date(Number(raw.internalDate)) : new Date()
+        const yearMonth = resolveMailYearMonth(raw.payload?.headers ?? undefined, internalDate)
+
+        const outcomeLabel = await classify(this.mastra, text, this.config.outcomes)
+        const outcome = this.config.outcomes.find(o => o.label === outcomeLabel)
+        if (!outcome) throw new Error(`clasificación devolvió un label desconocido: ${outcomeLabel}`)
+
+        const data = outcome.extract ? await extract(this.mastra, text, outcome.extract) : undefined
+
+        if (outcome.handle) {
+            const result = await outcome.handle({ mastra: this.mastra, text, yearMonth, data })
+            if (!result.ok) {
+                console.error(`[inbox-classifier] ${id} clasificado como "${outcome.label}" pero el handler falló: ${result.reason}`)
+                await this.applyLabel(id, FAILED_LABEL)
+                return
+            }
+        }
+
+        await this.applyLabel(id, outcome.label)
+    }
+
+    private async tryApplyLabel(id: string, label: string): Promise<void> {
+        try {
+            await this.applyLabel(id, label)
+        } catch (error) {
+            console.error(`[inbox-classifier] no pude etiquetar ${id} como "${label}"`, error)
         }
     }
 
@@ -105,4 +158,14 @@ Mail:
 ${text}`
     const response = await agent.generate(prompt, { structuredOutput: { schema, errorStrategy: 'strict' } })
     return schema.parse(response.object).label
+}
+
+async function extract(mastra: Mastra, text: string, schema: z.ZodType): Promise<unknown> {
+    const agent = mastra.getAgent('inboxClassifier')
+    const prompt = `Extraé del mail los datos pedidos. Si no podés completar un campo con confianza, no inventes un valor.
+
+Mail:
+${text}`
+    const response = await agent.generate(prompt, { structuredOutput: { schema, errorStrategy: 'strict' } })
+    return schema.parse(response.object)
 }

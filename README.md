@@ -1,7 +1,7 @@
 # Mostro
 
 <p align="center">
-  <img src="img/agents.png" alt="Mostro"/>
+  <img src="mostro.png" alt="Mostro"/>
 </p>
 
 A multi-agent Telegram bot for managing recurring family orders — diapers, medications, and refunds — built with [Mastra](https://mastra.ai/).
@@ -59,47 +59,50 @@ Each domain workflow follows a request → wait → notify pattern with mailbox-
 ### Mailbox Polling
 
 There is no inbound webhook for suppliers to call. Instead, one poll workflow per domain
-(`diapers-poll`, `meds-poll`, `refunds-poll`) runs on a 15-minute Mastra `schedule` and, each cycle:
+(`diapers-poll`, `meds-poll`, `refunds-poll`) runs on a 15-minute Mastra `schedule`, each wrapping
+an `InboxClassifier` (`src/mastra/lib/inbox-classifier/`) configured per domain. Each cycle:
 
-1. Searches Mostro's own Gmail inbox for unlabeled mail from that domain's sender:
-   `from:<sender> -label:mostro-processed -label:mostro-failed newer_than:30d`.
-2. For each mail, reads which step the current month's run is suspended in — trying the
-   mail's month first, then the previous one, since a reply doesn't always land in the same
-   month the order was placed.
-3. Hands the extraction agent the schema and description **of that specific step** and asks a
-   closed question: does this mail match it, and if so, what are the field values? If not, why not.
-4. Calls the same `*-run.ts` resume function the old webhook handlers used to call.
-5. Labels the mail `mostro-processed`, or `mostro-failed` plus a Telegram notice to the domain's
-   subscribers if anything went wrong.
+1. Translates a natural-language `queryDescription` ("mails from the pharmacy in the last 30
+   days") into Gmail search syntax once, the first time the classifier runs, then reuses it —
+   the code appends a `-label:<outcome>` exclusion for every possible outcome plus `-label:mostro/failed`,
+   so idempotence never depends on the model remembering to exclude already-handled mail.
+2. For each matching mail, oldest first: cleans the body (`cheerio` for HTML, `email-reply-parser`
+   to strip quoted replies), then asks the classifier agent to pick exactly one outcome from the
+   domain's list (e.g. `mostro/meds/acuse`, `mostro/meds/entrega`, `mostro/meds/otro`).
+3. If the chosen outcome declares an `extract` schema, a second agent call pulls the structured
+   fields (delivery date, address, amounts) and validates them against that schema — extraction is
+   a separate call from classification, not a single call with a unioned schema across outcomes.
+4. If the outcome declares a `handle` function, it resolves the open workflow run for that domain
+   (trying the mail's month, then the previous one — see the known limitation below) and resumes
+   the suspended step. The catch-all outcome (`mostro/*/otro`) has no `handle`; it only gets labeled.
+5. Labels the mail with the outcome it was classified as, or `mostro/failed` if the handler
+   returned failure (no matching open run, resume rejected, etc.). A broken mail is caught
+   individually — one failure never stops the rest of the batch.
 
-**Why the run's state decides the destination, not the model:** the same sender can send
-different kinds of mail depending on the moment — a pharmacy first acknowledges an order, then
-later confirms delivery — and a given mail can be ambiguous between the two. If the LLM picked
-which stage a mail belonged to, a misclassification would resume the wrong step. So the poller
-reads the suspended step *before* calling the model, and only asks the model to confirm a match
-against that one step's schema and extract its fields. The model never chooses a destination.
-
-A mail that doesn't belong to the domain (a different sender) is skipped without a label and
-without a notice — it stays in the queue and gets re-evaluated every cycle until it ages out of
-the search window. A mail that *does* match the domain but fails extraction or fails to resume
-gets `mostro-failed` and drops out of the queue. An admin can
-ask Mostro to retry a domain's failed mail (the `retry-*-failed-mail` tools), which removes the
-label so the next cycle picks it back up. Failed mail older than the 30-day search window falls
-outside that query entirely; the retry tools count those separately and report that they need
-manual attention in Gmail.
+**Why classification and workflow advancement are split:** the model only ever answers "what is
+this mail" and "with what data" — it never decides which workflow run or step to touch. That
+stays in code (`resumeOpenRun` + the domain's `*-run.ts` resume functions), so a misclassification
+can, at worst, mislabel a mail; it can't corrupt a run's state. The resume schemas' date regexes
+are the last line of defense: if extraction doesn't validate, the mail is labeled `mostro/failed`
+without ever reaching the workflow.
 
 The three poll workflows still run every 15 minutes each, but on offset minutes
 (`diapers-poll` at `2,17,32,47`, `meds-poll` at `7,22,37,52`, `refunds-poll` at `12,27,42,57`) so
 the three domains don't hit the Gmail API at the same instant.
 
-**Before enabling the pollers for the first time**, bulk-apply the `mostro-processed` label in
-Gmail to every existing mail from the three suppliers. Without it, the first cycle pulls in 30
-days of history — old confirmations that could resume the current month's run with stale data,
-plus a Telegram notice for every mail that doesn't match anything.
+**Before enabling the pollers for the first time (or when upgrading from the old label
+scheme)**, bulk-apply the `mostro/failed` label in Gmail to every mail carrying the legacy
+`mostro-processed` or `mostro-failed` labels from the last 30 days, then delete those two labels.
+The new query doesn't know about the old labels, so skipping this step makes the first cycle
+reprocess a month of already-handled mail and attempt to resume workflows with stale confirmations.
 
 **When upgrading an already-deployed instance**, re-run `pnpm run gmail:auth`. An existing refresh
 token minted before polling only carries the `gmail.send` scope; the pollers need `gmail.modify`
 to read replies and apply labels. Without the new scope the poller gets a 403 every 15 minutes.
+
+There is currently no automatic retry for failed mail and no Telegram notice when a mail lands in
+`mostro/failed` — both existed in an earlier implementation and were deliberately dropped along
+with it; they'll be rebuilt with a different approach later (see `docs/superpowers/followups.md`).
 
 **Known limitation:** a reply is checked against the mail's own month first and the previous month
 second (see [Mailbox Polling](#mailbox-polling) above). If an order is already open for the new
@@ -218,10 +221,10 @@ if you ever open the login to people outside the household.
       server's `.env` and is treated as confidential.)
    4. Add the `https://www.googleapis.com/auth/gmail.send` and
       `https://www.googleapis.com/auth/gmail.modify` scopes. Sending only needs `gmail.send`;
-      `gmail.modify` is what lets the poll workflows read replies and apply the
-      `mostro-processed` / `mostro-failed` labels. Gmail doesn't offer a scope narrower than
-      "the whole mailbox" — the poller's containment is in code (a fixed query per domain
-      sender, fixed resume functions per step), not in the OAuth grant.
+      `gmail.modify` is what lets the poll workflows read replies and apply the outcome labels
+      (e.g. `mostro/meds/entrega`) and `mostro/failed`. Gmail doesn't offer a scope narrower than
+      "the whole mailbox" — the poller's containment is in code (a per-domain query description,
+      fixed resume functions per outcome), not in the OAuth grant.
    5. **Publish the app to production.** In *Testing* mode the refresh token is invalidated
       after 7 days and sends (and polling) start failing. Authorizing shows the "unverified app"
       screen, which you accept manually.
@@ -255,23 +258,25 @@ if you ever open the login to people outside the household.
 
 ```
 src/mastra/
-├── agents/           Domain agents + supervisor
-├── tools/            4 tools per domain (request, get-status, subscribe, retry-failed-mail)
-├── workflows/        One directory per workflow (not per domain), suspend/resume workflows
-│   │                 with steps, schemas, and types
-│   ├── diapers/      diapers.workflow.ts
-│   ├── diapers-poll/ diapers-poll.workflow.ts (schedule, every 15 min)
-│   ├── meds/         meds.workflow.ts
-│   ├── meds-poll/    meds-poll.workflow.ts
-│   ├── refunds/      refunds.workflow.ts
-│   └── refunds-poll/ refunds-poll.workflow.ts
+├── agents/                Domain agents + supervisor + inboxClassifierAgent
+├── tools/                 3 tools per domain (request, get-status, subscribe)
+├── workflows/             One directory per workflow (not per domain), suspend/resume workflows
+│   │                      with steps, schemas, and types
+│   ├── diapers/           diapers.workflow.ts
+│   ├── diapers-poll/      diapers-poll.workflow.ts (schedule, every 15 min) +
+│   │                      diapers-inbox.classifier.ts (domain outcomes/handlers)
+│   ├── meds/              meds.workflow.ts
+│   ├── meds-poll/         meds-poll.workflow.ts + meds-inbox.classifier.ts
+│   ├── refunds/           refunds.workflow.ts
+│   └── refunds-poll/      refunds-poll.workflow.ts + refunds-inbox.classifier.ts
 ├── lib/
-│   ├── inbox/        Shared mailbox-polling engine: Gmail reader, extraction agent call,
-│   │                 poll cycle, failure notice, retry helper — reused by all three domains
-│   ├── *-run.ts      Resume functions per domain, guarded by run + suspended + right step
-│   └── ...           Users, invites, telegram gate, Google auth, subscriber stores
-├── config/           Zod-validated environment configuration
-└── index.ts          Central registration (agents, workflows, storage)
+│   ├── inbox-classifier/  Generic engine: reads Gmail, classifies + extracts via LLM,
+│   │                      applies labels, calls the outcome's handle() — reused by all
+│   │                      three domains through their classifier configs above
+│   ├── *-run.ts           Resume functions per domain, guarded by run + suspended + right step
+│   └── ...                Users, invites, telegram gate, Google auth, subscriber stores
+├── config/                Zod-validated environment configuration
+└── index.ts               Central registration (agents, workflows, storage)
 ```
 
 ## Scripts
