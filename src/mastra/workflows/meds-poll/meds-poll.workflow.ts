@@ -1,12 +1,12 @@
 import { createWorkflow } from '@mastra/core/workflows'
 import { z } from 'zod'
-import { classifierOutputSchema } from '@lib/inbox-classifier/classifier-step'
+
 import { pollMedsMailbox } from './steps/poll-meds-mailbox.step'
 
 export const medsPollWorkflow = createWorkflow({
     id: 'meds-poll',
     inputSchema: z.object({}),
-    outputSchema: classifierOutputSchema,
+    outputSchema: z.object({ ok: z.literal(true) }),
     schedule: {
         // Desfasado de diapers (2,17,32,47) y refunds (12,27,42,57): sigue siendo cada 15
         // minutos, pero así los tres dominios no golpean la API de Gmail en el mismo

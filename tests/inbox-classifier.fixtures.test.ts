@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { InboxClassifier, type InboxClassifierConfig } from '@lib/inbox-classifier/inbox-classifier'
-import { emlToGmailPayload } from './fixtures/eml-to-gmail-payload'
+import { emlToGmailMessage, fixtureUrl } from './fixtures/eml-to-gmail-message'
 
 function buildGmail(payload: unknown) {
     const list = vi.fn().mockResolvedValue({ data: { messages: [{ id: 'm1' }] } })
@@ -30,23 +30,23 @@ function buildMastra(responses: unknown[]) {
 const config: InboxClassifierConfig = {
     queryDescription: 'mails de proveedores de farmacia de los últimos 30 días',
     outcomes: [
-        { label: 'clasificado-entrega', description: 'confirma que una entrega se realizó con éxito' },
-        { label: 'clasificado-error', description: 'informa un problema o error con un envío' },
-        { label: 'clasificado-otro', description: 'catch-all: cualquier otra cosa' },
+        { label: 'clasificado-entrega', classification: { description: 'confirma que una entrega se realizó con éxito' } },
+        { label: 'clasificado-error', classification: { description: 'informa un problema o error con un envío' } },
+        { label: 'clasificado-otro', classification: { description: 'catch-all: cualquier otra cosa' } },
     ],
 }
 
 describe('InboxClassifier con fixtures .eml reales', () => {
     it('clasifica una confirmación de entrega y etiqueta con el label correcto', async () => {
-        const payload = await emlToGmailPayload('confirmacion-entrega.eml')
+        const { payload } = await emlToGmailMessage(fixtureUrl('confirmacion-entrega.eml'))
         const { gmail, modify } = buildGmail(payload)
         const { mastra, generate } = buildMastra([
             { query: 'from:farmacia.test newer_than:30d' },
             { label: 'clasificado-entrega' },
         ])
 
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(config, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         expect(generate.mock.calls[1][0]).toContain('entrega del pedido #4821')
@@ -58,15 +58,15 @@ describe('InboxClassifier con fixtures .eml reales', () => {
     })
 
     it('clasifica un error de envío con el segundo outcome', async () => {
-        const payload = await emlToGmailPayload('error-envio.eml')
+        const { payload } = await emlToGmailMessage(fixtureUrl('error-envio.eml'))
         const { gmail, modify } = buildGmail(payload)
         const { mastra, generate } = buildMastra([
             { query: 'from:farmacia.test newer_than:30d' },
             { label: 'clasificado-error' },
         ])
 
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(config, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         expect(generate.mock.calls[1][0]).toContain('no pudimos completar el envio')
@@ -78,15 +78,15 @@ describe('InboxClassifier con fixtures .eml reales', () => {
     })
 
     it('parsea la parte HTML separando celdas de tabla con espacios', async () => {
-        const payload = await emlToGmailPayload('mail-html.eml', 'html')
+        const { payload } = await emlToGmailMessage(fixtureUrl('mail-html.eml'))
         const { gmail } = buildGmail(payload)
         const { mastra, generate } = buildMastra([
             { query: 'from:farmacia.test newer_than:30d' },
             { label: 'clasificado-otro' },
         ])
 
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(config, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         const prompt = generate.mock.calls[1][0] as string
@@ -97,15 +97,15 @@ describe('InboxClassifier con fixtures .eml reales', () => {
     })
 
     it('quita el texto citado de un mail con respuesta', async () => {
-        const payload = await emlToGmailPayload('mail-con-quoted.eml')
+        const { payload } = await emlToGmailMessage(fixtureUrl('mail-con-quoted.eml'))
         const { gmail } = buildGmail(payload)
         const { mastra, generate } = buildMastra([
             { query: 'from:farmacia.test newer_than:30d' },
             { label: 'clasificado-otro' },
         ])
 
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(config, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         const prompt = generate.mock.calls[1][0] as string
@@ -114,15 +114,15 @@ describe('InboxClassifier con fixtures .eml reales', () => {
     })
 
     it('cae en el catch-all para un mail genérico', async () => {
-        const payload = await emlToGmailPayload('mail-generico.eml')
+        const { payload } = await emlToGmailMessage(fixtureUrl('mail-generico.eml'))
         const { gmail, modify } = buildGmail(payload)
         const { mastra } = buildMastra([
             { query: 'from:farmacia.test newer_than:30d' },
             { label: 'clasificado-otro' },
         ])
 
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(config, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         expect(modify).toHaveBeenCalledWith({

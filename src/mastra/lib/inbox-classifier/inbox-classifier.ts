@@ -28,10 +28,12 @@ export function toHandleResult(result: { ok: boolean; reason?: string }): Handle
 
 export type ClassifierOutcome = {
     label: string
-    description: string
-    // Si el outcome tiene datos que extraer del mail (ej: fecha de entrega), el schema
+    // Cómo decide el LLM si el mail corresponde a este outcome.
+    classification: { description: string }
+    // Presente solo si hay datos que extraer del mail. `instructions` guía la extracción
+    // (separada de la descripción de clasificación para no confundir al modelo) y el schema
     // valida la extracción antes de que llegue a handle().
-    extract?: z.ZodType
+    extraction?: { instructions: string; schema: z.ZodType }
     // Ausente en el catch-all: ahí no hay nada que hacer más que etiquetar. Presente en
     // los outcomes que tienen que tocar un workflow.
     handle?: (ctx: HandleContext) => Promise<HandleResult>
@@ -43,28 +45,34 @@ export type InboxClassifierConfig = {
 }
 
 export class InboxClassifier {
-    private query: string | undefined
+    initialized = false
+    private mastra!: Mastra
+    private query!: string
     private readonly gmail: GmailClient
 
     constructor(
-        private readonly mastra: Mastra,
         private readonly config: InboxClassifierConfig,
         gmailClientOverride?: GmailClient,
     ) {
         this.gmail = gmailClientOverride ?? getGmailClient()
     }
 
-    async init(): Promise<void> {
-        const translated = await translateQuery(this.mastra, this.config.queryDescription)
+    // Idempotente: la instancia puede declararse a nivel de módulo (donde `mastra` todavía
+    // no existe) y llamarse init(mastra) en cada ejecución; solo la primera hace trabajo.
+    async init(mastra: Mastra): Promise<void> {
+        if (this.initialized) return
+        this.mastra = mastra
+        const translated = await translateQuery(mastra, this.config.queryDescription)
         // La idempotencia no puede depender de que el modelo se acuerde de excluir las
         // etiquetas ya aplicadas: eso lo agrega el código, una vez, después de traducir.
         const exclusions = [...this.config.outcomes.map(o => `-label:${o.label}`), `-label:${FAILED_LABEL}`]
         this.query = [translated, ...exclusions].join(' ')
+        this.initialized = true
         console.info(`[inbox-classifier] query traducida: ${this.query}`)
     }
 
     async run(): Promise<void> {
-        if (this.query === undefined) throw new Error('InboxClassifier: llamá a init() antes de run()')
+        if (!this.initialized) throw new Error('InboxClassifier: llamá a init() antes de run()')
 
         const { data } = await this.gmail.users.messages.list({ userId: 'me', q: this.query })
         // Gmail's messages.list devuelve de más nuevo a más viejo y no tiene parámetro de orden
@@ -91,7 +99,7 @@ export class InboxClassifier {
         const outcome = this.config.outcomes.find(o => o.label === outcomeLabel)
         if (!outcome) throw new Error(`clasificación devolvió un label desconocido: ${outcomeLabel}`)
 
-        const data = outcome.extract ? await extract(this.mastra, text, outcome.extract) : undefined
+        const data = outcome.extraction ? await extract(this.mastra, text, outcome.extraction) : undefined
 
         if (outcome.handle) {
             const result = await outcome.handle({ mastra: this.mastra, text, yearMonth, data })
@@ -152,7 +160,7 @@ async function classify(mastra: Mastra, text: string, outcomes: ClassifierOutcom
     const schema = z.object({ label: z.enum(labels) })
     const prompt = `Clasificá este mail contra los siguientes resultados posibles. Elegí exactamente uno.
 
-${outcomes.map(o => `- ${o.label}: ${o.description}`).join('\n')}
+${outcomes.map(o => `- ${o.label}: ${o.classification.description}`).join('\n')}
 
 Mail:
 ${text}`
@@ -160,9 +168,16 @@ ${text}`
     return schema.parse(response.object).label
 }
 
-async function extract(mastra: Mastra, text: string, schema: z.ZodType): Promise<unknown> {
+async function extract(
+    mastra: Mastra,
+    text: string,
+    extraction: { instructions: string; schema: z.ZodType },
+): Promise<unknown> {
     const agent = mastra.getAgent('inboxClassifier')
-    const prompt = `Extraé del mail los datos pedidos. Si no podés completar un campo con confianza, no inventes un valor.
+    const { schema } = extraction
+    const prompt = `${extraction.instructions}
+
+Si no podés completar un campo con confianza, no inventes un valor.
 
 Mail:
 ${text}`

@@ -41,8 +41,8 @@ function buildMastra(responses: unknown[]) {
 const config: InboxClassifierConfig = {
     queryDescription: 'mails de proveedores de farmacia de los últimos 30 días',
     outcomes: [
-        { label: 'clasificado-pedido', description: 'confirma una entrega' },
-        { label: 'clasificado-otro', description: 'catch-all: cualquier otra cosa' },
+        { label: 'clasificado-pedido', classification: { description: 'confirma una entrega' } },
+        { label: 'clasificado-otro', classification: { description: 'catch-all: cualquier otra cosa' } },
     ],
 }
 
@@ -56,8 +56,8 @@ describe('InboxClassifier', () => {
             { label: 'clasificado-pedido' },
         ])
 
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(config, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         expect(list).toHaveBeenCalledWith({ userId: 'me', q: expectedQuery })
@@ -79,8 +79,8 @@ describe('InboxClassifier', () => {
             { label: 'clasificado-pedido' },
         ])
 
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(config, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         expect(labelsCreate).toHaveBeenCalledWith({
@@ -106,8 +106,8 @@ describe('InboxClassifier', () => {
             { label: 'clasificado-pedido' },
         ])
 
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(config, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         expect(generate.mock.calls[1][0]).toContain('contenido de viejo')
@@ -127,8 +127,8 @@ describe('InboxClassifier', () => {
         const { mastra } = buildMastra([{ query: 'q' }, { label: 'clasificado-pedido' }])
         const error = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(config, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         expect(error).toHaveBeenCalledWith(expect.stringContaining('m1'), expect.any(Error))
@@ -147,9 +147,7 @@ describe('InboxClassifier', () => {
 
     it('lanza si se llama run() antes de init()', async () => {
         const { gmail } = buildGmail()
-        const { mastra } = buildMastra([])
-
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
+        const classifier = new InboxClassifier(config, gmail)
 
         await expect(classifier.run()).rejects.toThrow('llamá a init()')
     })
@@ -161,8 +159,8 @@ describe('InboxClassifier', () => {
         const configWithExtract: InboxClassifierConfig = {
             queryDescription: 'x',
             outcomes: [
-                { label: 'clasificado-pedido', description: 'confirma una entrega', extract: extractSchema, handle },
-                { label: 'clasificado-otro', description: 'catch-all' },
+                { label: 'clasificado-pedido', classification: { description: 'confirma una entrega' }, extraction: { instructions: 'Extraé la fecha de entrega.', schema: extractSchema }, handle },
+                { label: 'clasificado-otro', classification: { description: 'catch-all' } },
             ],
         }
         const { mastra, generate } = buildMastra([
@@ -171,8 +169,8 @@ describe('InboxClassifier', () => {
             { deliveryDate: '2026-08-01' },
         ])
 
-        const classifier = new InboxClassifier(mastra as never, configWithExtract, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(configWithExtract, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         expect(generate).toHaveBeenCalledTimes(3)
@@ -193,8 +191,8 @@ describe('InboxClassifier', () => {
         const labelsList = (gmail as { users: { labels: { list: ReturnType<typeof vi.fn> } } }).users.labels.list
         labelsList.mockResolvedValue({ data: { labels: [{ id: 'L2', name: 'clasificado-otro' }] } })
 
-        const classifier = new InboxClassifier(mastra as never, config, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(config, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         expect(generate).toHaveBeenCalledTimes(2)
@@ -211,14 +209,14 @@ describe('InboxClassifier', () => {
         const configWithHandle: InboxClassifierConfig = {
             queryDescription: 'x',
             outcomes: [
-                { label: 'clasificado-pedido', description: 'confirma una entrega', handle },
-                { label: 'clasificado-otro', description: 'catch-all' },
+                { label: 'clasificado-pedido', classification: { description: 'confirma una entrega' }, handle },
+                { label: 'clasificado-otro', classification: { description: 'catch-all' } },
             ],
         }
         const { mastra } = buildMastra([{ query: 'q' }, { label: 'clasificado-pedido' }])
 
-        const classifier = new InboxClassifier(mastra as never, configWithHandle, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(configWithHandle, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         expect(handle).toHaveBeenCalled()
@@ -236,8 +234,8 @@ describe('InboxClassifier', () => {
         const configWithExtract: InboxClassifierConfig = {
             queryDescription: 'x',
             outcomes: [
-                { label: 'clasificado-pedido', description: 'confirma una entrega', extract: extractSchema, handle },
-                { label: 'clasificado-otro', description: 'catch-all' },
+                { label: 'clasificado-pedido', classification: { description: 'confirma una entrega' }, extraction: { instructions: 'Extraé la fecha de entrega.', schema: extractSchema }, handle },
+                { label: 'clasificado-otro', classification: { description: 'catch-all' } },
             ],
         }
         const { mastra } = buildMastra([
@@ -247,8 +245,8 @@ describe('InboxClassifier', () => {
         ])
         const error = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-        const classifier = new InboxClassifier(mastra as never, configWithExtract, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(configWithExtract, gmail)
+        await classifier.init(mastra as never)
         await classifier.run()
 
         expect(handle).not.toHaveBeenCalled()
@@ -265,15 +263,15 @@ describe('InboxClassifier', () => {
         const configWithMore: InboxClassifierConfig = {
             queryDescription: 'x',
             outcomes: [
-                { label: 'a', description: 'a' },
-                { label: 'b', description: 'b' },
-                { label: 'c', description: 'c' },
+                { label: 'a', classification: { description: 'a' } },
+                { label: 'b', classification: { description: 'b' } },
+                { label: 'c', classification: { description: 'c' } },
             ],
         }
         const { mastra } = buildMastra([{ query: 'base query' }])
 
-        const classifier = new InboxClassifier(mastra as never, configWithMore, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(configWithMore, gmail)
+        await classifier.init(mastra as never)
 
         expect((classifier as unknown as { query: string }).query)
             .toBe('base query -label:a -label:b -label:c -label:mostro/failed')

@@ -72,16 +72,17 @@ an `InboxClassifier` (`src/mastra/lib/inbox-classifier/`) configured per domain.
 3. If the chosen outcome declares an `extract` schema, a second agent call pulls the structured
    fields (delivery date, address, amounts) and validates them against that schema — extraction is
    a separate call from classification, not a single call with a unioned schema across outcomes.
-4. If the outcome declares a `handle` function, it resolves the open workflow run for that domain
-   (trying the mail's month, then the previous one — see the known limitation below) and resumes
-   the suspended step. The catch-all outcome (`mostro/*/otro`) has no `handle`; it only gets labeled.
+4. If the outcome declares a `handle` function, it resolves the mail's year-month deterministically
+   from the oldest `X-Received` header (the sender's original send time, not Gmail's delivery time
+   to this inbox), looks up the workflow run suspended for that year-month, and resumes the
+   suspended step. The catch-all outcome (`mostro/*/otro`) has no `handle`; it only gets labeled.
 5. Labels the mail with the outcome it was classified as, or `mostro/failed` if the handler
    returned failure (no matching open run, resume rejected, etc.). A broken mail is caught
    individually — one failure never stops the rest of the batch.
 
 **Why classification and workflow advancement are split:** the model only ever answers "what is
 this mail" and "with what data" — it never decides which workflow run or step to touch. That
-stays in code (`resumeOpenRun` + the domain's `*-run.ts` resume functions), so a misclassification
+stays in code (`resolveMailYearMonth` + the domain's `*-run.ts` resume functions), so a misclassification
 can, at worst, mislabel a mail; it can't corrupt a run's state. The resume schemas' date regexes
 are the last line of defense: if extraction doesn't validate, the mail is labeled `mostro/failed`
 without ever reaching the workflow.
@@ -104,11 +105,37 @@ There is currently no automatic retry for failed mail and no Telegram notice whe
 `mostro/failed` — both existed in an earlier implementation and were deliberately dropped along
 with it; they'll be rebuilt with a different approach later (see `docs/superpowers/followups.md`).
 
-**Known limitation:** a reply is checked against the mail's own month first and the previous month
-second (see [Mailbox Polling](#mailbox-polling) above). If an order is already open for the new
-month, a late reply about the previous month's order can be evaluated against the wrong run. The
-real fix is tying each mail thread to the run that sent it — storing the outbound mail's
-`threadId` in the workflow state — which is not implemented yet.
+#### Dry-running a `.eml` against a domain's classifier
+
+`pnpm classify:eml -- --domain <diapers|meds|refunds> <path-to.eml>` runs a single local `.eml`
+file through that domain's real `InboxClassifier` and prints what the poller would have done with
+it: the Gmail query it would have used, the outcome the agent picked, the data it extracted (if
+any), and the label it would have applied. Add `--json` for machine-readable output.
+
+The `.eml` is converted into the same MIME part tree that `users.messages.get({format:'full'})`
+returns from Gmail (mime type, headers, base64url body, `parts` for multipart messages), so
+`stripMailBody` picks the text/plain-or-HTML branch itself instead of the CLI choosing for it,
+exactly like it does for the poller.
+
+**This is a dry run by design: it never reads or writes anything in the actual mailbox, and it
+never resumes a workflow.** The Gmail client is faked in-memory from the `.eml` file, and every
+outcome's `handle` is replaced by a spy that reports what it would have done instead of touching a
+workflow run. Running the real `handle()` functions end-to-end isn't possible from a standalone
+script yet — that needs the full `Mastra` instance (workflows + Mongo storage), and importing
+`src/mastra/index.ts` today runs side effects (`mongoose.connect`, the ngrok tunnel, the admin
+seed, Telegram registration) just by being imported. See `docs/superpowers/followups.md` for the
+follow-up on lifting those into an explicit startup function.
+
+To exercise the deterministic year-month resolution from the `X-Received` header, use a `.eml`
+downloaded for real from Gmail ("Download message") — the fixtures under `tests/fixtures/mails/`
+are synthetic and don't carry `X-Received` headers, so the CLI falls back to the mail's `Date`
+header with them.
+
+**Known limitation:** the `X-Received` resolution assumes the run for that year-month is still
+suspended when the reply arrives. If a new order for the next month is already open by the time a
+late reply about the previous month shows up, resolution is still correct (it targets the mail's
+own month), but the real fix for cross-thread mixups is tying each mail thread to the run that sent
+it — storing the outbound mail's `threadId` in the workflow state — which is not implemented yet.
 
 ## Tech Stack
 
