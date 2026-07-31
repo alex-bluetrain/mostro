@@ -4,6 +4,6 @@ import { z } from 'zod'
 // webhook confiable, sino también una extracción de LLM. El regex evita que una fecha
 // mal formateada llegue a toUnix() y deje el run en `failed` sin forma de reanudarlo.
 export const waitMedsConfirmationResumeSchema = z.object({
-    deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'la fecha debe tener el formato YYYY-MM-DD'),
-    deliveryAddress: z.string(),
+    deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'la fecha debe tener el formato YYYY-MM-DD').describe('fecha de entrega en formato YYYY-MM-DD'),
+    deliveryAddress: z.string().describe('domicilio de entrega completo'),
 })

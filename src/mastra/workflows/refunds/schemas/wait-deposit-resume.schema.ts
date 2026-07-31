@@ -4,6 +4,6 @@ import { z } from 'zod'
 // webhook confiable, sino también una extracción de LLM. El regex evita que una fecha
 // mal formateada llegue a toUnix() y deje el run en `failed` sin forma de reanudarlo.
 export const waitDepositResumeSchema = z.object({
-    depositAmount: z.number(),
-    depositDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'la fecha debe tener el formato YYYY-MM-DD'),
+    depositAmount: z.number().describe('monto depositado en pesos, sin símbolo de moneda'),
+    depositDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'la fecha debe tener el formato YYYY-MM-DD').describe('fecha del depósito en formato YYYY-MM-DD'),
 })
