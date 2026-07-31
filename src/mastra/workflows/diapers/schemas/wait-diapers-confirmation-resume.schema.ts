@@ -8,7 +8,7 @@ import { z } from 'zod'
 // fallido. El regex hace que el modelo (con structured output estricto) la rechace antes
 // de tocar el run: el mail cae a mostro-failed y el mes sobrevive intacto.
 export const waitDiapersConfirmationResumeSchema = z.object({
-    deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'la fecha debe tener el formato YYYY-MM-DD'),
-    deliveryAddress: z.string(),
-    quantity: z.number(),
+    deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'la fecha debe tener el formato YYYY-MM-DD').describe('fecha de entrega en formato YYYY-MM-DD'),
+    deliveryAddress: z.string().describe('domicilio de entrega completo'),
+    quantity: z.number().describe('cantidad de pañales, número entero'),
 })

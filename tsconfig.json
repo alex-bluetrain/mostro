@@ -20,5 +20,5 @@
       "@workflows/*": [ "./src/mastra/workflows/*" ]
     }
   },
-  "include": [ "src/**/*", "tests/**/*" ]
+  "include": [ "src/**/*", "tests/**/*", "scripts/**/*" ]
 }

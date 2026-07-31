@@ -17,7 +17,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gmail:auth": "node --env-file=.env scripts/gmail-authorize.mjs"
+    "gmail:auth": "node --env-file=.env scripts/gmail-authorize.mjs",
+    "classify:eml": "node --env-file=.env --import tsx scripts/classify-eml.ts"
   },
   "dependencies": {
     "@chat-adapter/telegram": "^4.32.0",
@@ -44,6 +45,7 @@
     "@types/node": "^26.1.0",
     "mailparser": "^3.7.4",
     "mastra": "^1.17.0",
+    "tsx": "^4.23.1",
     "typescript": "^6.0.3",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10"

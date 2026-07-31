@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { Mastra } from '@mastra/core/mastra'
 import { InboxClassifier, type InboxClassifierConfig } from '@lib/inbox-classifier/inbox-classifier'
 import { inboxClassifierAgent } from '@agents/inbox-classifier-agent'
-import { emlToGmailPayload } from './fixtures/eml-to-gmail-payload'
+import { emlToGmailMessage, fixtureUrl } from './fixtures/eml-to-gmail-message'
 
 const hasKey = Boolean(process.env.OPENROUTER_API_KEY) && process.env.OPENROUTER_API_KEY !== 'test-key'
 
@@ -35,9 +35,9 @@ function buildGmail(payload: unknown) {
 const config: InboxClassifierConfig = {
     queryDescription: 'mails de proveedores de farmacia de los últimos 30 días',
     outcomes: [
-        { label: 'clasificado-entrega', description: 'confirma que una entrega se realizó con éxito' },
-        { label: 'clasificado-error', description: 'informa un problema o error con un envío' },
-        { label: 'clasificado-otro', description: 'catch-all: cualquier otra cosa' },
+        { label: 'clasificado-entrega', classification: { description: 'confirma que una entrega se realizó con éxito' } },
+        { label: 'clasificado-error', classification: { description: 'informa un problema o error con un envío' } },
+        { label: 'clasificado-otro', classification: { description: 'catch-all: cualquier otra cosa' } },
     ],
 }
 
@@ -53,11 +53,11 @@ describe.skipIf(!hasKey)('InboxClassifier (integración)', () => {
         ['mail-con-quoted.eml', 'clasificado-otro'],
         ['mail-generico.eml', 'clasificado-otro'],
     ])('clasifica %s como %s', async (fixture, expectedLabel) => {
-        const payload = await emlToGmailPayload(fixture, fixture === 'mail-html.eml' ? 'html' : undefined)
+        const { payload } = await emlToGmailMessage(fixtureUrl(fixture))
         const { gmail, modify } = buildGmail(payload)
 
-        const classifier = new InboxClassifier(mastra, config, gmail)
-        await classifier.init()
+        const classifier = new InboxClassifier(config, gmail)
+        await classifier.init(mastra)
         await classifier.run()
 
         const [{ requestBody }] = modify.mock.calls[0]
@@ -66,14 +66,14 @@ describe.skipIf(!hasKey)('InboxClassifier (integración)', () => {
     }, 60_000)
 
     it('traduce la query en lenguaje natural a sintaxis de Gmail', async () => {
-        const payload = await emlToGmailPayload('confirmacion-entrega.eml')
+        const { payload } = await emlToGmailMessage(fixtureUrl('confirmacion-entrega.eml'))
         const { gmail, list } = buildGmail(payload)
-        const classifier = new InboxClassifier(mastra, {
+        const classifier = new InboxClassifier({
             queryDescription: 'mails de farmacia@proveedor.test de los últimos 30 días',
             outcomes: config.outcomes,
         }, gmail)
 
-        await classifier.init()
+        await classifier.init(mastra)
         await classifier.run()
 
         expect(list).toHaveBeenCalledWith(expect.objectContaining({
