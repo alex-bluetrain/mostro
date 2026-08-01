@@ -165,7 +165,7 @@ end note
 | Workflow de polling | `src/mastra/workflows/diapers-poll/diapers-poll.workflow.ts` | `schedule` cron cada 15 min; envuelve el `InboxClassifier` del dominio en un step |
 | Config del classifier | `src/mastra/workflows/diapers-poll/diapers-inbox.classifier.ts` | Describe en lenguaje natural qué mails importan y qué hacer con cada outcome (`extract` + `handle`) |
 | Steps | `src/mastra/workflows/diapers/steps/*.ts` | Lógica de cada etapa del pedido |
-| Motor de clasificación (compartido) | `src/mastra/lib/inbox-classifier/{inbox-classifier,strip-mail-body,resume-open-run,classifier-step}.ts` | Traducir la query una vez, listar, limpiar cuerpo, clasificar, extraer si corresponde, llamar `handle`, etiquetar — compartido por diapers/meds/refunds. Qué hacer con cada outcome es 100% de cada dominio (`*-inbox.classifier.ts`) |
+| Motor de clasificación (compartido) | `src/mastra/lib/inbox-classifier/{inbox-classifier,strip-mail-body,resume-open-run}.ts` | Traducir la query una vez, listar, limpiar cuerpo, clasificar, extraer si corresponde, llamar `handle`, etiquetar — compartido por diapers/meds/refunds. Qué hacer con cada outcome es 100% de cada dominio (`*-inbox.classifier.ts`) |
 | Helpers de ejecución | `src/mastra/lib/diapers-run.ts` | `readDiapersStatus`, `startDiapers`, `confirmDiapersDate` — la capa de resume, sin cambios: mismo guard de run existente + suspendido + step correcto |
 | Suscriptores | `src/business/repositories/subscriber.repository.ts` (`subscriberRepository`) | Lista de emails suscriptos por dominio, persistida en MongoDB |
 | Storage | `MongoDBStore` (vía `MastraCompositeStore` en `src/mastra/index.ts`) | Persiste estado/run del workflow |
