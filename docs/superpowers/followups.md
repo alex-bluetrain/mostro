@@ -42,6 +42,12 @@ Origen: review final de la rama que agrega el handler `/start` de canje de invit
 - [ ] Cosmético: `post(INVALID_INVITE_MESSAGE)` se repite tres veces; el literal `validInvite` en `tests/telegram-start.test.ts` es largo y podría extraerse a un fixture.
 - [ ] Los invites pendientes no se dedupean ni son revocables: invitar dos veces al mismo email genera dos códigos válidos de 7 días en paralelo (ninguno invalida al otro). El spec deja la revocación fuera de alcance a propósito; si hace falta, agregar un paso que invalide invites previos sin usar del mismo email al crear uno nuevo.
 
+## Diferidos del CLI `classify-eml` (2026-07-30)
+
+Origen: `.mastracode/plans/classify-eml-cli.md`. CLI de diagnóstico que corre un `.eml` local contra el `InboxClassifier` real de un dominio en seco (`scripts/classify-eml.ts`, `pnpm classify:eml`).
+
+- [ ] Correr los `handle()` reales desde `classify-eml` (en vez del espía que solo reporta) requiere el `Mastra` completo con workflows y storage de Mongo. Hoy `src/mastra/index.ts` dispara efectos apenas se importa (`mongoose.connect`, el túnel de ngrok, el seed del admin, el registro de Telegram), así que un script suelto no puede importarlo sin arrancar todo eso. Sacar esos efectos a una función de arranque explícita (algo como `bootstrapMostro()` llamado solo desde el entrypoint real) habilitaría un modo `--run-handlers` de punta a punta en el CLI.
+
 ## Futuro (fuera de alcance por decisión de spec)
 
 - ~~Identidad canónica cross-canal~~ → hecho el 2026-07-22 (spec `2026-07-22-canonical-identity-design.md`): email de Google como ID canónico, invites nominados, `resolveResourceId` en DMs. Queda para el futuro: otros proveedores de identidad, cambio de email de un usuario (migración manual), cache en `authorizeUser` si el login se pone lento.
