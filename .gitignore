@@ -1,6 +1,7 @@
 output.txt
 node_modules
 dist
+.mastracode
 .mastra
 .env.development
 .env
