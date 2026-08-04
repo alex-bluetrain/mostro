@@ -1,7 +1,7 @@
 # Mostro
 
 <p align="center">
-  <img src="mostro.png" alt="Mostro"/>
+  <img src="img/agents.png" alt="Mostro"/>
 </p>
 
 A multi-agent Telegram bot for managing recurring family orders — diapers, medications, and refunds — built with [Mastra](https://mastra.ai/).
@@ -59,90 +59,44 @@ Each domain workflow follows a request → wait → notify pattern with mailbox-
 ### Mailbox Polling
 
 There is no inbound webhook for suppliers to call. Instead, one poll workflow per domain
-(`diapers-poll`, `meds-poll`, `refunds-poll`) runs on a 15-minute Mastra `schedule`, each wrapping
-an `InboxClassifier` (`src/mastra/lib/inbox-classifier/`) configured per domain. Each cycle:
+(`diapers-poll`, `meds-poll`, `refunds-poll`) runs on a 15-minute Mastra `schedule`. Each cycle
+orchestrates three independent modules:
 
-1. Translates a natural-language `queryDescription` ("mails from the pharmacy in the last 30
-   days") into Gmail search syntax once, the first time the classifier runs, then reuses it —
-   the code appends a `-label:<outcome>` exclusion for every possible outcome plus `-label:mostro/failed`,
-   so idempotence never depends on the model remembering to exclude already-handled mail.
-2. For each matching mail, oldest first: cleans the body (`cheerio` for HTML, `email-reply-parser`
-   to strip quoted replies), then asks the classifier agent to pick exactly one outcome from the
-   domain's list (e.g. `mostro/meds/acuse`, `mostro/meds/entrega`, `mostro/meds/otro`).
-3. If the chosen outcome declares an `extract` schema, a second agent call pulls the structured
-   fields (delivery date, address, amounts) and validates them against that schema — extraction is
-   a separate call from classification, not a single call with a unioned schema across outcomes.
-4. If the outcome declares a `handle` function, it resolves the mail's year-month deterministically
-   from the oldest `X-Received` header (the sender's original send time, not Gmail's delivery time
-   to this inbox), looks up the workflow run suspended for that year-month, and resumes the
-   suspended step. The catch-all outcome (`mostro/*/otro`) has no `handle`; it only gets labeled.
-5. Labels the mail with the outcome it was classified as, or `mostro/failed` if the handler
-   returned failure (no matching open run, resume rejected, etc.). A broken mail is caught
-   individually — one failure never stops the rest of the batch.
+1. **`inbox-manager`** (`src/mastra/lib/inbox-manager/`) — the only module that talks to Gmail.
+   Translates a natural-language query description into Gmail search syntax once, fetches
+   unprocessed replies (anything without an `outcome.*` status label), and applies labels.
+2. **`mail-classifier`** (`src/mastra/lib/mail-classifier/`) — classifies each mail and extracts
+   structured data via LLM, driven by **versioned classification rules stored in MongoDB**, read
+   fresh on every cycle — publish a new rules snapshot and the next cycle picks it up, no redeploy.
+3. **`outcome-processor`** (`src/mastra/lib/outcome-processor/`) — runs the side effect registered
+   in code for the classified label (resuming the matching suspended workflow run).
 
-**Why classification and workflow advancement are split:** the model only ever answers "what is
-this mail" and "with what data" — it never decides which workflow run or step to touch. That
-stays in code (`resolveMailYearMonth` + the domain's `*-run.ts` resume functions), so a misclassification
-can, at worst, mislabel a mail; it can't corrupt a run's state. The resume schemas' date regexes
-are the last line of defense: if extraction doesn't validate, the mail is labeled `mostro/failed`
-without ever reaching the workflow.
+Every processed mail ends up with two orthogonal labels: what it is (e.g. `diapers.confirmed`,
+from the MongoDB rules) and how processing went (`outcome.completed` / `outcome.failed` /
+`outcome.review`). Mails without a status label are picked up again on the next cycle
+(at-least-once semantics).
+
+Classification rules are seeded from JSON files kept **outside the repo** (they contain sensitive
+data): `pnpm seed:classifier -- --domain <domain> --file <path> --author <name> --changelog <text>`.
+
+See [docs/inbox-pipeline.md](docs/inbox-pipeline.md) for the full architecture — module
+responsibilities, label semantics, MongoDB snapshot versioning, orchestration, and operational
+notes — and [docs/clasificador.md](docs/clasificador.md) for the rules JSON format.
 
 The three poll workflows still run every 15 minutes each, but on offset minutes
 (`diapers-poll` at `2,17,32,47`, `meds-poll` at `7,22,37,52`, `refunds-poll` at `12,27,42,57`) so
 the three domains don't hit the Gmail API at the same instant.
 
-**Before enabling the pollers for the first time (or when upgrading from the old label
-scheme)**, bulk-apply the `mostro/failed` label in Gmail to every mail carrying the legacy
-`mostro-processed` or `mostro-failed` labels from the last 30 days, then delete those two labels.
-The new query doesn't know about the old labels, so skipping this step makes the first cycle
-reprocess a month of already-handled mail and attempt to resume workflows with stale confirmations.
-
 **When upgrading an already-deployed instance**, re-run `pnpm run gmail:auth`. An existing refresh
 token minted before polling only carries the `gmail.send` scope; the pollers need `gmail.modify`
 to read replies and apply labels. Without the new scope the poller gets a 403 every 15 minutes.
-
-There is currently no automatic retry for failed mail and no Telegram notice when a mail lands in
-`mostro/failed` — both existed in an earlier implementation and were deliberately dropped along
-with it; they'll be rebuilt with a different approach later (see `docs/superpowers/followups.md`).
-
-#### Dry-running a `.eml` against a domain's classifier
-
-`pnpm classify:eml -- --domain <diapers|meds|refunds> <path-to.eml>` runs a single local `.eml`
-file through that domain's real `InboxClassifier` and prints what the poller would have done with
-it: the Gmail query it would have used, the outcome the agent picked, the data it extracted (if
-any), and the label it would have applied. Add `--json` for machine-readable output.
-
-The `.eml` is converted into the same MIME part tree that `users.messages.get({format:'full'})`
-returns from Gmail (mime type, headers, base64url body, `parts` for multipart messages), so
-`stripMailBody` picks the text/plain-or-HTML branch itself instead of the CLI choosing for it,
-exactly like it does for the poller.
-
-**This is a dry run by design: it never reads or writes anything in the actual mailbox, and it
-never resumes a workflow.** The Gmail client is faked in-memory from the `.eml` file, and every
-outcome's `handle` is replaced by a spy that reports what it would have done instead of touching a
-workflow run. Running the real `handle()` functions end-to-end isn't possible from a standalone
-script yet — that needs the full `Mastra` instance (workflows + Mongo storage), and importing
-`src/mastra/index.ts` today runs side effects (`mongoose.connect`, the ngrok tunnel, the admin
-seed, Telegram registration) just by being imported. See `docs/superpowers/followups.md` for the
-follow-up on lifting those into an explicit startup function.
-
-To exercise the deterministic year-month resolution from the `X-Received` header, use a `.eml`
-downloaded for real from Gmail ("Download message") — the fixtures under `tests/fixtures/mails/`
-are synthetic and don't carry `X-Received` headers, so the CLI falls back to the mail's `Date`
-header with them.
-
-**Known limitation:** the `X-Received` resolution assumes the run for that year-month is still
-suspended when the reply arrives. If a new order for the next month is already open by the time a
-late reply about the previous month shows up, resolution is still correct (it targets the mail's
-own month), but the real fix for cross-thread mixups is tying each mail thread to the run that sent
-it — storing the outbound mail's `threadId` in the workflow state — which is not implemented yet.
 
 ## Tech Stack
 
 - **[Mastra](https://mastra.ai/)** — AI agent framework (agents, workflows, tools, memory, observability)
 - **[DeepSeek v4 Flash](https://deepseek.com/)** via OpenRouter — LLM provider
 - **[@chat-adapter/telegram](https://www.npmjs.com/package/@chat-adapter/telegram)** — Telegram bot integration
-- **MongoDB** — workflow state, agent memory, users, and invites
+- **MongoDB** — workflow state, agent memory, users, invites, and classification rules
 - **DuckDB** — observability and tracing
 - **ngrok** — tunnel for Telegram's webhook delivery
 - **Zod** — schema validation
@@ -248,11 +202,11 @@ if you ever open the login to people outside the household.
       server's `.env` and is treated as confidential.)
    4. Add the `https://www.googleapis.com/auth/gmail.send` and
       `https://www.googleapis.com/auth/gmail.modify` scopes. Sending only needs `gmail.send`;
-      `gmail.modify` is what lets the poll workflows read replies and apply the outcome labels
-      (e.g. `mostro/meds/entrega`) and `mostro/failed`. Gmail doesn't offer a scope narrower than
-      "the whole mailbox" — the poller's containment is in code (a per-domain query description,
-      fixed resume functions per outcome), not in the OAuth grant.
-   5. **Publish the app to production.** In *Testing* mode the refresh token is invalidated
+      `gmail.modify` is what lets the poll workflows read replies and apply the classification and
+      status labels (e.g. `diapers.confirmed`, `outcome.completed`). Gmail doesn't offer a scope
+      narrower than "the whole mailbox" — the poller's containment is in code (a per-domain query
+      description, fixed resume functions per outcome), not in the OAuth grant.
+   5. **Publish the app to production.** In _Testing_ mode the refresh token is invalidated
       after 7 days and sends (and polling) start failing. Authorizing shows the "unverified app"
       screen, which you accept manually.
    6. Run `pnpm run gmail:auth` with the Mostro account and save the token in `.env`.
@@ -263,7 +217,7 @@ if you ever open the login to people outside the household.
    token to start the thing that gives you the token. The port number itself is arbitrary; it only
    has to match the redirect URI registered on the OAuth client.
 
-   The consent screen's user type must be **External** — *Internal* only exists for Google
+   The consent screen's user type must be **External** — _Internal_ only exists for Google
    Workspace organizations, and Mostro's account is a plain `@gmail.com` one. Publishing the app
    is not the same as getting it verified: you can publish without verification, and authorizing
    then shows the "Google hasn't verified this app" screen, which you accept manually.
@@ -273,7 +227,19 @@ if you ever open the login to people outside the household.
    fail with `invalid_grant`, and the mailer's error message says so — the fix is always to re-run
    `pnpm run gmail:auth`.
 
-4. Start the development server:
+4. Seed the classification rules (once per domain, and again whenever the rules change):
+
+   ```bash
+   pnpm seed:classifier -- --domain diapers --file <path-to-rules.json> --author "you" --changelog "initial seed"
+   ```
+
+   The rules JSON lives outside the repo (it contains sensitive supplier data). Start from the
+   per-domain templates in [docs/classifier-rules/](docs/classifier-rules/) — labels and extract
+   schemas already match the code — and fill in the `<...>` placeholders. Without a seeded
+   snapshot for a domain, that domain's poll cycle fails fast with a clear error. Format:
+   [docs/clasificador.md](docs/clasificador.md).
+
+5. Start the development server:
 
    ```bash
    pnpm run dev
@@ -284,36 +250,41 @@ if you ever open the login to people outside the household.
 ## Project Structure
 
 ```
-src/mastra/
-├── agents/                Domain agents + supervisor + inboxClassifierAgent
-├── tools/                 3 tools per domain (request, get-status, subscribe)
-├── workflows/             One directory per workflow (not per domain), suspend/resume workflows
-│   │                      with steps, schemas, and types
-│   ├── diapers/           diapers.workflow.ts
-│   ├── diapers-poll/      diapers-poll.workflow.ts (schedule, every 15 min) +
-│   │                      diapers-inbox.classifier.ts (domain outcomes/handlers)
-│   ├── meds/              meds.workflow.ts
-│   ├── meds-poll/         meds-poll.workflow.ts + meds-inbox.classifier.ts
-│   ├── refunds/           refunds.workflow.ts
-│   └── refunds-poll/      refunds-poll.workflow.ts + refunds-inbox.classifier.ts
-├── lib/
-│   ├── inbox-classifier/  Generic engine: reads Gmail, classifies + extracts via LLM,
-│   │                      applies labels, calls the outcome's handle() — reused by all
-│   │                      three domains through their classifier configs above
-│   ├── *-run.ts           Resume functions per domain, guarded by run + suspended + right step
-│   └── ...                Users, invites, telegram gate, Google auth, subscriber stores
-├── config/                Zod-validated environment configuration
-└── index.ts               Central registration (agents, workflows, storage)
+src/
+├── business/
+│   ├── models/            Mongoose models (users, invites, classifier snapshots + pointers)
+│   └── repositories/      Data access (classifier.repository: getActiveRules, publishSnapshot)
+└── mastra/
+    ├── agents/            Domain agents + supervisor + inboxClassifierAgent
+    ├── tools/             3 tools per domain (request, get-status, subscribe)
+    ├── workflows/         One directory per workflow (not per domain), suspend/resume workflows
+    │   │                  with steps, schemas, and types
+    │   ├── diapers/       diapers.workflow.ts
+    │   ├── diapers-poll/  diapers-poll.workflow.ts (schedule, every 15 min) +
+    │   │                  diapers-inbox.config.ts (query) + diapers-outcome-handlers.ts (label → handler)
+    │   ├── meds/          meds.workflow.ts
+    │   ├── meds-poll/     meds-poll.workflow.ts + meds-inbox.config.ts + meds-outcome-handlers.ts
+    │   ├── refunds/       refunds.workflow.ts
+    │   └── refunds-poll/  refunds-poll.workflow.ts + refunds-inbox.config.ts + refunds-outcome-handlers.ts
+    ├── lib/
+    │   ├── inbox-manager/     Gmail gateway: translates the query once, fetches replies, applies labels
+    │   ├── mail-classifier/   Classifies + extracts via LLM against MongoDB-stored rules (ajv-validated)
+    │   ├── outcome-processor/ Runs the handler registered in code for a classified label
+    │   ├── *-run.ts           Resume functions per domain, guarded by run + suspended + right step
+    │   └── ...                Users, invites, telegram gate, Google auth, subscriber stores
+    ├── config/            Zod-validated environment configuration
+    └── index.ts           Central registration (agents, workflows, storage)
 ```
 
 ## Scripts
 
-| Script                | Description                              |
-| --------------------- | ---------------------------------------- |
-| `pnpm run dev`        | Start development server with hot reload |
-| `pnpm run build`      | Build for production                     |
-| `pnpm run start`      | Start production server                  |
-| `pnpm run gmail:auth` | Get the Gmail refresh token (one-time)   |
+| Script                 | Description                                        |
+| ---------------------- | -------------------------------------------------- |
+| `pnpm run dev`         | Start development server with hot reload           |
+| `pnpm run build`       | Build for production                               |
+| `pnpm run start`       | Start production server                            |
+| `pnpm run gmail:auth`  | Get the Gmail refresh token (one-time)             |
+| `pnpm seed:classifier` | Publish a classification-rules snapshot to MongoDB |
 
 ## License
 

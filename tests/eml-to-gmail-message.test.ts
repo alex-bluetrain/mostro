@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { emlToGmailMessage, fixtureUrl } from './fixtures/eml-to-gmail-message'
-import { stripMailBody } from '@lib/inbox-classifier/strip-mail-body'
+import { stripMailBody } from '@lib/inbox-manager/strip-mail-body'
 
 // Este archivo protege el uso de la API interna `MailParser.tree` (ver comentario en
 // eml-to-gmail-message.ts): si un upgrade de mailparser cambia esa forma, estos asserts
