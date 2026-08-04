@@ -18,7 +18,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "gmail:auth": "node --env-file=.env scripts/gmail-authorize.mjs",
-    "classify:eml": "node --env-file=.env --import tsx scripts/classify-eml.ts"
+    "seed:classifier": "node --env-file=.env --import tsx scripts/seed-classifier.ts"
   },
   "dependencies": {
     "@chat-adapter/telegram": "^4.32.0",
@@ -33,6 +33,7 @@
     "@mastra/mongodb": "^1.11.1",
     "@mastra/observability": "^1.15.2",
     "@ngrok/ngrok": "^1.7.0",
+    "ajv": "^8.20.0",
     "cheerio": "^1.2.0",
     "email-reply-parser": "^2.3.9",
     "mongodb": "^7.5.0",

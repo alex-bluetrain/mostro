@@ -18,9 +18,13 @@ src/mastra/
 │   │             mail-extractor, poll-mailbox, poll-step, notify-mail-failure,
 │   │             retry-failed-mails):
 │   │             sin prefijo de dominio, porque lo consumen los tres <dominio>-poll.workflow.ts
-│   └── inbox-classifier/   módulo nuevo y aislado (InboxClassifier: constructor + ciclo
-│                 init/run, strip-mail-body): clasificador de inbox genérico, agnóstico de
-│                 cualquier dominio, sin relación de código con `lib/inbox/`
+│   ├── inbox-manager/      gateway a Gmail (InboxManager: init/fetch/applyLabel, strip-mail-body,
+│   │             resolve-mail-year-month): único módulo que habla con Gmail, agnóstico de
+│   │             cualquier dominio, sin relación de código con `lib/inbox/`
+│   ├── mail-classifier/    funciones puras de clasificación/extracción (classifyMail) contra
+│   │             reglas versionadas en Mongo (classification-rules.type)
+│   └── outcome-processor/  side effects por label (processOutcome) según registro
+│                 label → handler que aporta cada dominio (<dominio>-outcome-handlers.ts)
 ├── config/       <propósito>.config.ts
 ├── workflows/
 │   ├── <workflow-name>/             un directorio por workflow, no por dominio

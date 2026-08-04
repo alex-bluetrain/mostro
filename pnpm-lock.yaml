@@ -44,6 +44,9 @@ importers:
       '@ngrok/ngrok':
         specifier: ^1.7.0
         version: 1.7.0
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
       cheerio:
         specifier: ^1.2.0
         version: 1.2.0
