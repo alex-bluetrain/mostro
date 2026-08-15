@@ -33,7 +33,10 @@ await mongoose.connect(appConfig.MONGODB_URI, {
     dbName: appConfig.MONGODB_DB_NAME,
 });
 
-await startNgrokTunnel(port);
+// ngrok es solo para dev local: en producción (VM + Caddy) no hay authtoken.
+if (appConfig.NGROK_AUTHTOKEN) {
+    await startNgrokTunnel(port);
+}
 
 // Seed admin user
 if (appConfig.ADMIN_EMAIL) {
@@ -70,7 +73,7 @@ export const mastra = new Mastra({
             dbName: appConfig.MONGODB_DB_NAME,
         }),
         domains: {
-            observability: await new DuckDBStore().getStore('observability'),
+            observability: await new DuckDBStore({ path: appConfig.DUCKDB_PATH }).getStore('observability'),
         }
     }),
     logger: new PinoLogger({
