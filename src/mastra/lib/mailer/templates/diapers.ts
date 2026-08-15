@@ -1,22 +1,22 @@
+import { appConfig } from '@config/app.config'
 import { formatYearMonth } from '@lib/date-scope'
 
 export function diapersRequestEmail({
     size,
-    requestedBy,
     year,
     month,
 }: {
     size: 'M' | 'G' | 'XG'
-    requestedBy: string
     year: number
     month: number
 }): { subject: string; text: string } {
     const period = formatYearMonth(year, month)
-    // TODO: tomar estos const de variables de entorno
-    const patientName = "Juana Quintana";
-    const deliveryAddress = "Av. Maipu 1764, Retiro, CABA";
-    const requesterName = "Francisca Boloños";
-    const requesterPhoneNumber = "555-3039";
+    // Datos del caso, comunes a todos los flujos: quién recibe y quién firma el pedido
+    // ante el proveedor. No es el usuario que disparó el pedido por Telegram.
+    const patientName = appConfig.PATIENT_NAME
+    const deliveryAddress = appConfig.DELIVERY_ADDRESS
+    const requesterName = appConfig.REQUESTER_NAME
+    const requesterPhoneNumber = appConfig.REQUESTER_PHONE
     return {
         subject: `Pedido de pañales ${period}`,
         text: [

@@ -4,11 +4,12 @@ import { medsRequestEmail } from './meds'
 import { refundRequestEmail, depositConfirmedEmail } from './refunds'
 
 describe('diapersRequestEmail', () => {
-  it('states the size, the requester and the scoped month', () => {
-    const { subject, text } = diapersRequestEmail({ size: 'M', requestedBy: 'Ana', year: 2026, month: 7 })
+  it('states the size, the patient and the scoped month', () => {
+    const { subject, text } = diapersRequestEmail({ size: 'M', year: 2026, month: 7 })
     expect(subject).toBe('Pedido de pañales 2026-07')
     expect(text).toContain('Talle: M')
-    expect(text).toContain('Ana')
+    expect(text).toContain('Juana Quintana')
+    expect(text).toContain('Av. Maipu 1764')
   })
 })
 
