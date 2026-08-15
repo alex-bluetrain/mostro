@@ -1,0 +1,28 @@
+node_modules
+.mastra
+.git
+.gitignore
+.env
+.env.*
+*.log
+
+docs
+eml
+img
+secrets
+scripts
+
+tests
+**/*.test.ts
+vitest.config.ts
+
+Dockerfile
+.dockerignore
+AGENTS.md
+CLAUDE.md
+README.md
+
+# Bases de datos locales de dev (la DuckDB de dev pesa ~250MB).
+# `mastra build` copia src/mastra/public/ al output, pero hace early-return
+# si el directorio no existe, así que excluirlo entero es seguro.
+src/mastra/public/
