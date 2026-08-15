@@ -2,15 +2,14 @@ import type { Mastra } from '@mastra/core/mastra'
 import { createWorkflowStateReader } from '@mastra/core/workflows'
 import type { DiapersState } from '@workflows/diapers/types/diapers-state.type'
 import { getDiapersRunId } from '@workflows/diapers/utils/diapers.utils'
-import { getCurrentYearMonth } from './date-scope'
 
 function getDiapersWorkflow(mastra: Mastra) {
     return mastra.getWorkflow('diapersWorkflow')
 }
 
-export async function readDiapersStatus(mastra: Mastra, yearMonth: string = getCurrentYearMonth()) {
+export async function readDiapersStatus(mastra: Mastra, year: number, month: number) {
     const workflow = getDiapersWorkflow(mastra)
-    const run = await workflow.getWorkflowRunById(getDiapersRunId(yearMonth))
+    const run = await workflow.getWorkflowRunById(getDiapersRunId(year, month))
 
     if (!run?.initialState || Object.keys(run.initialState).length === 0) {
         return null
@@ -21,10 +20,9 @@ export async function readDiapersStatus(mastra: Mastra, yearMonth: string = getC
 
 export async function startDiapers(
     mastra: Mastra,
-    input: { size: 'M' | 'G' | 'XG'; yearMonth?: string; requestedBy: string },
+    input: { size: 'M' | 'G' | 'XG'; year: number; month: number; requestedBy: string },
 ) {
-    const yearMonth = input.yearMonth ?? getCurrentYearMonth()
-    const runId = getDiapersRunId(yearMonth)
+    const runId = getDiapersRunId(input.year, input.month)
     const workflow = getDiapersWorkflow(mastra)
     const existing = await workflow.getWorkflowRunById(runId)
 
@@ -39,7 +37,7 @@ export async function startDiapers(
     const run = await workflow.createRun({ runId })
     const result = await run.start({
         inputData: { size: input.size, requestedBy: input.requestedBy },
-        initialState: { requestedBy: input.requestedBy },
+        initialState: { requestedBy: input.requestedBy, year: input.year, month: input.month },
     })
 
     // run.start() no lanza: un step que falla vuelve como status 'failed'. Sin esto,
@@ -58,10 +56,10 @@ export async function startDiapers(
 
 export async function confirmDiapersDate(
     mastra: Mastra,
-    payload: { deliveryDate: string; deliveryAddress: string; quantity: number; yearMonth: string },
+    payload: { deliveryDate: string; deliveryAddress: string; quantity: number; year: number; month: number },
 ) {
     const workflow = getDiapersWorkflow(mastra)
-    const runId = getDiapersRunId(payload.yearMonth)
+    const runId = getDiapersRunId(payload.year, payload.month)
     const existing = await workflow.getWorkflowRunById(runId)
 
     if (!existing) {

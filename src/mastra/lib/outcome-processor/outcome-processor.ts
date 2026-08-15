@@ -3,7 +3,8 @@ import type { Mastra } from '@mastra/core/mastra'
 export type HandleContext = {
     mastra: Mastra
     text: string
-    yearMonth: string
+    year: number
+    month: number
     data: unknown
 }
 

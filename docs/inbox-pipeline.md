@@ -86,8 +86,8 @@ Gateway a Gmail: lee mails y aplica labels. No clasifica ni ejecuta side effects
   hay que derivarlas de Mongo.
 - `fetch()`: lista mensajes (Gmail devuelve de más nuevo a más viejo; se invierte para procesar
   de más viejo a más nuevo), limpia el cuerpo (`strip-mail-body`: cheerio para HTML,
-  `email-reply-parser` para citas) y resuelve el `yearMonth` determinístico desde el header
-  `X-Received` más viejo (`resolve-mail-year-month`).
+  `email-reply-parser` para citas) y resuelve la fecha determinística desde el header
+  `X-Received` más viejo (`resolve-mail-date`), de donde salen el `year` y el `month` del mail.
 - `applyLabel(messageId, label)`: crea el label en Gmail si no existe.
 
 ## mail-classifier (`src/mastra/lib/mail-classifier/`)
@@ -115,6 +115,13 @@ Ejecuta el side effect asociado a un label de clasificación.
 - **Registro en código por dominio** (`workflows/<domain>-poll/<domain>-outcome-handlers.ts`):
   mapa `label → handler`. Los handlers parsean `data` con los Zod resume schemas del dominio y
   llaman a los helpers `@lib/*-run.ts` (resume guardado por run + suspended + step correcto).
+- **Resolución del run**: los handlers con fecha extraída del mail (`deliveryDate` /
+  `depositDate`, formato `YYYY-MM-DD` garantizado por schema) arman el mes del run combinando el
+  **año del contexto** (header `X-Received`, confiable) con el **mes de la fecha extraída**
+  (`monthOfIsoDate`). Los mails de respuesta solo indican día/mes ("16-01"): el año de la fecha lo
+  adivina el LLM y no es confiable, pero el mes sí apunta al run del pedido que confirma aunque la
+  respuesta llegue en otro mes. Los handlers sin fecha extraída (`meds.acknowledged`,
+  `refunds.acknowledged`, `refunds.approved`) usan el `year` / `month` del contexto tal cual.
 - `processOutcome(handlers, label, ctx)` → `{ ok } | { ok: false, reason }`. Un label **sin
   handler registrado** se considera completado sin side effects.
 - ⚠️ Los labels del mapa **deben coincidir** con los del JSON seedeado en Mongo: un label
@@ -174,7 +181,7 @@ por cada mail:
     { label, data, isDefault } = classifyMail(...)
     applyLabel(mail, label)                             // clasificación, inmediato
     si isDefault → applyLabel(mail, outcome.review); continuar
-    result = processOutcome(handlers, label, { mastra, text, yearMonth, data })
+    result = processOutcome(handlers, label, { mastra, text, month, data })
     applyLabel(mail, result.ok ? outcome.completed : outcome.failed)
 en catch (por mail): log + applyLabel(outcome.failed) best-effort — un mail roto no corta el loop
 ```
@@ -193,10 +200,12 @@ lo sumo, mal etiquetar un mail; no puede corromper el estado de un run.
   molesta, aplicarles un label `outcome.*` manualmente en Gmail una vez.
 - No hay retry automático de mails fallidos ni aviso por Telegram cuando algo cae en
   `outcome.failed` / `outcome.review` — pendientes en `docs/superpowers/followups.md`.
-- **Limitación conocida**: la resolución por `X-Received` asume que el run de ese year-month sigue
-  suspendido cuando llega la respuesta. Si ya hay un pedido nuevo del mes siguiente cuando aparece
-  una respuesta tardía del mes anterior, la resolución sigue siendo correcta (apunta al mes del
-  mail), pero el fix real para cruces de threads es atar cada thread de mail al run que lo originó
-  (guardar el `threadId` del mail saliente en el estado del workflow) — no implementado.
+- **Limitación conocida**: para los handlers sin fecha extraída, la resolución por `X-Received`
+  asume que el run del mes de envío del mail sigue suspendido cuando llega la respuesta. Los
+  handlers con fecha extraída derivan el mes de la fecha del mail pero toman el año del
+  contexto, así que asumen que pedido y entrega/depósito caen en el mismo año (una confirmación
+  de enero que llega en diciembre del año anterior o viceversa se mapearía mal). El fix
+  definitivo para cruces de threads es atar cada thread de mail al run que lo originó (guardar
+  el `threadId` del mail saliente en el estado del workflow) — no implementado.
 - El CLI de dry-run (`classify:eml`) se eliminó con esta arquitectura; se rehará contra los
   módulos nuevos en otra tanda.

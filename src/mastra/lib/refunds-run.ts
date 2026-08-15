@@ -2,15 +2,14 @@ import type { Mastra } from '@mastra/core/mastra'
 import { createWorkflowStateReader } from '@mastra/core/workflows'
 import type { RefundsState } from '@workflows/refunds/types/refunds-state.type'
 import { getRefundsRunId } from '@workflows/refunds/utils/refunds.utils'
-import { getCurrentYearMonth } from './date-scope'
 
 function getRefundsWorkflow(mastra: Mastra) {
     return mastra.getWorkflow('refundsWorkflow')
 }
 
-export async function readRefundsStatus(mastra: Mastra, yearMonth: string = getCurrentYearMonth()) {
+export async function readRefundsStatus(mastra: Mastra, year: number, month: number) {
     const workflow = getRefundsWorkflow(mastra)
-    const run = await workflow.getWorkflowRunById(getRefundsRunId(yearMonth))
+    const run = await workflow.getWorkflowRunById(getRefundsRunId(year, month))
 
     if (!run?.initialState || Object.keys(run.initialState).length === 0) {
         return null
@@ -21,10 +20,9 @@ export async function readRefundsStatus(mastra: Mastra, yearMonth: string = getC
 
 export async function startRefundRequest(
     mastra: Mastra,
-    input: { amount: number; reason?: string; yearMonth?: string; requestedBy: string },
+    input: { amount: number; reason?: string; year: number; month: number; requestedBy: string },
 ) {
-    const yearMonth = input.yearMonth ?? getCurrentYearMonth()
-    const runId = getRefundsRunId(yearMonth)
+    const runId = getRefundsRunId(input.year, input.month)
     const workflow = getRefundsWorkflow(mastra)
     const existing = await workflow.getWorkflowRunById(runId)
 
@@ -39,7 +37,7 @@ export async function startRefundRequest(
     const run = await workflow.createRun({ runId })
     const result = await run.start({
         inputData: { amount: input.amount, reason: input.reason, requestedBy: input.requestedBy },
-        initialState: { requestedBy: input.requestedBy },
+        initialState: { requestedBy: input.requestedBy, year: input.year, month: input.month },
     })
 
     // run.start() no lanza: un step que falla vuelve como status 'failed'. Sin esto,
@@ -56,9 +54,9 @@ export async function startRefundRequest(
     return { alreadyInProgress: false as const, ok: true as const, result }
 }
 
-export async function acknowledgeRefund(mastra: Mastra, yearMonth: string) {
+export async function acknowledgeRefund(mastra: Mastra, year: number, month: number) {
     const workflow = getRefundsWorkflow(mastra)
-    const runId = getRefundsRunId(yearMonth)
+    const runId = getRefundsRunId(year, month)
     const existing = await workflow.getWorkflowRunById(runId)
 
     if (!existing) {
@@ -85,10 +83,10 @@ export async function acknowledgeRefund(mastra: Mastra, yearMonth: string) {
 
 export async function confirmRefund(
     mastra: Mastra,
-    payload: { refundReference: string; yearMonth: string },
+    payload: { refundReference: string; year: number; month: number },
 ) {
     const workflow = getRefundsWorkflow(mastra)
-    const runId = getRefundsRunId(payload.yearMonth)
+    const runId = getRefundsRunId(payload.year, payload.month)
     const existing = await workflow.getWorkflowRunById(runId)
 
     if (!existing) {
@@ -115,10 +113,10 @@ export async function confirmRefund(
 
 export async function receiveDeposit(
     mastra: Mastra,
-    payload: { depositAmount: number; depositDate: string; yearMonth: string },
+    payload: { depositAmount: number; depositDate: string; year: number; month: number },
 ) {
     const workflow = getRefundsWorkflow(mastra)
-    const runId = getRefundsRunId(payload.yearMonth)
+    const runId = getRefundsRunId(payload.year, payload.month)
     const existing = await workflow.getWorkflowRunById(runId)
 
     if (!existing) {

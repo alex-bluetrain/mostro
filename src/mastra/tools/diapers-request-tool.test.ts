@@ -24,21 +24,21 @@ describe('requestDiapersTool', () => {
 
   it('rejects with requester_unidentified when the user has an empty name', async () => {
     vi.mocked(getUserByResourceId).mockResolvedValue({ email: 'ana@gmail.com', name: '', role: 'member', addedAt: 1 } as any)
-    const result = await run({ size: 'M' })
+    const result = await run({ size: 'M', year: 2026, month: 7 })
     expect(result).toMatchObject({ ok: false, reason: 'requester_unidentified' })
     expect(startDiapers).not.toHaveBeenCalled()
   })
 
   it('rejects with requester_unidentified when the user cannot be resolved', async () => {
     vi.mocked(getUserByResourceId).mockResolvedValue(null)
-    const result = await run({ size: 'M' })
+    const result = await run({ size: 'M', year: 2026, month: 7 })
     expect(result).toMatchObject({ ok: false, reason: 'requester_unidentified' })
     expect(startDiapers).not.toHaveBeenCalled()
   })
 
   it('starts the order with the resolved name as requestedBy', async () => {
     vi.mocked(getUserByResourceId).mockResolvedValue({ email: 'ana@gmail.com', name: 'Ana', role: 'member', addedAt: 1 } as any)
-    await run({ size: 'M' })
-    expect(startDiapers).toHaveBeenCalledWith({}, { size: 'M', requestedBy: 'Ana' })
+    await run({ size: 'M', year: 2026, month: 7 })
+    expect(startDiapers).toHaveBeenCalledWith({}, { size: 'M', year: 2026, month: 7, requestedBy: 'Ana' })
   })
 })

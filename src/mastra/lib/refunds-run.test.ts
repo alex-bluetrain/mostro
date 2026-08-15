@@ -35,7 +35,7 @@ describe('acknowledgeRefund', () => {
     it('returns not_found and never resumes when the run does not exist', async () => {
         const { mastra, createRun } = buildMastra({ existing: null })
 
-        const result = await acknowledgeRefund(mastra, '2026-08')
+        const result = await acknowledgeRefund(mastra, 2026, 8)
 
         expect(result).toEqual({ ok: false, reason: 'not_found' })
         expect(createRun).not.toHaveBeenCalled()
@@ -45,7 +45,7 @@ describe('acknowledgeRefund', () => {
         const { mastra, createRun } = buildMastra({ existing: {} })
         reader('success')
 
-        const result = await acknowledgeRefund(mastra, '2026-08')
+        const result = await acknowledgeRefund(mastra, 2026, 8)
 
         expect(result).toEqual({ ok: false, reason: 'not_suspended', status: 'success' })
         expect(createRun).not.toHaveBeenCalled()
@@ -55,7 +55,7 @@ describe('acknowledgeRefund', () => {
         const { mastra, createRun } = buildMastra({ existing: {} })
         reader('suspended', 'wait-refund-confirmation')
 
-        const result = await acknowledgeRefund(mastra, '2026-08')
+        const result = await acknowledgeRefund(mastra, 2026, 8)
 
         expect(result).toEqual({
             ok: false,
@@ -71,7 +71,7 @@ describe('acknowledgeRefund', () => {
         const { mastra } = buildMastra({ existing: {}, resume })
         reader('suspended', 'wait-refund-ack')
 
-        const result = await acknowledgeRefund(mastra, '2026-08')
+        const result = await acknowledgeRefund(mastra, 2026, 8)
 
         expect(resume).toHaveBeenCalledWith({ resumeData: {} })
         expect(result).toEqual({ ok: true, result: { status: 'success' } })
@@ -79,7 +79,7 @@ describe('acknowledgeRefund', () => {
 })
 
 describe('confirmRefund', () => {
-    const payload = { refundReference: 'REF-123', yearMonth: '2026-08' }
+    const payload = { refundReference: 'REF-123', year: 2026, month: 8 }
 
     it('returns not_found when the run does not exist', async () => {
         const { mastra, createRun } = buildMastra({ existing: null })
@@ -118,7 +118,7 @@ describe('confirmRefund', () => {
 })
 
 describe('receiveDeposit', () => {
-    const payload = { depositAmount: 500, depositDate: '2026-08-15', yearMonth: '2026-08' }
+    const payload = { depositAmount: 500, depositDate: '2026-08-15', year: 2026, month: 8 }
 
     it('returns not_found when the run does not exist', async () => {
         const { mastra, createRun } = buildMastra({ existing: null })
