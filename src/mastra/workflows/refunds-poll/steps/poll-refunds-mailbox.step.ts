@@ -14,9 +14,9 @@ const manager = new InboxManager(refundsInboxConfig)
 
 export const pollRefundsMailbox = createStep({
     id: 'poll-refunds-mailbox',
-    inputSchema: z.object({}),
+    inputSchema: z.object({ dryRun: z.boolean().default(false) }),
     outputSchema: z.object({ ok: z.literal(true) }),
-    execute: async ({ mastra }) => {
+    execute: async ({ mastra, inputData: { dryRun } }) => {
         if (!mastra) throw new Error('[poll-refunds-mailbox] no hay instancia de mastra disponible')
 
         if (!manager.initialized) await manager.init(mastra)
@@ -29,6 +29,14 @@ export const pollRefundsMailbox = createStep({
         for (const mail of mails) {
             try {
                 const { label, data, isDefault } = await classifyMail(mastra, mail.text, rules)
+
+                if (dryRun) {
+                    // Clasificar es sólo lectura, así que se hace igual; lo que se saltea es
+                    // todo lo que deja rastro (labels en Gmail y resume del workflow).
+                    console.info(`[poll-refunds-mailbox] (dry-run) ${mail.id} -> "${label}"${isDefault ? ' (default: iría a review)' : ''}`, { year: mail.year, month: mail.month, data })
+                    continue
+                }
+
                 await manager.applyLabel(mail.id, label)
 
                 if (isDefault) {
@@ -43,6 +51,7 @@ export const pollRefundsMailbox = createStep({
             } catch (error) {
                 // Un mail roto no corta el loop: se marca fallido (best-effort) y se sigue.
                 console.error(`[poll-refunds-mailbox] no pude procesar ${mail.id}`, error)
+                if (dryRun) continue
                 await manager.applyLabel(mail.id, OUTCOME_FAILED).catch(labelError =>
                     console.error(`[poll-refunds-mailbox] no pude etiquetar ${mail.id} como "${OUTCOME_FAILED}"`, labelError))
             }
