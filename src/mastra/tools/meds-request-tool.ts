@@ -8,7 +8,8 @@ export const requestMedsTool = createTool({
     description: 'Inicia el pedido compartido de medicamentos a partir de las recetas indicadas. Si ya hay un pedido en curso ese mes, informa el estado actual en vez de duplicarlo. El pedido queda scopeado al mes en que se crea (YYYY-MM).',
     inputSchema: z.object({
         medications: z.array(z.string()).describe('Lista de medicamentos recetados a pedir'),
-        yearMonth: z.string().regex(/^\d{4}-\d{2}$/).optional().describe('Mes al que scopear el pedido, formato YYYY-MM. Si no se indica, se usa el mes actual.'),
+        month: z.number().int().min(1).max(12).describe('Mes al que scopear el pedido (1-12). Usá el mes actual indicado en tus instrucciones salvo que el usuario nombre otro.'),
+        year: z.number().int().min(2020).max(2100).describe('Año del pedido. Usá el año actual indicado en tus instrucciones salvo que el usuario nombre otro.'),
     }),
     outputSchema: z.looseObject({}),
     execute: async (input, context) => {
@@ -24,6 +25,11 @@ export const requestMedsTool = createTool({
                 message: 'Todavía no sé tu nombre, así que no registré el pedido. ¿Cómo te llamás?',
             }
         }
-        return startMedsOrder(context.mastra as any, { ...input, requestedBy: user.name.trim() })
+        return startMedsOrder(context.mastra as any, {
+            medications: input.medications,
+            year: input.year,
+            month: input.month,
+            requestedBy: user.name.trim(),
+        })
     },
 })

@@ -7,15 +7,15 @@ vi.mock('@lib/mailer/gmail-mailer', () => ({
 import { requestRefundStep } from './request-refund.step'
 import { confirmDepositStep } from './confirm-deposit.step'
 import { sendEmail } from '@lib/mailer/gmail-mailer'
+import { appConfig } from '@config/app.config'
 
 const setState = vi.fn()
 
 function executeRequest() {
   return (requestRefundStep.execute as any)({
     inputData: { amount: 15000, reason: 'Consulta pediátrica', requestedBy: 'Ana' },
-    state: { status: 'idle', requestedBy: 'Ana' },
+    state: { status: 'idle', requestedBy: 'Ana', year: 2026, month: 7 },
     setState,
-    runId: 'refunds-2026-07',
   })
 }
 
@@ -25,12 +25,13 @@ function executeConfirm() {
     state: {
       status: 'deposit_received',
       requestedBy: 'Ana',
+      year: 2026,
+      month: 7,
       depositAmount: 15000,
       depositDate: 1784000000,
       refundReference: 'REF-123',
     },
     setState,
-    runId: 'refunds-2026-07',
   })
 }
 
@@ -44,7 +45,7 @@ describe('request-refund step', () => {
     await executeRequest()
 
     expect(sendEmail).toHaveBeenCalledWith({
-      to: 'reintegros@proveedor.test',
+      to: appConfig.REFUNDS_EMAIL_TO,
       subject: '[Mostro] Solicitud de reintegro 2026-07',
       text: expect.stringContaining('Consulta pediátrica'),
     })
@@ -76,7 +77,7 @@ describe('confirm-deposit step', () => {
     await executeConfirm()
 
     expect(sendEmail).toHaveBeenCalledWith({
-      to: 'reintegros@proveedor.test',
+      to: appConfig.REFUNDS_EMAIL_TO,
       subject: '[Mostro] Depósito confirmado 2026-07',
       text: expect.stringContaining('REF-123'),
     })

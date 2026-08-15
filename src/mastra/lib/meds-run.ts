@@ -2,15 +2,14 @@ import type { Mastra } from '@mastra/core/mastra'
 import { createWorkflowStateReader } from '@mastra/core/workflows'
 import type { MedsState } from '@workflows/meds/types/meds-state.type'
 import { getMedsRunId } from '@workflows/meds/utils/meds.utils';
-import { getCurrentYearMonth } from './date-scope'
 
 function getMedsWorkflow(mastra: Mastra) {
     return mastra.getWorkflow('medsWorkflow')
 }
 
-export async function readMedsStatus(mastra: Mastra, yearMonth: string = getCurrentYearMonth()) {
+export async function readMedsStatus(mastra: Mastra, year: number, month: number) {
     const workflow = getMedsWorkflow(mastra)
-    const run = await workflow.getWorkflowRunById(getMedsRunId(yearMonth))
+    const run = await workflow.getWorkflowRunById(getMedsRunId(year, month))
 
     if (!run?.initialState || Object.keys(run.initialState).length === 0) {
         return null
@@ -21,10 +20,9 @@ export async function readMedsStatus(mastra: Mastra, yearMonth: string = getCurr
 
 export async function startMedsOrder(
     mastra: Mastra,
-    input: { medications: string[]; yearMonth?: string; requestedBy: string },
+    input: { medications: string[]; year: number; month: number; requestedBy: string },
 ) {
-    const yearMonth = input.yearMonth ?? getCurrentYearMonth()
-    const runId = getMedsRunId(yearMonth)
+    const runId = getMedsRunId(input.year, input.month)
     const workflow = getMedsWorkflow(mastra)
     const existing = await workflow.getWorkflowRunById(runId)
 
@@ -39,7 +37,7 @@ export async function startMedsOrder(
     const run = await workflow.createRun({ runId })
     const result = await run.start({
         inputData: { medications: input.medications, requestedBy: input.requestedBy },
-        initialState: { requestedBy: input.requestedBy },
+        initialState: { requestedBy: input.requestedBy, year: input.year, month: input.month },
     })
 
     // run.start() no lanza: un step que falla vuelve como status 'failed'. Sin esto,
@@ -56,9 +54,9 @@ export async function startMedsOrder(
     return { alreadyInProgress: false as const, ok: true as const, result }
 }
 
-export async function acknowledgeMedsOrder(mastra: Mastra, yearMonth: string) {
+export async function acknowledgeMedsOrder(mastra: Mastra, year: number, month: number) {
     const workflow = getMedsWorkflow(mastra)
-    const runId = getMedsRunId(yearMonth)
+    const runId = getMedsRunId(year, month)
     const existing = await workflow.getWorkflowRunById(runId)
 
     if (!existing) {
@@ -85,10 +83,10 @@ export async function acknowledgeMedsOrder(mastra: Mastra, yearMonth: string) {
 
 export async function confirmMedsDelivery(
     mastra: Mastra,
-    payload: { deliveryDate: string; deliveryAddress: string; yearMonth: string },
+    payload: { deliveryDate: string; deliveryAddress: string; year: number; month: number },
 ) {
     const workflow = getMedsWorkflow(mastra)
-    const runId = getMedsRunId(payload.yearMonth)
+    const runId = getMedsRunId(payload.year, payload.month)
     const existing = await workflow.getWorkflowRunById(runId)
 
     if (!existing) {

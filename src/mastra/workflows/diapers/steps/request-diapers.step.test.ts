@@ -6,15 +6,15 @@ vi.mock('@lib/mailer/gmail-mailer', () => ({
 
 import { requestDiapers } from './request-diapers.step'
 import { sendEmail } from '@lib/mailer/gmail-mailer'
+import { appConfig } from '@config/app.config'
 
 const setState = vi.fn()
 
 function execute() {
   return (requestDiapers.execute as any)({
     inputData: { size: 'M', requestedBy: 'Ana' },
-    state: { status: 'idle', requestedBy: 'Ana' },
+    state: { status: 'idle', requestedBy: 'Ana', year: 2026, month: 7 },
     setState,
-    runId: 'diapers-2026-07',
   })
 }
 
@@ -28,8 +28,8 @@ describe('request-diapers step', () => {
     await execute()
 
     expect(sendEmail).toHaveBeenCalledWith({
-      to: 'panales@proveedor.test',
-      subject: '[Mostro] Pedido de pañales 2026-07',
+      to: appConfig.DIAPERS_EMAIL_TO,
+      subject: 'Pedido de pañales 2026-07',
       text: expect.stringContaining('Talle: M'),
     })
   })

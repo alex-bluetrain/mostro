@@ -1,20 +1,24 @@
+import { formatYearMonth } from '@lib/date-scope'
 import { formatUnixDate } from '@lib/unix-time'
 
 export function refundRequestEmail({
     amount,
     reason,
     requestedBy,
-    yearMonth,
+    year,
+    month,
 }: {
     amount: number
     reason?: string
     requestedBy: string
-    yearMonth: string
+    year: number
+    month: number
 }): { subject: string; text: string } {
+    const period = formatYearMonth(year, month)
     const lines = [
         'Hola,',
         '',
-        `Va una solicitud de reintegro correspondiente a ${yearMonth}.`,
+        `Va una solicitud de reintegro correspondiente a ${period}.`,
         '',
         `Monto: ${amount}`,
     ]
@@ -25,7 +29,7 @@ export function refundRequestEmail({
     lines.push(`Solicitado por: ${requestedBy}`, '', 'Gracias.')
 
     return {
-        subject: `[Mostro] Solicitud de reintegro ${yearMonth}`,
+        subject: `[Mostro] Solicitud de reintegro ${period}`,
         text: lines.join('\n'),
     }
 }
@@ -34,17 +38,20 @@ export function depositConfirmedEmail({
     depositAmount,
     depositDate,
     refundReference,
-    yearMonth,
+    year,
+    month,
 }: {
     depositAmount?: number
     depositDate?: number
     refundReference?: string
-    yearMonth: string
+    year: number
+    month: number
 }): { subject: string; text: string } {
+    const period = formatYearMonth(year, month)
     const lines = [
         'Hola,',
         '',
-        `Confirmamos la recepción del depósito del reintegro ${yearMonth}.`,
+        `Confirmamos la recepción del depósito del reintegro ${period}.`,
         '',
     ]
 
@@ -55,7 +62,7 @@ export function depositConfirmedEmail({
     lines.push('', 'Gracias.')
 
     return {
-        subject: `[Mostro] Depósito confirmado ${yearMonth}`,
+        subject: `[Mostro] Depósito confirmado ${period}`,
         text: lines.join('\n'),
     }
 }

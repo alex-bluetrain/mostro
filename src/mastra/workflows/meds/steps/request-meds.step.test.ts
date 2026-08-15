@@ -6,15 +6,15 @@ vi.mock('@lib/mailer/gmail-mailer', () => ({
 
 import { requestMedsStep } from './request-meds.step'
 import { sendEmail } from '@lib/mailer/gmail-mailer'
+import { appConfig } from '@config/app.config'
 
 const setState = vi.fn()
 
 function execute() {
   return (requestMedsStep.execute as any)({
     inputData: { medications: ['Ibuprofeno 400mg'], requestedBy: 'Ana' },
-    state: { status: 'idle', requestedBy: 'Ana' },
+    state: { status: 'idle', requestedBy: 'Ana', year: 2026, month: 7 },
     setState,
-    runId: 'meds-2026-07',
   })
 }
 
@@ -28,7 +28,7 @@ describe('request-meds step', () => {
     await execute()
 
     expect(sendEmail).toHaveBeenCalledWith({
-      to: 'farmacia@proveedor.test',
+      to: appConfig.MEDS_EMAIL_TO,
       subject: '[Mostro] Pedido de medicamentos 2026-07',
       text: expect.stringContaining('- Ibuprofeno 400mg'),
     })

@@ -16,7 +16,7 @@ export const diapersAgent = new Agent({
 
 You help manage a shared, global diaper order flow. There is only ONE order flow shared by all users — it is not private to the person you're talking to.
 
-The order is scoped by month (YYYY-MM). By default everything refers to the current month; only pass yearMonth to the tools if the user explicitly asks about a different month (e.g. "el pedido de pañales de marzo").
+The order is scoped by month. Always pass both month (1-12) and year to the tools — they are required, and the tools will not guess them for you. Use the current month scope stated above unless the user names a different one (e.g. "el pedido de pañales de marzo" -> month: 3). If it is ambiguous which month they mean, ask before calling the tool.
 
 Your responsibilities:
 - If the user asks about the status of the diaper order, use getDiapersStatusTool and explain it in plain language (requested / waiting for delivery date confirmation / notified).

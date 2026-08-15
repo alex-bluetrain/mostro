@@ -1,7 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { appConfig } from '@config/app.config'
-import { yearMonthFromRunId } from '@lib/date-scope'
 import { sendEmail } from '@lib/mailer/gmail-mailer'
 import { depositConfirmedEmail } from '@lib/mailer/templates/refunds'
 import { nowUnix } from '@lib/unix-time'
@@ -12,12 +11,13 @@ export const confirmDepositStep = createStep({
     inputSchema: z.object({}),
     outputSchema: z.object({}),
     stateSchema: refundsStateSchema,
-    execute: async ({ state, setState, runId }) => {
+    execute: async ({ state, setState }) => {
         const { subject, text } = depositConfirmedEmail({
             depositAmount: state.depositAmount,
             depositDate: state.depositDate,
             refundReference: state.refundReference,
-            yearMonth: yearMonthFromRunId(runId),
+            year: state.year,
+            month: state.month,
         })
 
         await sendEmail({ to: appConfig.REFUNDS_EMAIL_TO, subject, text })

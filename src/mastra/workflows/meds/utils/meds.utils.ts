@@ -1,3 +1,5 @@
-export function getMedsRunId(yearMonth: string) {
-    return `meds-${yearMonth}`
+import { formatYearMonth } from '@lib/date-scope'
+
+export function getMedsRunId(year: number, month: number) {
+    return `meds-${formatYearMonth(year, month)}`
 }

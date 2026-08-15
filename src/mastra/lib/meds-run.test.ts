@@ -35,7 +35,7 @@ describe('acknowledgeMedsOrder', () => {
     it('returns not_found when the run does not exist', async () => {
         const { mastra, createRun } = buildMastra({ existing: null })
 
-        const result = await acknowledgeMedsOrder(mastra, '2026-08')
+        const result = await acknowledgeMedsOrder(mastra, 2026, 8)
 
         expect(result).toEqual({ ok: false, reason: 'not_found' })
         expect(createRun).not.toHaveBeenCalled()
@@ -45,7 +45,7 @@ describe('acknowledgeMedsOrder', () => {
         const { mastra, createRun } = buildMastra({ existing: {} })
         reader('success')
 
-        const result = await acknowledgeMedsOrder(mastra, '2026-08')
+        const result = await acknowledgeMedsOrder(mastra, 2026, 8)
 
         expect(result).toEqual({ ok: false, reason: 'not_suspended', status: 'success' })
         expect(createRun).not.toHaveBeenCalled()
@@ -55,7 +55,7 @@ describe('acknowledgeMedsOrder', () => {
         const { mastra, createRun } = buildMastra({ existing: {} })
         reader('suspended', 'wait-meds-confirmation')
 
-        const result = await acknowledgeMedsOrder(mastra, '2026-08')
+        const result = await acknowledgeMedsOrder(mastra, 2026, 8)
 
         expect(result).toEqual({
             ok: false,
@@ -71,7 +71,7 @@ describe('acknowledgeMedsOrder', () => {
         const { mastra } = buildMastra({ existing: {}, resume })
         reader('suspended', 'wait-meds-acknowledge')
 
-        const result = await acknowledgeMedsOrder(mastra, '2026-08')
+        const result = await acknowledgeMedsOrder(mastra, 2026, 8)
 
         expect(resume).toHaveBeenCalledWith({ resumeData: {} })
         expect(result).toEqual({ ok: true, result: { status: 'success' } })
@@ -82,7 +82,8 @@ describe('confirmMedsDelivery', () => {
     const payload = {
         deliveryDate: '2026-08-01',
         deliveryAddress: 'Av. Siempre Viva 742',
-        yearMonth: '2026-08',
+        year: 2026,
+        month: 8,
     }
 
     it('returns not_found when the run does not exist', async () => {

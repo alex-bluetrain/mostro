@@ -5,8 +5,8 @@ import { refundRequestEmail, depositConfirmedEmail } from './refunds'
 
 describe('diapersRequestEmail', () => {
   it('states the size, the requester and the scoped month', () => {
-    const { subject, text } = diapersRequestEmail({ size: 'M', requestedBy: 'Ana', yearMonth: '2026-07' })
-    expect(subject).toBe('[Mostro] Pedido de pañales 2026-07')
+    const { subject, text } = diapersRequestEmail({ size: 'M', requestedBy: 'Ana', year: 2026, month: 7 })
+    expect(subject).toBe('Pedido de pañales 2026-07')
     expect(text).toContain('Talle: M')
     expect(text).toContain('Ana')
   })
@@ -17,7 +17,8 @@ describe('medsRequestEmail', () => {
     const { subject, text } = medsRequestEmail({
       medications: ['Ibuprofeno 400mg', 'Amoxicilina 500mg'],
       requestedBy: 'Ana',
-      yearMonth: '2026-07',
+      year: 2026,
+      month: 7,
     })
     expect(subject).toBe('[Mostro] Pedido de medicamentos 2026-07')
     expect(text).toContain('- Ibuprofeno 400mg')
@@ -31,7 +32,8 @@ describe('refundRequestEmail', () => {
       amount: 15000,
       reason: 'Consulta pediátrica',
       requestedBy: 'Ana',
-      yearMonth: '2026-07',
+      year: 2026,
+      month: 7,
     })
     expect(subject).toBe('[Mostro] Solicitud de reintegro 2026-07')
     expect(text).toContain('15000')
@@ -39,7 +41,7 @@ describe('refundRequestEmail', () => {
   })
 
   it('omits the reason line when there is no reason', () => {
-    const { text } = refundRequestEmail({ amount: 15000, requestedBy: 'Ana', yearMonth: '2026-07' })
+    const { text } = refundRequestEmail({ amount: 15000, requestedBy: 'Ana', year: 2026, month: 7 })
     expect(text).not.toContain('undefined')
     expect(text).not.toContain('Motivo:')
   })
@@ -51,7 +53,8 @@ describe('depositConfirmedEmail', () => {
       depositAmount: 15000,
       depositDate: 1784000000,
       refundReference: 'REF-123',
-      yearMonth: '2026-07',
+      year: 2026,
+      month: 7,
     })
     expect(subject).toBe('[Mostro] Depósito confirmado 2026-07')
     expect(text).toContain('15000')
@@ -60,7 +63,7 @@ describe('depositConfirmedEmail', () => {
   })
 
   it('omits missing optional fields instead of printing undefined', () => {
-    const { text } = depositConfirmedEmail({ yearMonth: '2026-07' })
+    const { text } = depositConfirmedEmail({ year: 2026, month: 7 })
     expect(text).not.toContain('undefined')
   })
 })

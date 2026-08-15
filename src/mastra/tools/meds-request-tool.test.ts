@@ -24,21 +24,21 @@ describe('requestMedsTool', () => {
 
   it('rejects with requester_unidentified when the user has an empty name', async () => {
     vi.mocked(getUserByResourceId).mockResolvedValue({ email: 'ana@gmail.com', name: '', role: 'member', addedAt: 1 } as any)
-    const result = await run({ medications: ['ibuprofeno'] })
+    const result = await run({ medications: ['ibuprofeno'], year: 2026, month: 7 })
     expect(result).toMatchObject({ ok: false, reason: 'requester_unidentified' })
     expect(startMedsOrder).not.toHaveBeenCalled()
   })
 
   it('rejects with requester_unidentified when the user cannot be resolved', async () => {
     vi.mocked(getUserByResourceId).mockResolvedValue(null)
-    const result = await run({ medications: ['ibuprofeno'] })
+    const result = await run({ medications: ['ibuprofeno'], year: 2026, month: 7 })
     expect(result).toMatchObject({ ok: false, reason: 'requester_unidentified' })
     expect(startMedsOrder).not.toHaveBeenCalled()
   })
 
   it('starts the order with the resolved name as requestedBy', async () => {
     vi.mocked(getUserByResourceId).mockResolvedValue({ email: 'ana@gmail.com', name: 'Ana', role: 'member', addedAt: 1 } as any)
-    await run({ medications: ['ibuprofeno'] })
-    expect(startMedsOrder).toHaveBeenCalledWith({}, { medications: ['ibuprofeno'], requestedBy: 'Ana' })
+    await run({ medications: ['ibuprofeno'], year: 2026, month: 7 })
+    expect(startMedsOrder).toHaveBeenCalledWith({}, { medications: ['ibuprofeno'], year: 2026, month: 7, requestedBy: 'Ana' })
   })
 })

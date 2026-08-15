@@ -37,7 +37,7 @@ export const pollRefundsMailbox = createStep({
                     continue
                 }
 
-                const result = await processOutcome(refundsOutcomeHandlers, label, { mastra, text: mail.text, yearMonth: mail.yearMonth, data })
+                const result = await processOutcome(refundsOutcomeHandlers, label, { mastra, text: mail.text, year: mail.year, month: mail.month, data })
                 if (!result.ok) console.error(`[poll-refunds-mailbox] ${mail.id} clasificado como "${label}" pero el handler falló: ${result.reason}`)
                 await manager.applyLabel(mail.id, result.ok ? OUTCOME_COMPLETED : OUTCOME_FAILED)
             } catch (error) {

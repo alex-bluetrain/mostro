@@ -28,7 +28,8 @@ const payload = {
     deliveryDate: '2026-08-01',
     deliveryAddress: 'Av. Siempre Viva 742',
     quantity: 12,
-    yearMonth: '2026-08',
+    year: 2026,
+    month: 8,
 }
 
 describe('confirmDiapersDate', () => {
@@ -113,7 +114,8 @@ describe('startDiapers', () => {
         const result = await startDiapers(buildStartMastra(start), {
             size: 'M',
             requestedBy: 'Ana',
-            yearMonth: '2026-07',
+            year: 2026,
+            month: 7,
         })
 
         expect(result).toMatchObject({ ok: false, reason: 'send_failed' })
@@ -126,7 +128,8 @@ describe('startDiapers', () => {
         const result = await startDiapers(buildStartMastra(start), {
             size: 'M',
             requestedBy: 'Ana',
-            yearMonth: '2026-07',
+            year: 2026,
+            month: 7,
         })
 
         expect(result).toMatchObject({ ok: true, alreadyInProgress: false })

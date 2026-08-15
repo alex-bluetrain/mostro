@@ -1,7 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { appConfig } from '@config/app.config'
-import { yearMonthFromRunId } from '@lib/date-scope'
 import { sendEmail } from '@lib/mailer/gmail-mailer'
 import { medsRequestEmail } from '@lib/mailer/templates/meds'
 import { nowUnix } from '@lib/unix-time'
@@ -13,12 +12,13 @@ export const requestMedsStep = createStep({
     inputSchema: medsWorkflowInputSchema,
     outputSchema: z.object({}),
     stateSchema: medsStateSchema,
-    execute: async ({ inputData, state, setState, runId }) => {
+    execute: async ({ inputData, state, setState }) => {
         // Primero el correo: si falla, el estado no avanza y el pedido se puede reintentar limpio.
         const { subject, text } = medsRequestEmail({
             medications: inputData.medications,
             requestedBy: inputData.requestedBy,
-            yearMonth: yearMonthFromRunId(runId),
+            year: state.year,
+            month: state.month,
         })
 
         await sendEmail({ to: appConfig.MEDS_EMAIL_TO, subject, text })

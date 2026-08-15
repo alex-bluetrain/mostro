@@ -9,7 +9,8 @@ export const requestRefundTool = createTool({
     inputSchema: z.object({
         amount: z.number().describe('Monto a reembolsar'),
         reason: z.string().optional().describe('Motivo del reembolso'),
-        yearMonth: z.string().regex(/^\d{4}-\d{2}$/).optional().describe('Mes al que scopear el reembolso, formato YYYY-MM. Si no se indica, se usa el mes actual.'),
+        month: z.number().int().min(1).max(12).describe('Mes al que scopear el reembolso (1-12). Usá el mes actual indicado en tus instrucciones salvo que el usuario nombre otro.'),
+        year: z.number().int().min(2020).max(2100).describe('Año del reembolso. Usá el año actual indicado en tus instrucciones salvo que el usuario nombre otro.'),
     }),
     outputSchema: z.looseObject({}),
     execute: async (input, context) => {
@@ -25,6 +26,12 @@ export const requestRefundTool = createTool({
                 message: 'Todavía no sé tu nombre, así que no registré el pedido. ¿Cómo te llamás?',
             }
         }
-        return startRefundRequest(context.mastra as any, { ...input, requestedBy: user.name.trim() })
+        return startRefundRequest(context.mastra as any, {
+            amount: input.amount,
+            reason: input.reason,
+            year: input.year,
+            month: input.month,
+            requestedBy: user.name.trim(),
+        })
     },
 })
