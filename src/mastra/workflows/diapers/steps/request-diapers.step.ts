@@ -16,7 +16,6 @@ export const requestDiapers = createStep({
         // Primero el correo: si falla, el estado no avanza y el pedido se puede reintentar limpio.
         const { subject, text } = diapersRequestEmail({
             size: inputData.size,
-            requestedBy: inputData.requestedBy,
             year: state.year,
             month: state.month,
         })
