@@ -3,7 +3,7 @@ import type { Mastra } from '@mastra/core/mastra'
 import { z } from 'zod'
 import { getGmailClient } from '@lib/mailer/gmail-client'
 import { stripMailBody } from './strip-mail-body'
-import { resolveMailYearMonth } from './resolve-mail-year-month'
+import { resolveMailDate } from './resolve-mail-date'
 
 export type GmailClient = ReturnType<typeof gmail>
 
@@ -20,7 +20,8 @@ export type InboxManagerConfig = {
 export type FetchedMail = {
     id: string
     text: string
-    yearMonth: string
+    year: number
+    month: number
 }
 
 // Único módulo que habla con Gmail: lee mails y aplica labels. No clasifica ni ejecuta
@@ -63,8 +64,8 @@ export class InboxManager {
             const { data: raw } = await this.gmail.users.messages.get({ userId: 'me', id, format: 'full' })
             const text = stripMailBody(raw.payload)
             const internalDate = raw.internalDate ? new Date(Number(raw.internalDate)) : new Date()
-            const yearMonth = resolveMailYearMonth(raw.payload?.headers ?? undefined, internalDate)
-            mails.push({ id, text, yearMonth })
+            const sentAt = resolveMailDate(raw.payload?.headers ?? undefined, internalDate)
+            mails.push({ id, text, year: sentAt.getFullYear(), month: sentAt.getMonth() + 1 })
         }
         return mails
     }

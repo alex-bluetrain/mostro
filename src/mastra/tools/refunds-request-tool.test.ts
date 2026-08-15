@@ -24,21 +24,21 @@ describe('requestRefundTool', () => {
 
   it('rejects with requester_unidentified when the user has an empty name', async () => {
     vi.mocked(getUserByResourceId).mockResolvedValue({ email: 'ana@gmail.com', name: '', role: 'member', addedAt: 1 } as any)
-    const result = await run({ amount: 100 })
+    const result = await run({ amount: 100, year: 2026, month: 7 })
     expect(result).toMatchObject({ ok: false, reason: 'requester_unidentified' })
     expect(startRefundRequest).not.toHaveBeenCalled()
   })
 
   it('rejects with requester_unidentified when the user cannot be resolved', async () => {
     vi.mocked(getUserByResourceId).mockResolvedValue(null)
-    const result = await run({ amount: 100 })
+    const result = await run({ amount: 100, year: 2026, month: 7 })
     expect(result).toMatchObject({ ok: false, reason: 'requester_unidentified' })
     expect(startRefundRequest).not.toHaveBeenCalled()
   })
 
   it('starts the refund with the resolved name as requestedBy', async () => {
     vi.mocked(getUserByResourceId).mockResolvedValue({ email: 'ana@gmail.com', name: 'Ana', role: 'member', addedAt: 1 } as any)
-    await run({ amount: 100, reason: 'demora' })
-    expect(startRefundRequest).toHaveBeenCalledWith({}, { amount: 100, reason: 'demora', requestedBy: 'Ana' })
+    await run({ amount: 100, reason: 'demora', year: 2026, month: 7 })
+    expect(startRefundRequest).toHaveBeenCalledWith({}, { amount: 100, reason: 'demora', year: 2026, month: 7, requestedBy: 'Ana' })
   })
 })
