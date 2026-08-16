@@ -5,9 +5,10 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Tag a deployar (ej: v1.2.0). Copialo de la pestaña Releases. `latest` = última publicada.'
+        # Sin default a propósito: el rollback depende de tags inmutables, así que
+        # abrir el form y dar enter no tiene que agarrar el camino no reproducible.
+        description: 'Tag a deployar (ej: v1.2.0). Copialo de la pestaña Releases.'
         required: true
-        default: latest
         type: string
 
 permissions:
