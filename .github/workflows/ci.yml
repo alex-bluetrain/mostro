@@ -1,10 +1,9 @@
 name: CI
 
-# Sin trigger de push: en main lo invoca release.yml en cada push. Tenerlo acá
-# además duplicaba cada corrida (misma imagen buildeada dos veces en paralelo).
+# Sin trigger de push: los checks corren en PRs, y release.yml invoca esto
+# al crearse un release para gatear el push de la imagen a GHCR.
 on:
   pull_request:
-  # release.yml lo invoca para gatear el push de la imagen a GHCR.
   workflow_call:
 
 concurrency:
