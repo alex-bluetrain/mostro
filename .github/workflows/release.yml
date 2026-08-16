@@ -17,12 +17,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Gatea el publish: nada llega a GHCR con el typecheck o los tests en rojo.
-  # release-please no depende de esto — abrir un Release PR no publica nada.
-  checks:
-    name: Checks
-    uses: ./.github/workflows/ci.yml
-
   release-please:
     name: Release PR / tag
     runs-on: ubuntu-latest
@@ -39,6 +33,15 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # Gatea el publish: nada llega a GHCR con el typecheck o los tests en rojo.
+  # Corre solo al crearse un release — en pushes normales a main los checks
+  # ya corrieron en el PR, no hace falta repetirlos acá.
+  checks:
+    name: Checks
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/ci.yml
 
   publish:
     name: Build + push a GHCR
