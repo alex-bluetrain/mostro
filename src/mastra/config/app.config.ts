@@ -25,8 +25,8 @@ const envSchema = z.object({
     DIAPERS_EMAIL_TO: z.string().min(3),
     MEDS_EMAIL_TO: z.string().min(3),
     REFUNDS_EMAIL_TO: z.string().min(3),
-    NGROK_AUTHTOKEN: z.string().min(1).optional(),
-    NGROK_DOMAIN: z.string().min(1).optional(),
+    NGROK_AUTHTOKEN: z.string().optional(),
+    NGROK_DOMAIN: z.string().optional(),
     PORT: z.coerce.number().default(4111),
     DUCKDB_PATH: z.string().min(1).default('mastra.duckdb'),
 });
