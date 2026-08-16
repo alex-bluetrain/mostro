@@ -14,6 +14,9 @@ const envSchema = z.object({
     GOOGLE_SSO_CLIENT_SECRET: z.string().min(1).optional(),
     GOOGLE_SSO_REDIRECT_URI: z.string().min(1).optional(),
     GOOGLE_SSO_COOKIE_PASSWORD: z.string().min(32).optional(),
+    // Si está seteada, el server usa SimpleAuth (exento del gate EE de Studio)
+    // en lugar de Google SSO. Pensada para prod: habilita Studio local → prod.
+    STUDIO_API_KEY: z.string().min(32).optional(),
     GMAIL_MAILER_CLIENT_ID: z.string().min(1),
     GMAIL_MAILER_CLIENT_SECRET: z.string().min(1),
     GMAIL_MAILER_REFRESH_TOKEN: z.string().min(1),

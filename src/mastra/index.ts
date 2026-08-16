@@ -14,7 +14,7 @@ import { toolCallAppropriatenessScorer, completenessScorer, translationScorer } 
 import mongoose from 'mongoose';
 import { userRepository } from '@business/repositories';
 import { startNgrokTunnel } from './ngrok';
-import { createGoogleAuth } from './lib/google-auth';
+import { createServerAuth } from './lib/server-auth';
 import { appConfig } from './config/app.config';
 import { diapersWorkflow } from './workflows/diapers/diapers.workflow';
 import { medsWorkflow } from './workflows/meds/meds.workflow';
@@ -51,7 +51,7 @@ if (appConfig.ADMIN_EMAIL) {
 
 export const mastra = new Mastra({
     server: {
-        auth: createGoogleAuth(),
+        auth: createServerAuth(),
         cors: ngrokOrigin
             ? {
                 origin: ngrokOrigin,
