@@ -1,0 +1,91 @@
+name: Deploy
+
+# Solo manual: elegís qué versión corre en prod. Nunca se dispara por push.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Tag a deployar (ej: v1.2.0). Copialo de la pestaña Releases. `latest` = última publicada.'
+        required: true
+        default: latest
+        type: string
+
+permissions:
+  contents: read
+  # id-token: WIF para el SSH a la VM. packages: leer el manifest en ghcr.io.
+  id-token: write
+  packages: read
+
+# Un deploy a la vez. Sin cancel-in-progress: cortar un deploy a mitad deja la VM en estado raro.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy a prod
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_CI_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      # Falla acá y no a mitad del deploy: si el tag no existe, la VM ni se toca.
+      # manifest inspect consulta el registry sin bajar la imagen.
+      - name: Verificar que el tag existe en GHCR
+        env:
+          VERSION: ${{ inputs.version }}
+          IMAGE: ghcr.io/${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          if ! docker manifest inspect "$IMAGE:$VERSION" >/dev/null 2>&1; then
+            echo "::error::El tag '$VERSION' no existe en $IMAGE."
+            echo "::error::Mirá los tags publicados en https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}"
+            exit 1
+          fi
+          echo "Tag '$VERSION' encontrado."
+
+      # El .env de /opt/mostro solo lleva IMAGE_TAG: los secrets de la app los
+      # resuelve Infisical dentro del contenedor. Nada sensible viaja por acá.
+      - name: Actualizar la VM
+        env:
+          VERSION: ${{ inputs.version }}
+          VM_NAME: ${{ vars.GCP_VM_NAME }}
+          ZONE: ${{ vars.GCP_ZONE }}
+        run: |
+          set -euo pipefail
+          gcloud compute ssh "$VM_NAME" \
+            --zone "$ZONE" \
+            --tunnel-through-iap \
+            --quiet \
+            --command "set -euo pipefail && \
+              echo 'IMAGE_TAG=$VERSION' | sudo tee /opt/mostro/.env >/dev/null && \
+              cd /opt/mostro && \
+              sudo docker compose pull && \
+              sudo docker compose up -d --remove-orphans"
+
+      - name: Esperar a que la app esté healthy
+        env:
+          VM_NAME: ${{ vars.GCP_VM_NAME }}
+          ZONE: ${{ vars.GCP_ZONE }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 20); do
+            STATUS=$(gcloud compute ssh "$VM_NAME" --zone "$ZONE" --tunnel-through-iap --quiet \
+              --command "sudo docker inspect -f '{{.State.Health.Status}}' mostro-app-1 2>/dev/null || echo unknown")
+            STATUS=$(echo "$STATUS" | tr -d '\r\n')
+            echo "Intento $i: $STATUS"
+            if [ "$STATUS" = "healthy" ]; then
+              echo "Deploy OK." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::La app no llegó a healthy en ~5 min. Revisá: docker compose logs app"
+          exit 1
