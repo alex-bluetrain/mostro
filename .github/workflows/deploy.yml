@@ -61,15 +61,26 @@ jobs:
           ZONE: ${{ secrets.GCP_ZONE }}
         run: |
           set -euo pipefail
-          gcloud compute ssh "$VM_NAME" \
-            --zone "$ZONE" \
-            --tunnel-through-iap \
-            --quiet \
-            --command "set -euo pipefail && \
-              echo 'IMAGE_TAG=$VERSION' | sudo tee /opt/mostro/.env >/dev/null && \
-              cd /opt/mostro && \
-              sudo docker compose pull && \
-              sudo docker compose up -d --remove-orphans"
+          # Retry: el túnel IAP puede fallar transitoriamente (p.ej. 4010
+          # 'destination read failed'). El comando remoto es idempotente, así
+          # que reintentar es seguro.
+          for attempt in 1 2 3; do
+            if gcloud compute ssh "$VM_NAME" \
+              --zone "$ZONE" \
+              --tunnel-through-iap \
+              --quiet \
+              --command "set -euo pipefail && \
+                echo 'IMAGE_TAG=$VERSION' | sudo tee /opt/mostro/.env >/dev/null && \
+                cd /opt/mostro && \
+                sudo docker compose pull && \
+                sudo docker compose up -d --remove-orphans"; then
+              exit 0
+            fi
+            echo "SSH falló (intento $attempt/3), reintentando en 10s..."
+            sleep 10
+          done
+          echo "::error::No se pudo actualizar la VM tras 3 intentos de SSH."
+          exit 1
 
       - name: Esperar a que la app esté healthy
         env:
@@ -78,8 +89,11 @@ jobs:
         run: |
           set -euo pipefail
           for i in $(seq 1 20); do
+            # || echo ssh-failed: un fallo transitorio del túnel IAP no debe
+            # matar el loop (set -e), cuenta como intento y se reintenta.
             STATUS=$(gcloud compute ssh "$VM_NAME" --zone "$ZONE" --tunnel-through-iap --quiet \
-              --command "sudo docker inspect -f '{{.State.Health.Status}}' mostro-app-1 2>/dev/null || echo unknown")
+              --command "sudo docker inspect -f '{{.State.Health.Status}}' mostro-app-1 2>/dev/null || echo unknown" \
+              || echo ssh-failed)
             STATUS=$(echo "$STATUS" | tr -d '\r\n')
             echo "Intento $i: $STATUS"
             if [ "$STATUS" = "healthy" ]; then
