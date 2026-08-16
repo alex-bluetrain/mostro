@@ -6,7 +6,8 @@ import { assertInvitedAndSyncName } from './google-auth-gate'
 // El webhook del canal Telegram vive bajo /api/* (protegido por default del
 // middleware de auth) pero ya tiene su propia protección vía
 // TELEGRAM_WEBHOOK_SECRET_TOKEN, así que debe quedar público o el bot muere
-const TELEGRAM_CHANNEL_WEBHOOK = /^\/api\/agents\/[^/]+\/channels\/telegram\/webhook$/
+// Exportada porque server-auth.ts la necesita para SimpleAuth también.
+export const TELEGRAM_CHANNEL_WEBHOOK = /^\/api\/agents\/[^/]+\/channels\/telegram\/webhook$/
 
 // handleCallback es una propiedad de instancia asignada por attachSSOProvider()
 // en el constructor (no un método de la clase), así que se envuelve la

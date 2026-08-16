@@ -18,6 +18,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "gmail:auth": "node --env-file=.env scripts/gmail-authorize.mjs",
+    "studio:prod": "mastra studio -h <PROD_DOMAIN> -s 443 -x https",
     "seed:classifier": "node --env-file=.env --import tsx scripts/seed-classifier.ts"
   },
   "dependencies": {
