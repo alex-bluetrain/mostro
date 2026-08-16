@@ -30,8 +30,8 @@ jobs:
     steps:
       - uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
-          service_account: ${{ vars.GCP_CI_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_CI_SERVICE_ACCOUNT }}
 
       - uses: google-github-actions/setup-gcloud@v2
 
@@ -57,8 +57,8 @@ jobs:
       - name: Actualizar la VM
         env:
           VERSION: ${{ inputs.version }}
-          VM_NAME: ${{ vars.GCP_VM_NAME }}
-          ZONE: ${{ vars.GCP_ZONE }}
+          VM_NAME: ${{ secrets.GCP_VM_NAME }}
+          ZONE: ${{ secrets.GCP_ZONE }}
         run: |
           set -euo pipefail
           gcloud compute ssh "$VM_NAME" \
@@ -73,8 +73,8 @@ jobs:
 
       - name: Esperar a que la app esté healthy
         env:
-          VM_NAME: ${{ vars.GCP_VM_NAME }}
-          ZONE: ${{ vars.GCP_ZONE }}
+          VM_NAME: ${{ secrets.GCP_VM_NAME }}
+          ZONE: ${{ secrets.GCP_ZONE }}
         run: |
           set -euo pipefail
           for i in $(seq 1 20); do
