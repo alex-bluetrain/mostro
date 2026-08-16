@@ -18,7 +18,7 @@ Mostro uses a **supervisor/delegation architecture**: a central supervisor agent
 - **Outbound email** — orders reach suppliers as real emails sent from Mostro's own Gmail account, so replies land in its inbox; a send that fails leaves the order un-placed and retryable rather than silently marked as sent
 - **Notification subscriptions** — users subscribe to order updates and receive Telegram messages when events occur
 - **Monthly scoping** — one shared order per domain per month (deterministic run IDs like `diapers-2025-07`)
-- **Ngrok tunneling** — automatic tunnel setup for Telegram's webhook delivery
+- **Ngrok tunneling** — automatic tunnel setup for Telegram's webhook delivery in local development (skipped in production, where the bot is reachable on a public domain — see [Deployment](#deployment))
 
 ## Architecture
 
@@ -285,6 +285,30 @@ src/
 | `pnpm run start`       | Start production server                            |
 | `pnpm run gmail:auth`  | Get the Gmail refresh token (one-time)             |
 | `pnpm seed:classifier` | Publish a classification-rules snapshot to MongoDB |
+
+## Deployment
+
+Production runs on a GCP `e2-micro` VM (free tier) as a Docker container behind Caddy, reachable
+over HTTPS on a DuckDNS domain. The infrastructure lives in a separate repo,
+[mostro-terraform](https://github.com/alex-bluetrain/mostro-terraform), which also documents the
+setup steps and day-to-day operations.
+
+This repo owns **versioning and image publishing**:
+
+1. Merge to `main` using [conventional commits](https://www.conventionalcommits.org/) (`feat:`,
+   `fix:`). Anything else (`chore:`, `docs:`) doesn't produce a release.
+2. `release.yml` keeps a **Release PR** open with the accumulated changelog. Merging it tags
+   `vX.Y.Z` and publishes the image to `ghcr.io/alex-bluetrain/mostro` (`:vX.Y.Z` and `:latest`).
+3. Deploying is a deliberate, separate step: run the **Deploy** workflow with `version=vX.Y.Z`.
+   It checks the tag exists in the registry before touching the VM, then waits for the container's
+   health check. Rolling back is the same workflow with an older tag.
+
+Secrets are **not** baked into the image and don't live in this repo: the container authenticates
+to Infisical at startup with the VM's GCE identity and holds the secrets in memory only. That means
+production has no `.env` — the file above is for local development.
+
+`ngrok` is local-only. In production `NGROK_AUTHTOKEN` is absent, so the tunnel is never opened and
+Telegram reaches the bot through the public domain instead.
 
 ## License
 
