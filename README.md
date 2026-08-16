@@ -177,6 +177,15 @@ if you ever open the login to people outside the household.
    GOOGLE_SSO_COOKIE_PASSWORD=
    ```
 
+   Optional — API-key auth instead of Google SSO (min 32 chars). When set, the server uses
+   `SimpleAuth` — exempt from Studio's EE license gate — so a local Studio can connect to
+   production. Used in prod (via Infisical); leave unset in dev to keep Google SSO. See
+   [docs/studio-prod.md](docs/studio-prod.md):
+
+   ```env
+   STUDIO_API_KEY=
+   ```
+
    Required — Gmail, for sending outbound emails and for the poll workflows that read replies
    back from the same inbox:
 
@@ -306,6 +315,13 @@ This repo owns **versioning and image publishing**:
 Secrets are **not** baked into the image and don't live in this repo: the container authenticates
 to Infisical at startup with the VM's GCE identity and holds the secrets in memory only. That means
 production has no `.env` — the file above is for local development.
+
+### Studio against production
+
+Production authenticates with `SimpleAuth` (an API key via `STUDIO_API_KEY`) instead of Google
+SSO, because Studio's UI with third-party auth providers in production is gated behind a Mastra
+Enterprise Edition license — `SimpleAuth` is exempt. Run `pnpm run studio:prod` and log in with
+the key. See [docs/studio-prod.md](docs/studio-prod.md) for the full story.
 
 `ngrok` is local-only. In production `NGROK_AUTHTOKEN` is absent, so the tunnel is never opened and
 Telegram reaches the bot through the public domain instead.
