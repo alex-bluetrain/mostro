@@ -17,6 +17,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Gatea el publish: nada llega a GHCR con el typecheck o los tests en rojo.
+  # release-please no depende de esto — abrir un Release PR no publica nada.
+  checks:
+    name: Checks
+    uses: ./.github/workflows/ci.yml
+
   release-please:
     name: Release PR / tag
     runs-on: ubuntu-latest
@@ -24,14 +30,19 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
+      # El token default es secrets.GITHUB_TOKEN: no hace falta declararlo.
+      # Requiere el switch del repo "Allow GitHub Actions to create and approve
+      # pull requests" (Settings > Actions > General); los permissions de arriba
+      # solos no alcanzan.
       - uses: googleapis/release-please-action@v4
         id: release
         with:
-          release-type: node
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
   publish:
     name: Build + push a GHCR
-    needs: release-please
+    needs: [release-please, checks]
     if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-latest
 
