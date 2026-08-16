@@ -4,9 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+  # release.yml lo invoca para gatear el push de la imagen a GHCR.
+  workflow_call:
 
+# github.workflow separa la corrida directa de la que invoca release.yml: sin eso
+# las dos caen en el mismo grupo en un push a main y se cancelan entre sí.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -35,9 +39,10 @@ jobs:
 
       - run: pnpm typecheck
 
-      # tests/integration/ usa LLM real (OPENROUTER_API_KEY) y es flaky: solo unitarios.
+      # *.integration.test.ts usa LLM real (OPENROUTER_API_KEY) y es flaky: solo unitarios.
+      # El exclude default de vitest se pisa al pasar --exclude, así que node_modules va explícito.
       # tests/setup-env.ts ya defaultea MONGODB_URI a localhost:27017 (el service container).
-      - run: pnpm vitest run --exclude "tests/integration/**"
+      - run: pnpm vitest run --exclude "**/node_modules/**" --exclude "**/*.integration.test.ts"
 
   docker:
     name: Docker build (sin push)
