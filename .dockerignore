@@ -1,6 +1,7 @@
 node_modules
 .mastra
 .git
+.github
 .gitignore
 .env
 .env.*

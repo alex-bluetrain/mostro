@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Typecheck + tests unitarios
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Lee la versión de pnpm del campo `packageManager` de package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      # tests/integration/ usa LLM real (OPENROUTER_API_KEY) y es flaky: solo unitarios.
+      # tests/setup-env.ts ya defaultea MONGODB_URI a localhost:27017 (el service container).
+      - run: pnpm vitest run --exclude "tests/integration/**"
+
+  docker:
+    name: Docker build (sin push)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Sin cache type=gha: exportar el layer del pnpm install (~1.2GB) cuesta
+      # más de lo que ahorra, y `mastra build` se invalida en cada commit igual.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
