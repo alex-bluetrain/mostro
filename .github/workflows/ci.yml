@@ -1,14 +1,12 @@
 name: CI
 
+# Sin trigger de push: en main lo invoca release.yml en cada push. Tenerlo acá
+# además duplicaba cada corrida (misma imagen buildeada dos veces en paralelo).
 on:
-  push:
-    branches: [main]
   pull_request:
   # release.yml lo invoca para gatear el push de la imagen a GHCR.
   workflow_call:
 
-# github.workflow separa la corrida directa de la que invoca release.yml: sin eso
-# las dos caen en el mismo grupo en un push a main y se cancelan entre sí.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
