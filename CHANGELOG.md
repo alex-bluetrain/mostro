@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/alex-bluetrain/mostro/compare/v1.1.1...v1.2.0) (2026-08-16)
+
+
+### Features
+
+* SimpleAuth opcional por STUDIO_API_KEY para acceder a Studio en prod ([c69441d](https://github.com/alex-bluetrain/mostro/commit/c69441dff9cd32f94cdbcc84044b6f0807a75b72))
+
 ## [1.1.1](https://github.com/alex-bluetrain/mostro/compare/v1.1.0...v1.1.1) (2026-08-16)
 
 
