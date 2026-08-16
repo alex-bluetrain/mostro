@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/alex-bluetrain/mostro/compare/v1.1.0...v1.1.1) (2026-08-16)
+
+
+### Bug Fixes
+
+* NGROK_* should be optional (empty str or undefined) ([b64e942](https://github.com/alex-bluetrain/mostro/commit/b64e942954345b9f7b7d52cd5ad16c9a904f15e7))
+
 ## [1.1.0](https://github.com/alex-bluetrain/mostro/compare/v1.0.0...v1.1.0) (2026-08-16)
 
 
