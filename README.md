@@ -318,10 +318,16 @@ production has no `.env` — the file above is for local development.
 
 ### Studio against production
 
-Production authenticates with `SimpleAuth` (an API key via `STUDIO_API_KEY`) instead of Google
-SSO, because Studio's UI with third-party auth providers in production is gated behind a Mastra
-Enterprise Edition license — `SimpleAuth` is exempt. Run `pnpm run studio:prod` and log in with
-the key. See [docs/studio-prod.md](docs/studio-prod.md) for the full story.
+Studio is served by the production server itself at
+[https://mostro-bot.duckdns.org/](https://mostro-bot.duckdns.org/) — log in with any email and
+the `STUDIO_API_KEY` as the password.
+
+Two things make that work. Production authenticates with `SimpleAuth` (an API key via
+`STUDIO_API_KEY`) instead of Google SSO, because Studio's UI with third-party auth providers in
+production is gated behind a Mastra Enterprise Edition license — `SimpleAuth` is exempt. And the
+image is built with `mastra build --studio`, so Studio and the API share one origin: the session
+cookie is `SameSite=Lax`, which browsers refuse to send cross-site. See
+[docs/studio-prod.md](docs/studio-prod.md) for the full story.
 
 `ngrok` is local-only. In production `NGROK_AUTHTOKEN` is absent, so the tunnel is never opened and
 Telegram reaches the bot through the public domain instead.

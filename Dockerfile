@@ -21,7 +21,11 @@ COPY . .
 # `mastra build` deja .mastra/output autocontenido: bundlea el código y corre
 # `npm install` de las deps de producción dentro del output (docs oficiales:
 # "The output directory is self-contained. You can copy it to any server").
-RUN pnpm build
+#
+# --studio agrega el frontend de Studio al output. Servirlo desde el mismo origen
+# que la API es lo que hace que el login por cookie funcione: la sesión de Studio
+# es una cookie SameSite=Lax, que el browser no manda cross-site.
+RUN pnpm build --studio
 
 # ---- runtime ----
 FROM node:22-slim AS runtime
@@ -43,6 +47,9 @@ RUN mkdir -p /data && chown node:node /data
 ENV DUCKDB_PATH=/data/mastra.duckdb
 ENV NODE_ENV=production
 ENV PORT=4111
+# Ruta de los assets de Studio dentro del output ya copiado a /app.
+# Sin esta var el server no los sirve, aunque estén en la imagen.
+ENV MASTRA_STUDIO_PATH=/app/studio
 ENV INFISICAL_DISABLE_UPDATE_CHECK=true
 EXPOSE 4111
 

@@ -17,3 +17,4 @@ dist
 
 # Google OAuth client credentials (nunca commitear)
 client_secret*.json
+.infisical.json
