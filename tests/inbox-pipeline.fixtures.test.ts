@@ -25,7 +25,10 @@ function buildGmail(payload: unknown) {
 function buildMastra(responses: unknown[]) {
     const generate = vi.fn()
     responses.forEach(object => generate.mockResolvedValueOnce({ object }))
-    const mastra = { getAgent: vi.fn().mockReturnValue({ generate }) }
+    const mastra = {
+        getAgent: vi.fn().mockReturnValue({ generate }),
+        getLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
+    }
     return { mastra, generate }
 }
 

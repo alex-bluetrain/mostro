@@ -9,8 +9,10 @@ const config: Record<string, string | undefined> = {}
 
 const hasActivePointer = vi.fn(async (_domain: string) => false)
 const publishSnapshot = vi.fn(async (_input: unknown) => 1)
+const appLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 
 vi.mock('@config/app.config', () => ({ appConfig: config }))
+vi.mock('@lib/app-logger', () => ({ appLogger }))
 vi.mock('@business/repositories', () => ({
     classifierRepository: {
         hasActivePointer: (domain: string) => hasActivePointer(domain),
@@ -28,8 +30,6 @@ describe('ensureClassifierSeed', () => {
         config.CLASSIFIER_RULES_DIAPERS = undefined
         config.CLASSIFIER_RULES_MEDS = undefined
         config.CLASSIFIER_RULES_REFUNDS = undefined
-        vi.spyOn(console, 'info').mockImplementation(() => {})
-        vi.spyOn(console, 'error').mockImplementation(() => {})
     })
 
     it('con puntero activo no publica nada, aunque haya template en env', async () => {
@@ -58,8 +58,8 @@ describe('ensureClassifierSeed', () => {
         await expect(ensureClassifierSeed()).resolves.toBeUndefined()
 
         expect(publishSnapshot).not.toHaveBeenCalled()
-        expect(console.error).toHaveBeenCalledTimes(3)
-        expect(vi.mocked(console.error).mock.calls[0]?.[0]).toContain('CLASSIFIER_RULES_DIAPERS')
+        expect(appLogger.error).toHaveBeenCalledTimes(3)
+        expect(appLogger.error.mock.calls[0]?.[0]).toContain('CLASSIFIER_RULES_DIAPERS')
     })
 
     it('template vacío se trata como ausente', async () => {
@@ -68,7 +68,7 @@ describe('ensureClassifierSeed', () => {
         await ensureClassifierSeed()
 
         expect(publishSnapshot).not.toHaveBeenCalled()
-        expect(vi.mocked(console.error).mock.calls[1]?.[0]).toContain('CLASSIFIER_RULES_MEDS')
+        expect(appLogger.error.mock.calls[1]?.[0]).toContain('CLASSIFIER_RULES_MEDS')
     })
 
     it('template inválido no publica y no lanza, y no frena los otros dominios', async () => {
@@ -79,6 +79,6 @@ describe('ensureClassifierSeed', () => {
         await expect(ensureClassifierSeed()).resolves.toBeUndefined()
 
         expect(publishSnapshot).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ domain: 'refunds' }))
-        expect(console.error).toHaveBeenCalledTimes(2)
+        expect(appLogger.error).toHaveBeenCalledTimes(2)
     })
 })

@@ -1,5 +1,6 @@
 import { userRepository, inviteRepository } from '@business/repositories'
 import type { IUser, IInvite } from '@business'
+import { appLogger } from './app-logger';
 
 export type TelegramStartDeps = {
     getUserByTelegramId: (telegramId: string) => Promise<IUser | null>
@@ -62,11 +63,11 @@ export function createTelegramStartHandler(deps: TelegramStartDeps = defaultDeps
                 const user = await deps.provisionUser(invite.email, telegramId, event.user.fullName.trim())
                 await event.channel.post(buildWelcomeMessage(user.name || invite.name))
             } catch (err) {
-                console.error('[telegram-start] failed to provision user after redeem', err)
+                appLogger.error('[telegram-start] failed to provision user after redeem', { err })
                 await event.channel.post(PROVISION_FAILED_MESSAGE)
             }
         } catch (err) {
-            console.error('[telegram-start] failed to handle /start', err)
+            appLogger.error('[telegram-start] failed to handle /start', { err })
         }
     }
 }

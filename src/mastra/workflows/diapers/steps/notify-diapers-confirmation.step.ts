@@ -20,7 +20,7 @@ export const notifyDiapersConfirmation = createStep({
             for (const email of emails) {
                 const target = await resolveTelegramThread(mastra, email)
                 if (!target) {
-                    console.warn(`[notify-users] no telegram thread for ${email}, skipping`)
+                    mastra?.getLogger().warn(`[notify-users] no telegram thread for ${email}, skipping`)
                     continue
                 }
                 await supervisor.sendNotificationSignal(

@@ -14,7 +14,7 @@ import mongoose from 'mongoose';
 import { userRepository } from '@business/repositories';
 import { startNgrokTunnel } from './ngrok';
 import { createServerAuth } from './lib/server-auth';
-import { createAppLogger } from './lib/app-logger';
+import { appLogger } from './lib/app-logger';
 import { ensureClassifierSeed } from './lib/classifier-seed';
 import { appConfig } from './config/app.config';
 import { diapersWorkflow } from './workflows/diapers/diapers.workflow';
@@ -47,7 +47,7 @@ if (appConfig.ADMIN_EMAIL) {
         appConfig.ADMIN_TELEGRAM_ID
     );
 } else {
-    console.warn('[mastra] ADMIN_EMAIL not set, skipping admin seed');
+    appLogger.warn('[mastra] ADMIN_EMAIL not set, skipping admin seed');
 }
 
 // Las reglas de clasificación son precondición de los polls: si falta el puntero,
@@ -81,7 +81,7 @@ export const mastra = new Mastra({
             observability: await new DuckDBStore({ path: appConfig.DUCKDB_PATH }).getStore('observability'),
         }
     }),
-    logger: await createAppLogger(),
+    logger: appLogger,
     observability: new Observability({
         configs: {
             default: {
@@ -107,10 +107,10 @@ if (supervisorChannels) {
     try {
         await supervisorChannels.initialize(mastra);
         supervisorChannels.sdk?.onSlashCommand('/start', createTelegramStartHandler());
-        console.info('[telegram-start] /start handler registered');
+        appLogger.info('[telegram-start] /start handler registered');
     } catch (err) {
-        console.error('[telegram-start] channel init failed; /start handler not registered', err);
+        appLogger.error('[telegram-start] channel init failed; /start handler not registered', { err });
     }
 } else {
-    console.warn('[telegram-start] supervisor has no channels; /start handler not registered');
+    appLogger.warn('[telegram-start] supervisor has no channels; /start handler not registered');
 }

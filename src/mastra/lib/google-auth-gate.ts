@@ -1,4 +1,5 @@
 import { userRepository } from '@business/repositories'
+import { appLogger } from './app-logger';
 
 export type GoogleAuthGateDeps = {
     findByEmail: (email: string) => Promise<{ name: string } | null>
@@ -31,7 +32,7 @@ export async function assertInvitedAndSyncName(
         } catch (err) {
             // Cosmético: nunca bloquear el login de un invitado por no poder
             // sincronizar el nombre desde el perfil de Google.
-            console.warn('[google-auth-gate] failed to sync name from google profile', err)
+            appLogger.warn('[google-auth-gate] failed to sync name from google profile', { err })
         }
     }
 }
