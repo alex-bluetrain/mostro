@@ -16,20 +16,21 @@ function makeMessage(senderId: string, text: string) {
 }
 
 const thread = {} as any
+const ctx = { requestContext: {} } as any
 
 describe('createTelegramGate', () => {
     it('usuario registrado pasa al defaultHandler', async () => {
         const deps = makeDeps({ getUserByTelegramId: vi.fn(async () => member) })
         const defaultHandler = vi.fn(async () => {})
         const message = makeMessage('111', 'hola')
-        await createTelegramGate(deps)(thread, message, defaultHandler)
+        await createTelegramGate(deps)(thread, message, defaultHandler, ctx)
         expect(defaultHandler).toHaveBeenCalledExactlyOnceWith(thread, message)
     })
 
     it('desconocido es ignorado en silencio', async () => {
         const deps = makeDeps()
         const defaultHandler = vi.fn(async () => {})
-        await createTelegramGate(deps)(thread, makeMessage('222', 'hola'), defaultHandler)
+        await createTelegramGate(deps)(thread, makeMessage('222', 'hola'), defaultHandler, ctx)
         expect(defaultHandler).not.toHaveBeenCalled()
     })
 })
