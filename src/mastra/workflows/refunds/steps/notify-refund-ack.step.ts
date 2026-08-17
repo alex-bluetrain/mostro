@@ -11,7 +11,7 @@ export const notifyRefundAckStep = createStep({
     outputSchema: z.object({}),
     stateSchema: refundsStateSchema,
     execute: async ({ state, setState, mastra }) => {
-        const emails = await subscriberRepository.list('refunds')
+        const emails = await subscriberRepository.list()
 
         const supervisor = mastra?.getAgent('mostroSupervisor')
         let sent = 0

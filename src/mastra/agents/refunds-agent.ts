@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import { Memory } from '@mastra/memory'
 import { getRefundsStatusTool } from '@tools/refunds-get-status-tool'
 import { requestRefundTool } from '@tools/refunds-request-tool'
-import { subscribeRefundsTool } from '@tools/refunds-subscribe-tool'
+import { subscribeTool } from '@tools/subscribe-tool'
 
 export const refundsAgent = new Agent({
     id: 'refunds-agent',
@@ -19,10 +19,10 @@ Your responsibilities:
 - If the user wants to request a refund, use requestRefundTool with the amount and an optional reason. If a refund is already in progress that month, tell them so instead of starting a new one.
 - If requestRefundTool returns { ok: false, reason: 'requester_unidentified' }, do not retry — relay its message to the user verbatim so the supervisor can capture their name.
 - If requestRefundTool returns { ok: false, reason: 'send_failed' }, the refund was NOT requested. Do not retry it automatically — relay its message to the user verbatim and let them know they can ask again later.
-- If the user wants to be notified when the refund is acknowledged, confirmed, or when the deposit arrives, use subscribeRefundsTool.
+- If the user wants to be notified when the refund is acknowledged, confirmed, or when the deposit arrives, use subscribeTool. It subscribes them to all updates about the patient (diapers, medication and refunds), not just refunds — say so when you confirm it.
 
 Keep responses concise and friendly. Always communicate in the same language the user used.`,
     model: 'openrouter/deepseek/deepseek-v4-flash',
-    tools: { getRefundsStatusTool, requestRefundTool, subscribeRefundsTool },
+    tools: { getRefundsStatusTool, requestRefundTool, subscribeTool },
     memory: new Memory(),
 })

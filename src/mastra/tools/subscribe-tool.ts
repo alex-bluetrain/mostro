@@ -3,9 +3,9 @@ import { z } from 'zod'
 import { subscriberRepository } from '@business/repositories'
 import { emailFromResourceId } from '@business/identity'
 
-export const subscribeRefundsTool = createTool({
-    id: 'subscribe-refunds-notifications',
-    description: 'Suscribe al usuario actual para recibir avisos por Telegram cuando el reembolso sea reconocido por el procesador de pagos, cuando se confirme y cuando el depósito llegue a la cuenta.',
+export const subscribeTool = createTool({
+    id: 'subscribe-notifications',
+    description: 'Suscribe al usuario actual para recibir avisos por Telegram sobre las novedades de la paciente: entregas de pañales, pedidos de medicamentos y reembolsos.',
     inputSchema: z.object({}),
     outputSchema: z.object({
         subscribed: z.boolean(),
@@ -16,7 +16,7 @@ export const subscribeRefundsTool = createTool({
             return { subscribed: false }
         }
 
-        await subscriberRepository.add('refunds', email)
+        await subscriberRepository.add(email)
         return { subscribed: true }
     },
 })

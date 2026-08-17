@@ -11,7 +11,7 @@ export const notifyMedsAckStep = createStep({
     outputSchema: z.object({}),
     stateSchema: medsStateSchema,
     execute: async ({ state, setState, mastra }) => {
-        const emails = await subscriberRepository.list('meds')
+        const emails = await subscriberRepository.list()
 
         const supervisor = mastra?.getAgent('mostroSupervisor')
         let sent = 0

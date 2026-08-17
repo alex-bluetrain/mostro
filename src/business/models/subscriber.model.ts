@@ -1,17 +1,14 @@
 import { Schema, model } from 'mongoose';
 
 export interface ISubscriber {
-  type: 'diapers' | 'meds' | 'refunds';
   email: string;
 }
 
 const subscriberSchema = new Schema<ISubscriber>({
-  type: { type: String, enum: ['diapers', 'meds', 'refunds'], required: true },
-  email: { type: String, required: true, lowercase: true },
+  email: { type: String, required: true, lowercase: true, unique: true },
 });
 
-// One subscription per user per domain; the delivery thread is resolved at
-// send time (see resolve-telegram-thread), so no thread data is stored here.
-subscriberSchema.index({ type: 1, email: 1 }, { unique: true });
-
+// Una suscripción por persona: los avisos son sobre la paciente, no sobre un
+// dominio suelto. El thread de entrega se resuelve al momento del envío (ver
+// resolve-telegram-thread), así que acá no se guarda nada del canal.
 export const Subscriber = model<ISubscriber>('Subscriber', subscriberSchema);

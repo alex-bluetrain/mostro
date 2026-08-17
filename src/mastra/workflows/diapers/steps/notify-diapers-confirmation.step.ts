@@ -12,7 +12,7 @@ export const notifyDiapersConfirmation = createStep({
     outputSchema: notifyUsersOutputSchema,
     stateSchema: diapersStateSchema,
     execute: async ({ state, setState, mastra }) => {
-        const emails = await subscriberRepository.list('diapers')
+        const emails = await subscriberRepository.list()
 
         const supervisor = mastra?.getAgent('mostroSupervisor')
         let sent = 0
