@@ -17,28 +17,28 @@ describe('ClassifierRepository', () => {
     vi.clearAllMocks();
   });
 
-  describe('getActiveRules', () => {
+  describe('findActiveRules', () => {
     it('devuelve las reglas del snapshot al que apunta el puntero', async () => {
       vi.mocked(Classifier.findOne).mockReturnValue({ lean: () => Promise.resolve({ domain: 'diapers', version: 3 }) } as any);
       vi.mocked(ClassifierSnapshot.findOne).mockReturnValue({ lean: () => Promise.resolve({ classification_rules: rules }) } as any);
 
-      const result = await classifierRepository.getActiveRules('diapers');
+      const result = await classifierRepository.findActiveRules('diapers');
 
       expect(result).toEqual(rules);
       expect(ClassifierSnapshot.findOne).toHaveBeenCalledWith({ domain: 'diapers', version: 3 });
     });
 
-    it('falla claro si no hay puntero para el dominio', async () => {
+    it('devuelve null si el dominio todavía no tiene reglas configuradas', async () => {
       vi.mocked(Classifier.findOne).mockReturnValue({ lean: () => Promise.resolve(null) } as any);
 
-      await expect(classifierRepository.getActiveRules('meds')).rejects.toThrow(/no hay puntero activo.*"meds"/);
+      await expect(classifierRepository.findActiveRules('meds')).resolves.toBeNull();
     });
 
     it('falla claro si el puntero apunta a un snapshot inexistente', async () => {
       vi.mocked(Classifier.findOne).mockReturnValue({ lean: () => Promise.resolve({ domain: 'refunds', version: 9 }) } as any);
       vi.mocked(ClassifierSnapshot.findOne).mockReturnValue({ lean: () => Promise.resolve(null) } as any);
 
-      await expect(classifierRepository.getActiveRules('refunds')).rejects.toThrow(/versión 9.*no existe/);
+      await expect(classifierRepository.findActiveRules('refunds')).rejects.toThrow(/versión 9.*no existe/);
     });
   });
 

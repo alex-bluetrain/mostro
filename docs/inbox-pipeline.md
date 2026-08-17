@@ -33,7 +33,7 @@ flowchart TD
     DEFAULT{"isDefault?"}
 
     subgraph MONGO["Mongo"]
-        RULES["getActiveRules(domain)<br/>puntero (classifiers) → snapshot activo<br/>(classifier-snapshots)"]
+        RULES["findActiveRules(domain)<br/>puntero (classifiers) → snapshot activo<br/>(classifier-snapshots)<br/>null si el dominio no tiene reglas"]
     end
 
     subgraph IM["inbox-manager — único módulo que habla con Gmail"]
@@ -95,8 +95,12 @@ Gateway a Gmail: lee mails y aplica labels. No clasifica ni ejecuta side effects
 Funciones puras sobre texto + reglas: sin Gmail, sin side effects, sin cache.
 
 - **Las reglas viven en Mongo** (no en código) y se leen en **cada corrida** vía
-  `classifierRepository.getActiveRules(domain)`. Publicar un snapshot nuevo impacta en el
+  `classifierRepository.findActiveRules(domain)`. Publicar un snapshot nuevo impacta en el
   siguiente ciclo de cron sin redeploy.
+- Si el dominio **todavía no tiene reglas**, `findActiveRules` devuelve `null` y el poll
+  saltea la corrida con un warning, sin tocar la casilla. Es el estado esperado cuando falta
+  cargar el `CLASSIFIER_RULES_<DOMAIN>` correspondiente. En cambio, un puntero que apunta a
+  un snapshot inexistente **sí lanza**: eso es corrupción, no falta de configuración.
 - `classifyMail(mastra, text, rules)` → `{ label, data?, isDefault }`:
   1. **Clasificación**: prompt con el `condition` de cada outcome + few-shot de
      `examples.match[]` / `examples.no_match[]`; el LLM elige exactamente un label
@@ -175,7 +179,8 @@ genérico, KISS):
 
 ```
 si !manager.initialized → manager.init(mastra)          // traduce query una vez
-rules = classifierRepository.getActiveRules(domain)     // Mongo, cada corrida
+rules = classifierRepository.findActiveRules(domain)    // Mongo, cada corrida
+si !rules → warning; salir ok                           // dominio sin reglas: no toca la casilla
 mails = manager.fetch()                                 // viejo → nuevo
 por cada mail:
     { label, data, isDefault } = classifyMail(...)

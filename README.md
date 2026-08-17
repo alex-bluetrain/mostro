@@ -279,7 +279,7 @@ if you ever open the login to people outside the household.
 src/
 ├── business/
 │   ├── models/            Mongoose models (users, invites, classifier snapshots + pointers)
-│   └── repositories/      Data access (classifier.repository: getActiveRules, publishSnapshot)
+│   └── repositories/      Data access (classifier.repository: findActiveRules, publishSnapshot)
 └── mastra/
     ├── agents/            Domain agents + supervisor + inboxClassifierAgent
     ├── tools/             3 tools per domain (request, get-status, subscribe)
