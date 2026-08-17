@@ -17,6 +17,12 @@ export class ClassifierRepository {
     return snapshot.classification_rules;
   }
 
+  // Chequea existencia del puntero sin lanzar: lo usa el bootstrap del boot para
+  // decidir si hay que seedear el dominio o dejarlo intacto.
+  async hasActivePointer(domain: ClassifierDomain): Promise<boolean> {
+    return (await Classifier.exists({ domain })) !== null;
+  }
+
   // Inserta un snapshot nuevo (versión = max + 1) y mueve el puntero. Los snapshots son
   // inmutables: publicar cambios siempre crea una versión nueva.
   async publishSnapshot(input: {
