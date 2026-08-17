@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/alex-bluetrain/mostro/compare/v1.3.0...v1.4.0) (2026-08-17)
+
+
+### Features
+
+* bootstrap automatico de reglas del clasificador desde env ([55b0180](https://github.com/alex-bluetrain/mostro/commit/55b01809b6cf0c46461d948e59eef62556596345))
+
 ## [1.3.0](https://github.com/alex-bluetrain/mostro/compare/v1.2.0...v1.3.0) (2026-08-17)
 
 
