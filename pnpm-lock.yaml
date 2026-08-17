@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@axiomhq/pino':
+        specifier: ^2.0.0
+        version: 2.0.0
       '@chat-adapter/telegram':
         specifier: ^4.38.0
         version: 4.38.0(ai@6.0.230(zod@4.4.3))(zod@4.4.3)
@@ -158,6 +161,14 @@ packages:
   '@ai-sdk/provider@4.0.4':
     resolution: {integrity: sha512-tbHKNLirllUNF3ZlkCsXnwab2ZV1Sl4b1H/Cp9ruCce15IBmskE8Gwkk0yo9xDWY+jho2of7lVXtwSsyrq7cwQ==}
     engines: {node: '>=22'}
+
+  '@axiomhq/js@2.0.0':
+    resolution: {integrity: sha512-mhDH0KLFkDko9ytoltgmch2gOiwE6kY6VWhCmTux9lzL9hmjTej68JeQKwq9GGqOY7xwDsya88bNiTnp/zc8+Q==}
+    engines: {node: '>=20'}
+
+  '@axiomhq/pino@2.0.0':
+    resolution: {integrity: sha512-CvadVsFgcAOVuYP0Hkqx9MtG4201xtvC2h+ubgfiJvQzMrMHJdQenDXuyIQS7pZ0kp7rCTUVMvQY0UpswXw5Ew==}
+    engines: {node: '>=20'}
 
   '@babel/code-frame@8.0.0':
     resolution: {integrity: sha512-dYYg153EyN2Ekbqw2zAsbd6/JR+9N2SEoC7YV2GyyqMM7x9bLDTjBD6XBhSMLH0wtIVyJj03jWNriQhaN+eoCw==}
@@ -1918,6 +1929,9 @@ packages:
     resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
     engines: {node: ^12.20 || >= 14.13}
 
+  fetch-retry@6.0.0:
+    resolution: {integrity: sha512-BUFj1aMubgib37I3v4q78fYo63Po7t4HUPTpQ6/QE6yK6cIQrP+W43FYToeTEyg5m2Y7eFUtijUuAv/PDlWuag==}
+
   figures@6.1.0:
     resolution: {integrity: sha512-d+l3qxjSesT4V7v2fh+QnmFnUWv9lSpjarhShNTgBOfA0ttejbQUAlHLitbjkoRiDulW0OPoQPYIGhIC8ohejg==}
     engines: {node: '>=18'}
@@ -3624,6 +3638,15 @@ snapshots:
   '@ai-sdk/provider@4.0.4':
     dependencies:
       json-schema: 0.4.0
+
+  '@axiomhq/js@2.0.0':
+    dependencies:
+      fetch-retry: 6.0.0
+
+  '@axiomhq/pino@2.0.0':
+    dependencies:
+      '@axiomhq/js': 2.0.0
+      pino-abstract-transport: 3.0.0
 
   '@babel/code-frame@8.0.0':
     dependencies:
@@ -5367,6 +5390,8 @@ snapshots:
     dependencies:
       node-domexception: 1.0.0
       web-streams-polyfill: 3.3.3
+
+  fetch-retry@6.0.0: {}
 
   figures@6.1.0:
     dependencies:
