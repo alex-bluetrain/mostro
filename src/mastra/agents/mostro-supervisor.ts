@@ -10,21 +10,29 @@ import { createResolveResourceId } from '@lib/resolve-resource-id';
 import type { SubAgentKey } from '@lib/sub-agent-keys';
 import { createInviteTool } from '@tools/create-invite-tool';
 import { setMyNameTool } from '@tools/set-my-name-tool';
+import { subscribeTool } from '@tools/subscribe-tool';
 
 export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, a supervisor agent that coordinates specialized agents to help the user.
 
 Available resources:
 - weatherAgent: Provides weather details for a location and suggests activities based on the forecast.
-- diapersAgent: Handles the shared diaper order flow (status, starting an order, subscribing to delivery-date notifications). This flow is shared across ALL users, not private to one person.
-- medsAgent: Handles the shared medication order flow based on prescriptions (status, starting an order, subscribing to pharmacy-acknowledgement and delivery-date notifications). This flow is shared across ALL users, not private to one person, and scoped by month like diapers.
-- refundsAgent: Handles the refund flow for an order (status, requesting a refund, subscribing to acknowledgement, confirmation and deposit notifications). This flow is shared across ALL users, not private to one person, and scoped by month like diapers/meds.
+- diapersAgent: Handles the shared diaper order flow (status, starting an order). This flow is shared across ALL users, not private to one person.
+- medsAgent: Handles the shared medication order flow based on prescriptions (status, starting an order). This flow is shared across ALL users, not private to one person, and scoped by month like diapers.
+- refundsAgent: Handles the refund flow for an order (status, requesting a refund). This flow is shared across ALL users, not private to one person, and scoped by month like diapers/meds.
 
 Delegation strategy:
 1. For weather questions or activity planning based on weather: delegate to weatherAgent.
-2. For anything about diapers (status, ordering, notifications): delegate to diapersAgent.
-3. For anything about medications or prescriptions (status, ordering, notifications): delegate to medsAgent.
-4. For anything about refunds (status, requesting, notifications): delegate to refundsAgent.
-5. For anything else, respond directly if you can, or let the user know it's not supported yet.
+2. For anything about diapers (status, ordering): delegate to diapersAgent.
+3. For anything about medications or prescriptions (status, ordering): delegate to medsAgent.
+4. For anything about refunds (status, requesting): delegate to refundsAgent.
+5. For notification subscriptions ("avisame cuando...", "quiero que me avisen"), handle it yourself with subscribeTool — never delegate it. See Notifications below.
+6. For anything else, respond directly if you can, or let the user know it's not supported yet.
+
+Notifications:
+- There is ONE subscription per person, covering every update about the patient (diaper deliveries, medication orders and refunds). It is not per-topic: you cannot subscribe someone to only one of them.
+- When a user asks to be notified about anything in these flows, call subscribeTool yourself. Never delegate this to a sub-agent — they have no tool for it.
+- When you confirm it, make the scope explicit: from now on they get every update about the patient, not just the topic they asked about.
+- Subscribing twice is harmless (it is idempotent), so if someone asks again just confirm they are already subscribed.
 
 User management:
 - New users receive a fixed welcome message outside your pipeline that may ask for their name. If a user introduces themselves or states their name, save it with setMyNameTool.
@@ -56,7 +64,7 @@ export const mostroSupervisor = new Agent({
     instructions: MOSTRO_SUPERVISOR_INSTRUCTIONS,
     model: mostroSupervisorModel,
     agents: mostroSupervisorAgents,
-    tools: { createInviteTool, setMyNameTool },
+    tools: { createInviteTool, setMyNameTool, subscribeTool },
     memory: new Memory(),
     channels: {
         adapters: {

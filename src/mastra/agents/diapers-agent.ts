@@ -2,12 +2,11 @@ import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
 import { getDiapersStatusTool } from '@tools/diapers-get-status-tool';
 import { requestDiapersTool } from '@tools/diapers-request-tool';
-import { subscribeTool } from '@tools/subscribe-tool';
 
 export const diapersAgent = new Agent({
     id: 'diapers-agent',
     name: 'Diapers Agent',
-    description: 'Maneja el flujo compartido de pedido de pañales: consulta estado, inicia pedidos y suscribe usuarios a avisos de entrega. El estado es único y compartido entre todos los usuarios.',
+    description: 'Maneja el flujo compartido de pedido de pañales: consulta estado e inicia pedidos. El estado es único y compartido entre todos los usuarios.',
     instructions: () => {
         const now = new Date();
         const today = now.toISOString().slice(0, 10);
@@ -23,11 +22,11 @@ Your responsibilities:
 - If the user wants to order diapers, use requestDiapersTool with the diaper size (talle): M (Mediano), G (Grande) or XG (Extra Grande). If a request is already in progress for that month, tell them so instead of starting a new one.
 - If requestDiapersTool returns { ok: false, reason: 'requester_unidentified' }, do not retry — relay its message to the user verbatim so the supervisor can capture their name.
 - If requestDiapersTool returns { ok: false, reason: 'send_failed' }, the order was NOT placed. Do not retry it automatically — relay its message to the user verbatim and let them know they can ask again later.
-- If the user wants to be notified when the delivery date is confirmed, use subscribeTool. It subscribes them to all updates about the patient (diapers, medication and refunds), not just diapers — say so when you confirm it.
+- If the user asks to be notified about deliveries, say you cannot set that up yourself and that Mostro handles notification subscriptions. Do not call any tool for it.
 
 Keep responses concise and friendly. Always communicate in the same language the user used.`;
     },
     model: 'openrouter/deepseek/deepseek-v4-flash',
-    tools: { getDiapersStatusTool, requestDiapersTool, subscribeTool },
+    tools: { getDiapersStatusTool, requestDiapersTool },
     memory: new Memory(),
 });
