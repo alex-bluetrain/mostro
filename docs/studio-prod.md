@@ -51,7 +51,11 @@ terceros en producción requiere licencia EE — **pero funciona gratis en dev y
 El provider se elige por entorno en `src/mastra/lib/server-auth.ts`:
 
 - **`STUDIO_API_KEY` seteada** (prod, vía Infisical) → `SimpleAuth` con un único token que
-  mapea a un usuario admin estático. Min 32 chars.
+  mapea a un usuario admin estático. Min 32 chars. `SimpleAuth` acepta un mapa de tokens y
+  soporta varios usuarios; declaramos uno solo porque el único consumidor hoy es Studio. Si en
+  algún momento sumás entradas, ojo con dos cosas: `authorizeUser()` acepta cualquier token del
+  mapa para todo (no hay permisos por ruta ni por rol) y el mapa se arma en el constructor, así
+  que dar de alta o revocar a alguien implica reiniciar el server.
 - **No seteada** (dev local) → `MastraAuthGoogle` con el invite gate de siempre
   (`createGoogleAuth()`), donde el gate EE no aplica porque `isDev` es true.
 - Sin ninguna config → server sin auth (solo posible en dev).
