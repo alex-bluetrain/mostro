@@ -8,7 +8,7 @@ import { parseArgs } from 'node:util'
 import mongoose from 'mongoose'
 import { appConfig } from '@config/app.config'
 import { classifierRepository } from '@business/repositories'
-import type { ClassificationRules } from '@lib/mail-classifier/classification-rules.type'
+import { validateRules } from '@lib/mail-classifier/validate-rules'
 
 const DOMAINS = ['diapers', 'meds', 'refunds'] as const
 type Domain = (typeof DOMAINS)[number]
@@ -35,25 +35,6 @@ function parseCliArgs(): { domain: Domain; file: string; author: string; changel
     return { domain: domain as Domain, file, author, changelog }
 }
 
-// Validación de shape mínimo: el detalle semántico (conditions, schemas) es
-// responsabilidad de quien escribe el JSON; acá solo se evita seedear basura estructural.
-function validateRules(raw: unknown): ClassificationRules {
-    if (typeof raw !== 'object' || raw === null) fail('el JSON no es un objeto')
-    const rules = raw as Record<string, unknown>
-
-    const outcomes = rules.outcomes
-    if (!Array.isArray(outcomes) || outcomes.length === 0) fail('"outcomes" tiene que ser un array no vacío')
-    for (const [i, outcome] of outcomes.entries()) {
-        if (typeof outcome?.label !== 'string' || !outcome.label) fail(`outcomes[${i}].label tiene que ser un string no vacío`)
-        if (typeof outcome?.condition !== 'string' || !outcome.condition) fail(`outcomes[${i}].condition tiene que ser un string no vacío`)
-    }
-
-    const defaultOutcome = rules['default-outcome'] as Record<string, unknown> | undefined
-    if (typeof defaultOutcome?.label !== 'string' || !defaultOutcome.label) fail('"default-outcome".label tiene que ser un string no vacío')
-
-    return raw as ClassificationRules
-}
-
 async function main(): Promise<void> {
     const { domain, file, author, changelog } = parseCliArgs()
 
@@ -63,7 +44,12 @@ async function main(): Promise<void> {
     } catch (error) {
         fail(`no pude leer/parsear ${file}: ${error instanceof Error ? error.message : error}`)
     }
-    const rules = validateRules(raw)
+    let rules
+    try {
+        rules = validateRules(raw)
+    } catch (error) {
+        fail(error instanceof Error ? error.message : String(error))
+    }
 
     await mongoose.connect(appConfig.MONGODB_URI, { dbName: appConfig.MONGODB_DB_NAME })
     try {

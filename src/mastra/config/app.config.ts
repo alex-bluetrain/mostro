@@ -17,6 +17,11 @@ const envSchema = z.object({
     // Si está seteada, el server usa SimpleAuth (exento del gate EE de Studio)
     // en lugar de Google SSO. Pensada para prod: habilita Studio local → prod.
     STUDIO_API_KEY: z.string().min(32).optional(),
+    // Templates JSON de reglas de clasificación (minificados). Solo se usan como
+    // bootstrap: si el dominio ya tiene puntero activo en Mongo, se ignoran.
+    CLASSIFIER_RULES_DIAPERS: z.string().optional(),
+    CLASSIFIER_RULES_MEDS: z.string().optional(),
+    CLASSIFIER_RULES_REFUNDS: z.string().optional(),
     GMAIL_MAILER_CLIENT_ID: z.string().min(1),
     GMAIL_MAILER_CLIENT_SECRET: z.string().min(1),
     GMAIL_MAILER_REFRESH_TOKEN: z.string().min(1),

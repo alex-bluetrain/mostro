@@ -186,6 +186,18 @@ if you ever open the login to people outside the household.
    STUDIO_API_KEY=
    ```
 
+   Optional — bootstrap for the classification rules, one minified JSON per domain. On boot the
+   server publishes them as the initial snapshot **only for domains that have no active pointer
+   yet**; a domain already seeded is never overwritten. Used in prod (via Infisical) so a fresh
+   database can't leave the poll workflows failing every cycle. See
+   [docs/classifier-rules/](docs/classifier-rules/):
+
+   ```env
+   CLASSIFIER_RULES_DIAPERS=
+   CLASSIFIER_RULES_MEDS=
+   CLASSIFIER_RULES_REFUNDS=
+   ```
+
    Required — Gmail, for sending outbound emails and for the poll workflows that read replies
    back from the same inbox:
 
@@ -247,6 +259,11 @@ if you ever open the login to people outside the household.
    schemas already match the code — and fill in the `<...>` placeholders. Without a seeded
    snapshot for a domain, that domain's poll cycle fails fast with a clear error. Format:
    [docs/clasificador.md](docs/clasificador.md).
+
+   You can skip this step by putting the same JSON, minified, in `CLASSIFIER_RULES_<DOMAIN>`:
+   the server seeds any domain that has no active pointer on boot, and logs a loud error for the
+   ones it can't. The script stays the way to publish *new* versions of rules that are already
+   seeded.
 
 5. Start the development server:
 

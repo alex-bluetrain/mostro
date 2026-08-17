@@ -15,6 +15,7 @@ import mongoose from 'mongoose';
 import { userRepository } from '@business/repositories';
 import { startNgrokTunnel } from './ngrok';
 import { createServerAuth } from './lib/server-auth';
+import { ensureClassifierSeed } from './lib/classifier-seed';
 import { appConfig } from './config/app.config';
 import { diapersWorkflow } from './workflows/diapers/diapers.workflow';
 import { medsWorkflow } from './workflows/meds/meds.workflow';
@@ -48,6 +49,10 @@ if (appConfig.ADMIN_EMAIL) {
 } else {
     console.warn('[mastra] ADMIN_EMAIL not set, skipping admin seed');
 }
+
+// Las reglas de clasificación son precondición de los polls: si falta el puntero,
+// el bootstrap lo publica desde env (o avisa fuerte) acá y no 15 min después en el cron.
+await ensureClassifierSeed();
 
 export const mastra = new Mastra({
     server: {
