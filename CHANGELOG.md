@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/alex-bluetrain/mostro/compare/v1.2.0...v1.3.0) (2026-08-17)
+
+
+### Features
+
+* servir Studio desde el server de prod para que el login funcione ([8c192af](https://github.com/alex-bluetrain/mostro/commit/8c192af41a7e573494e29b8e36491f53b107ad42))
+
 ## [1.2.0](https://github.com/alex-bluetrain/mostro/compare/v1.1.1...v1.2.0) (2026-08-16)
 
 
