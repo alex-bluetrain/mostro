@@ -26,15 +26,16 @@ import { pollDiapersMailbox } from './poll-diapers-mailbox.step'
 import { classifierRepository } from '@business/repositories'
 import { classifyMail } from '@lib/mail-classifier/mail-classifier'
 
+const logger = { warn: vi.fn(), info: vi.fn(), error: vi.fn() }
+const mastra = { getLogger: () => logger }
+
 function execute() {
-    return (pollDiapersMailbox.execute as any)({ mastra: {}, inputData: { dryRun: true } })
+    return (pollDiapersMailbox.execute as any)({ mastra, inputData: { dryRun: true } })
 }
 
 describe('poll-diapers-mailbox step', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        vi.spyOn(console, 'warn').mockImplementation(() => {})
-        vi.spyOn(console, 'info').mockImplementation(() => {})
     })
 
     it('no toca la casilla si el dominio todavía no tiene reglas', async () => {
@@ -49,7 +50,7 @@ describe('poll-diapers-mailbox step', () => {
 
         await execute()
 
-        expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('diapers'))
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('diapers'))
     })
 
     it('procesa la casilla cuando hay reglas activas', async () => {
@@ -60,6 +61,6 @@ describe('poll-diapers-mailbox step', () => {
         await execute()
 
         expect(fetchMails).toHaveBeenCalled()
-        expect(classifyMail).toHaveBeenCalledWith({}, 'hola', { outcomes: [] })
+        expect(classifyMail).toHaveBeenCalledWith(mastra, 'hola', { outcomes: [] })
     })
 })

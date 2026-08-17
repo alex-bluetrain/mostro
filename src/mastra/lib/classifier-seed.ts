@@ -1,6 +1,7 @@
 import { classifierRepository } from '@business/repositories'
 import type { ClassifierDomain } from '@business/models/classifier-snapshot.model'
 import { appConfig } from '@config/app.config'
+import { appLogger } from './app-logger'
 import { validateRules } from './mail-classifier/validate-rules'
 
 // Bootstrap seed-if-missing de las reglas de clasificación, en el mismo lugar del
@@ -24,13 +25,13 @@ export async function ensureClassifierSeed(): Promise<void> {
 
     for (const domain of Object.keys(templates) as ClassifierDomain[]) {
         if (await classifierRepository.hasActivePointer(domain)) {
-            console.info(`[classifier-seed] "${domain}" ya tiene puntero activo, no se toca`)
+            appLogger.info(`[classifier-seed] "${domain}" ya tiene puntero activo, no se toca`)
             continue
         }
 
         const template = templates[domain]?.trim()
         if (!template) {
-            console.error(
+            appLogger.error(
                 `[classifier-seed] ⚠ dominio "${domain}" sin reglas activas y sin ${ENV_VAR_NAME[domain]} — el workflow ${domain}-poll va a fallar en cada corrida`
             )
             continue
@@ -46,9 +47,9 @@ export async function ensureClassifierSeed(): Promise<void> {
                 changelog: 'seed automático desde env',
                 rules,
             })
-            console.info(`[classifier-seed] "${domain}" seedeado: snapshot v${version} (${rules.outcomes.length} outcomes)`)
+            appLogger.info(`[classifier-seed] "${domain}" seedeado: snapshot v${version} (${rules.outcomes.length} outcomes)`)
         } catch (error) {
-            console.error(
+            appLogger.error(
                 `[classifier-seed] ⚠ ${ENV_VAR_NAME[domain]} inválida, "${domain}" queda sin reglas: ${error instanceof Error ? error.message : error}`
             )
         }

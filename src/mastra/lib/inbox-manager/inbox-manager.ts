@@ -48,7 +48,7 @@ export class InboxManager {
         const exclusions = [OUTCOME_COMPLETED, OUTCOME_FAILED, OUTCOME_REVIEW].map(label => `-label:${label}`)
         this.query = [translated, ...exclusions].join(' ')
         this.initialized = true
-        console.info(`[inbox-manager] query traducida: ${this.query}`)
+        mastra.getLogger().info(`[inbox-manager] query traducida: ${this.query}`)
     }
 
     async fetch(): Promise<FetchedMail[]> {

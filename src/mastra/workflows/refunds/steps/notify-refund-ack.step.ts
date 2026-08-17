@@ -19,7 +19,7 @@ export const notifyRefundAckStep = createStep({
             for (const email of emails) {
                 const target = await resolveTelegramThread(mastra, email)
                 if (!target) {
-                    console.warn(`[notify-refund-ack] no telegram thread for ${email}, skipping`)
+                    mastra?.getLogger().warn(`[notify-refund-ack] no telegram thread for ${email}, skipping`)
                     continue
                 }
                 await supervisor.sendNotificationSignal(
