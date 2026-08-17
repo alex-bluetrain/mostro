@@ -6,6 +6,8 @@ dist
 .env.development
 .env
 .env.local
+.env.dev
+.env.prod
 *.db
 *.db-*
 *.duckdb
