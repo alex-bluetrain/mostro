@@ -133,7 +133,7 @@ Al final escribe en el step summary el nombre de la imagen y la instrucción par
 1. **Auth a GCP** vía Workload Identity Federation (`google-github-actions/auth@v2`) — sin keys estáticas.
 2. **Verificar que el tag existe en GHCR** con `docker manifest inspect` (consulta el registry sin bajar la imagen). Filosofía *fail-fast*: si el tag no existe, el workflow falla acá y la VM ni se toca.
 3. **Actualizar la VM** por SSH con túnel IAP (la VM no necesita IP pública ni puerto 22 abierto):
-   - Escribe `IMAGE_TAG=vX.Y.Z` en `/opt/mostro/.env` (lo único que viaja — ver decisión 5).
+   - Escribe `IMAGE_TAG=vX.Y.Z` en el `.env` del directorio de deploy (lo único que viaja — ver decisión 5).
    - `docker compose pull && docker compose up -d --remove-orphans`.
 4. **Health gate:** pollea `docker inspect .State.Health.Status` del contenedor `mostro-app-1` cada 15s, hasta 20 intentos (~5 min). Si no llega a `healthy`, el workflow falla en rojo — un deploy roto nunca queda en verde.
 

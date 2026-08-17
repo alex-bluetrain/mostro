@@ -18,3 +18,6 @@ dist
 # Google OAuth client credentials (nunca commitear)
 client_secret*.json
 .infisical.json
+
+# Reglas reales del clasificador (contienen texto de mails del proveedor)
+secrets/

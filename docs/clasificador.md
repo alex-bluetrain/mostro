@@ -8,7 +8,7 @@
       "condition": "El remitente confirma la solicitud de pañales junto con fecha de entrega, cantidad, direccion, etc",
       "examples": {
         "match": [
-          "confirmo pedido con fecha de entrega el día:  JUEVES 16-04 Consta de: 12 MARCA PROTECT G X 16 Dirección de entrega:  CALLE FALSA 123  - CABA  - BUENOS AIRES código de pedido: 0001-00000000"
+          "confirmo pedido con fecha de entrega el día:  JUEVES 16-04 Consta de: 12 MARCA PRODUCTO G X 16 Dirección de entrega:  CALLE FALSA 123  - CABA  - BUENOS AIRES código de pedido: 0001-00000000"
         ],
         "no_match": [
           "Su último pedido se validó el día 09-04,Debe volver a comunicarse a partir del LUNES 04-05 para poder realizarlo, si intentamos gestionar la validación en el día de hoy la solicitud dará rechazada."
@@ -32,7 +32,7 @@
           },
           "product": {
             "type": "string",
-            "description": "Nombre completo del producto tal como figura en el mail, incluyendo talle y unidades por paquete (ej: MARCA PROTECT G X 16)"
+            "description": "Nombre completo del producto tal como figura en el mail, incluyendo talle y unidades por paquete (ej: MARCA PRODUCTO G X 16)"
           },
           "orderNumber": {
             "type": "string",
