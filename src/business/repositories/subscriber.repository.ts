@@ -1,19 +1,17 @@
 import { Subscriber } from '../models/subscriber.model';
 
-type Domain = 'diapers' | 'meds' | 'refunds';
-
 export class SubscriberRepository {
-  async add(domain: Domain, email: string): Promise<void> {
+  async add(email: string): Promise<void> {
     // Upsert keeps the idempotency check atomic (no find-then-insert race).
     await Subscriber.updateOne(
-      { type: domain, email },
-      { $setOnInsert: { type: domain, email } },
+      { email },
+      { $setOnInsert: { email } },
       { upsert: true }
     );
   }
 
-  async list(domain: Domain): Promise<string[]> {
-    const docs = await Subscriber.find({ type: domain }).lean();
+  async list(): Promise<string[]> {
+    const docs = await Subscriber.find().lean();
     return docs.map(({ email }) => email);
   }
 }
