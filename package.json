@@ -21,6 +21,7 @@
     "seed:classifier": "node --env-file=.env --import tsx scripts/seed-classifier.ts"
   },
   "dependencies": {
+    "@axiomhq/pino": "^2.0.0",
     "@chat-adapter/telegram": "^4.38.0",
     "@googleapis/gmail": "^17.0.0",
     "@mastra/auth-google": "^0.1.0",

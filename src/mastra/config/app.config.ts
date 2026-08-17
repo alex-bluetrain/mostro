@@ -22,6 +22,10 @@ const envSchema = z.object({
     CLASSIFIER_RULES_DIAPERS: z.string().optional(),
     CLASSIFIER_RULES_MEDS: z.string().optional(),
     CLASSIFIER_RULES_REFUNDS: z.string().optional(),
+    // Logs a Axiom. Si falta alguna de las dos, los logs quedan solo en stdout
+    // (dev) / docker logs (prod). Mismo criterio opt-in que STUDIO_API_KEY.
+    AXIOM_TOKEN: z.string().optional(),
+    AXIOM_DATASET: z.string().optional(),
     GMAIL_MAILER_CLIENT_ID: z.string().min(1),
     GMAIL_MAILER_CLIENT_SECRET: z.string().min(1),
     GMAIL_MAILER_REFRESH_TOKEN: z.string().min(1),

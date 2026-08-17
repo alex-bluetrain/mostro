@@ -348,6 +348,24 @@ cookie is `SameSite=Lax`, which browsers refuse to send cross-site. See
 `ngrok` is local-only. In production `NGROK_AUTHTOKEN` is absent, so the tunnel is never opened and
 Telegram reaches the bot through the public domain instead.
 
+### Logs
+
+Everything Mastra logs — plus any `logger.*` call from a workflow or tool — goes through a
+`PinoLogger` built in [`src/mastra/lib/app-logger.ts`](src/mastra/lib/app-logger.ts). By default that
+means stdout: the terminal in development, `docker logs` on the VM.
+
+Setting `AXIOM_TOKEN` **and** `AXIOM_DATASET` adds [Axiom](https://axiom.co/) as a second
+destination. Pino writes to both streams, so shipping logs never removes them from the console, and
+if either variable is missing the boot warns once and keeps the local-only behaviour. The Axiom
+transport batches and retries on its own, so an unreachable or misconfigured Axiom never takes the
+server down.
+
+Use an Axiom API token scoped to ingest on that one dataset, and load it through Infisical like the
+rest of the production secrets.
+
+Note that `console.*` calls (the `[poll-*]`, `[classifier-seed]` and `[telegram-start]` messages)
+bypass Pino entirely, so they only reach `docker logs`, not Axiom.
+
 ## License
 
 Private

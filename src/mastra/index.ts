@@ -1,5 +1,4 @@
 import { Mastra } from '@mastra/core/mastra';
-import { PinoLogger } from '@mastra/loggers';
 import { MongoDBStore } from '@mastra/mongodb';
 import { DuckDBStore } from "@mastra/duckdb";
 import { MastraCompositeStore } from '@mastra/core/storage';
@@ -15,6 +14,7 @@ import mongoose from 'mongoose';
 import { userRepository } from '@business/repositories';
 import { startNgrokTunnel } from './ngrok';
 import { createServerAuth } from './lib/server-auth';
+import { createAppLogger } from './lib/app-logger';
 import { ensureClassifierSeed } from './lib/classifier-seed';
 import { appConfig } from './config/app.config';
 import { diapersWorkflow } from './workflows/diapers/diapers.workflow';
@@ -81,10 +81,7 @@ export const mastra = new Mastra({
             observability: await new DuckDBStore({ path: appConfig.DUCKDB_PATH }).getStore('observability'),
         }
     }),
-    logger: new PinoLogger({
-        name: 'Mastra',
-        level: 'info',
-    }),
+    logger: await createAppLogger(),
     observability: new Observability({
         configs: {
             default: {
