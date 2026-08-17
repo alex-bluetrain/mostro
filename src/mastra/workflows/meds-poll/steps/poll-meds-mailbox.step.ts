@@ -23,7 +23,14 @@ export const pollMedsMailbox = createStep({
 
         // Reglas frescas de Mongo en cada corrida: publicar un snapshot nuevo impacta en
         // el siguiente ciclo de cron sin redeploy.
-        const rules = await classifierRepository.getActiveRules('meds')
+        const rules = await classifierRepository.findActiveRules('meds')
+        if (!rules) {
+            // Sin reglas no hay nada que decidir: saltear es preferible a tocar la casilla
+            // y dejar los mails a medio procesar. El aviso ya salio en el boot.
+            console.warn('[poll-meds-mailbox] "meds" todavia no tiene reglas activas, salteo la corrida')
+            return { ok: true as const }
+        }
+
         const mails = await manager.fetch()
 
         for (const mail of mails) {

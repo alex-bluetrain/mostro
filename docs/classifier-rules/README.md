@@ -29,17 +29,21 @@ Equivalente a `.env.example` pero para el JSON de reglas que se seedea en Mongo
 
 ## Bootstrap automático desde env (prod)
 
-Las reglas no son un seed opcional: son una precondición del poll. Si el dominio no tiene puntero
-activo, `<domain>-poll` falla en **cada** corrida del cron. Para que una base nueva no quede en ese
-estado, al boot corre `ensureClassifierSeed()` (`src/mastra/lib/classifier-seed.ts`), en el mismo
-lugar del ciclo de vida que el seed del admin, con semántica **seed-if-missing** por dominio:
+Las reglas son una precondición del poll: sin ellas no hay nada que clasificar. Para que una base
+nueva no arranque en ese estado, al boot corre `ensureClassifierSeed()`
+(`src/mastra/lib/classifier-seed.ts`), en el mismo lugar del ciclo de vida que el seed del admin,
+con semántica **seed-if-missing** por dominio:
 
 | Estado del dominio | Qué hace el boot |
 | --- | --- |
 | Ya tiene puntero activo | Nada. Nunca pisa lo que hay en Mongo. |
 | Sin puntero + `CLASSIFIER_RULES_<DOMAIN>` válida | Publica el snapshot v1 (`author: boot-seed`). |
-| Sin puntero + env ausente o vacía | `console.error` avisando que ese poll va a fallar. |
+| Sin puntero + env ausente o vacía | `console.error` avisando que ese dominio queda sin procesar. |
 | Sin puntero + JSON inválido | `console.error` con el detalle. No tumba el proceso. |
+
+Si el dominio igual queda sin reglas, el poll **saltea** cada corrida con un warning en vez de
+fallar: no toca la casilla y los mails quedan intactos para cuando se carguen las reglas. Un
+dominio sin configurar no rompe a los otros dos.
 
 El "nunca pisa" es deliberado: cuando exista el front de administración, la DB es el dueño de las
 reglas y sus ediciones no pueden ser revertidas por un redeploy. El env var es solo el arranque en

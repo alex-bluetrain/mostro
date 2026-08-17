@@ -5,9 +5,14 @@ import type { ClassificationRules } from '@lib/mail-classifier/classification-ru
 export class ClassifierRepository {
   // Lee el puntero (classifiers) y devuelve las reglas del snapshot activo. Se llama en
   // cada corrida del poll: sin cache, la fuente de verdad es siempre Mongo.
-  async getActiveRules(domain: ClassifierDomain): Promise<ClassificationRules> {
+  //
+  // Devuelve null si el dominio todavía no tiene reglas configuradas: es un estado
+  // esperado (nadie las cargó aún) y el poll lo resuelve salteando la corrida. En cambio,
+  // un puntero que apunta a un snapshot inexistente sí lanza: eso es corrupción de datos,
+  // no falta de configuración, y esconderlo haría que los mails se procesen mal en silencio.
+  async findActiveRules(domain: ClassifierDomain): Promise<ClassificationRules | null> {
     const pointer = await Classifier.findOne({ domain }).lean();
-    if (!pointer) throw new Error(`[classifier] no hay puntero activo para el dominio "${domain}" (¿falta el seed?)`);
+    if (!pointer) return null;
 
     const snapshot = await ClassifierSnapshot.findOne({ domain, version: pointer.version }).lean();
     if (!snapshot) {
@@ -17,8 +22,8 @@ export class ClassifierRepository {
     return snapshot.classification_rules;
   }
 
-  // Chequea existencia del puntero sin lanzar: lo usa el bootstrap del boot para
-  // decidir si hay que seedear el dominio o dejarlo intacto.
+  // Chequea existencia del puntero sin traer el snapshot: lo usa el bootstrap del boot
+  // para decidir si hay que seedear el dominio o dejarlo intacto.
   async hasActivePointer(domain: ClassifierDomain): Promise<boolean> {
     return (await Classifier.exists({ domain })) !== null;
   }
