@@ -1,0 +1,91 @@
+# Reglas de secret scanning para este repo (público).
+#
+# A las reglas default de gitleaks (API keys, tokens, private keys) se le suman
+# las de abajo, que cubren el tipo de dato que ya se filtró una vez: hostnames
+# de infra, IPs y datos personales de usuarios reales.
+#
+# Importante: las reglas describen el *patrón*, nunca el valor concreto. Poner
+# el dominio o el email real acá volvería a publicarlo, que es justo lo que
+# estamos evitando.
+
+title = "mostro"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "infra-hostname"
+description = "Hostname de infra propia (DuckDNS y afines): resuelve a la IP de la VM"
+regex = '''[a-z0-9][a-z0-9-]*\.(duckdns\.org|ngrok-free\.app|ngrok\.io)'''
+tags = ["infra", "hostname"]
+
+[[rules]]
+id = "gcp-project-id"
+description = "GCP project ID de este proyecto (nombre-NNNNNN)"
+regex = '''\bmostro-[0-9]{6}\b'''
+tags = ["infra", "gcp"]
+
+[[rules]]
+id = "vm-deploy-path"
+description = "Path de deploy en la VM: va como secret, no hardcodeado"
+regex = '''/opt/mostro\b'''
+tags = ["infra", "path"]
+
+[[rules]]
+id = "public-ipv4"
+description = "IPv4 pública hardcodeada (las privadas y de documentación están permitidas)"
+# gitleaks usa RE2 (Go), que no tiene lookahead: se matchea cualquier IPv4 y
+# los rangos no-sensibles se descartan por allowlist.
+regex = '''\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'''
+tags = ["infra", "ip"]
+[rules.allowlist]
+regexTarget = "match"
+regexes = [
+  # Privadas y locales: 10/8, 127/8, 192.168/16, 169.254/16, 172.16-31/12.
+  '''^10\.''',
+  '''^127\.''',
+  '''^192\.168\.''',
+  '''^169\.254\.''',
+  '''^172\.(?:1[6-9]|2[0-9]|3[01])\.''',
+  # Rangos reservados para documentación (RFC 5737) y 0.x/255.x.
+  '''^192\.0\.2\.''',
+  '''^198\.51\.100\.''',
+  '''^203\.0\.113\.''',
+  '''^0\.''',
+  '''^255\.''',
+  # Versiones semver-ish tipo 1.2.3.4 que no son IPs.
+  '''^[01]\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$''',
+]
+paths = [
+  '''pnpm-lock\.yaml''',
+  '''package-lock\.json''',
+]
+
+[[rules]]
+id = "personal-email"
+description = "Email personal real (usar @example.com en docs y fixtures)"
+regex = '''[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|yahoo|live|icloud)\.[a-z.]{2,}'''
+tags = ["pii", "email"]
+[rules.allowlist]
+# Los tests, fixtures y docs usan direcciones @gmail.com inventadas a propósito
+# (ana@, new@, admin@, test@...). package.json lleva el email del autor, que es
+# identidad pública y además va en el author de todos los commits.
+paths = [
+  '''^tests/''',
+  '''\.test\.ts$''',
+  '''fixtures/''',
+  '''^docs/''',
+  '''^package\.json$''',
+  '''^\.env\.example$''',
+]
+# Los mismos placeholders aparecen en comentarios de código que documentan el
+# formato de resourceId. Se listan por local-part en vez de allowlistear src/
+# entero, para que un email real nuevo en el código siga saltando.
+regexTarget = "match"
+regexes = [
+  '''^(ana|new|admin|test|nueva|x|beto|nadie|stranger|you\+[a-z]+)@gmail\.com$''',
+]
+
+# Nombres y direcciones reales de las personas del sistema no se pueden
+# expresar como patrón sin escribirlos acá. Se cubren por convención:
+# ver la sección "Datos sensibles" en AGENTS.md.

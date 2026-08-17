@@ -11,6 +11,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Corta el paso previo a que un dato sensible llegue a main: dominio de prod,
+  # IP pública, email real o el project ID de GCP. Las reglas están en
+  # .gitleaks.toml. fetch-depth: 0 para que escanee el historial, no solo el diff.
+  secrets:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
   checks:
     name: Typecheck + tests unitarios
     runs-on: ubuntu-latest
