@@ -335,9 +335,8 @@ production has no `.env` — the file above is for local development.
 
 ### Studio against production
 
-Studio is served by the production server itself at
-[https://<PROD_DOMAIN>/](https://<PROD_DOMAIN>/) — log in with any email and
-the `STUDIO_API_KEY` as the password.
+Studio is served by the production server itself at the root of the production domain
+(`https://<PROD_DOMAIN>/`) — log in with any email and the `STUDIO_API_KEY` as the password.
 
 Two things make that work. Production authenticates with `SimpleAuth` (an API key via
 `STUDIO_API_KEY`) instead of Google SSO, because Studio's UI with third-party auth providers in
