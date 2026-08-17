@@ -63,13 +63,30 @@ recibir updates.
 pnpm run studio:prod    # mastra studio -h <PROD_DOMAIN> -s 443 -x https
 ```
 
-Luego abrir Studio con la key (Studio la consume, limpia la URL y la mantiene solo en memoria):
+Luego abrir Studio con la key por URL — Studio la consume, limpia la URL y la mantiene solo en
+memoria:
 
 ```text
 http://localhost:3000/?auth_header=Bearer%20<STUDIO_API_KEY>
 ```
 
-O usar el login screen de Studio pegando la key.
+### 3.1. El login screen no sirve contra prod (cookie cross-site)
+
+Pegar la key en el form de login **no funciona** desde Studio local contra prod: el sign-in
+devuelve 200 y redirige, pero al recargar la sesión no existe. Hay que usar `auth_header`.
+
+Studio corre en `localhost:3000` y la API en `<PROD_DOMAIN>`: son **sitios distintos**.
+`SimpleAuth.signIn()` emite la cookie de sesión con `SameSite=Lax` hardcodeado, y con `Lax` el
+browser acepta la cookie pero no la reenvía en requests cross-site.
+
+No es CORS — los headers ya están bien (`Access-Control-Allow-Origin: http://localhost:3000` +
+`Allow-Credentials: true`), y Studio ya hace todos sus fetches con `credentials: "include"`.
+
+**No lo trabajamos alrededor a propósito.** Reescribir la cookie a `SameSite=None; Secure`
+requiere parchear por string un detalle interno de `@mastra/core` (rompe en silencio si cambia
+el formato) y encima resigna la protección CSRF que da `Lax`. `auth_header` resuelve lo mismo
+sin persistir el token ni bajar la seguridad de prod. Si el form llega a hacer falta, el camino
+sano es servir Studio y API bajo el mismo sitio.
 
 Para la API directa (curl, `mastra api`):
 
@@ -87,7 +104,7 @@ de prod, consume tokens de API y muestra threads reales de Telegram.
 3. Restart del container en la VM para que tome el secret:
    `docker compose up -d --force-recreate app`
 
-Si la key se filtra (viaja por URL con `auth_header`: historial del browser, logs), rotarla en
+Si la key se filtra (con `auth_header` viaja por URL: historial del browser, logs), rotarla en
 Infisical y reiniciar.
 
 ## 5. Alternativas descartadas (y por qué)
