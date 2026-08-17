@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/alex-bluetrain/mostro/compare/v1.4.1...v1.5.0) (2026-08-17)
+
+
+### Features
+
+* enviar los logs del server a Axiom ([ec5cde9](https://github.com/alex-bluetrain/mostro/commit/ec5cde972d022c62120bee081593dcdaac01d963))
+
 ## [1.4.1](https://github.com/alex-bluetrain/mostro/compare/v1.4.0...v1.4.1) (2026-08-17)
 
 
