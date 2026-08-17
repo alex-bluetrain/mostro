@@ -28,10 +28,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # project_id va por secret para que Actions lo enmascare (`***`) en los
+      # logs: el action lo exporta en CLOUDSDK_*/GCLOUD_PROJECT y este repo es
+      # público. Mismo criterio que VM_NAME y ZONE.
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_CI_SERVICE_ACCOUNT }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - uses: google-github-actions/setup-gcloud@v2
 
@@ -52,13 +56,15 @@ jobs:
           fi
           echo "Tag '$VERSION' encontrado."
 
-      # El .env de /opt/mostro solo lleva IMAGE_TAG: los secrets de la app los
-      # resuelve Infisical dentro del contenedor. Nada sensible viaja por acá.
+      # El .env del directorio de deploy solo lleva IMAGE_TAG: los secrets de la
+      # app los resuelve Infisical dentro del contenedor. Nada sensible viaja por
+      # acá. El path va como secret para que no quede en los logs públicos.
       - name: Actualizar la VM
         env:
           VERSION: ${{ inputs.version }}
           VM_NAME: ${{ secrets.GCP_VM_NAME }}
           ZONE: ${{ secrets.GCP_ZONE }}
+          DEPLOY_DIR: ${{ secrets.GCP_DEPLOY_DIR }}
         run: |
           set -euo pipefail
           # Retry: el túnel IAP puede fallar transitoriamente (p.ej. 4010
@@ -70,8 +76,8 @@ jobs:
               --tunnel-through-iap \
               --quiet \
               --command "set -euo pipefail && \
-                echo 'IMAGE_TAG=$VERSION' | sudo tee /opt/mostro/.env >/dev/null && \
-                cd /opt/mostro && \
+                echo 'IMAGE_TAG=$VERSION' | sudo tee '$DEPLOY_DIR/.env' >/dev/null && \
+                cd '$DEPLOY_DIR' && \
                 sudo docker compose pull && \
                 sudo docker compose up -d --remove-orphans"; then
               exit 0
