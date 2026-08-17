@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/alex-bluetrain/mostro/compare/v1.4.0...v1.4.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* saltear el poll si el dominio no tiene reglas en vez de fallar ([f623e37](https://github.com/alex-bluetrain/mostro/commit/f623e37603858532859931f9b9c02aae88db0682))
+
 ## [1.4.0](https://github.com/alex-bluetrain/mostro/compare/v1.3.0...v1.4.0) (2026-08-17)
 
 

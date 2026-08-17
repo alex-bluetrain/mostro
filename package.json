@@ -1,6 +1,6 @@
 {
   "name": "mostro",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "A multi-agent Telegram bot for managing recurring family orders — diapers, medications, and refunds — built with Mastra.",
   "private": true,
   "type": "module",
