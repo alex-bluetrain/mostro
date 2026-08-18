@@ -1,23 +1,23 @@
 import { userRepository } from '@business/repositories'
 import { appLogger } from './app-logger';
 
-export type GoogleAuthGateDeps = {
+export type InviteGateDeps = {
     findByEmail: (email: string) => Promise<{ name: string } | null>
     setUserName: (email: string, name: string) => Promise<boolean>
 }
 
-const defaultDeps: GoogleAuthGateDeps = {
+const defaultDeps: InviteGateDeps = {
     findByEmail: email => userRepository.findByEmail(email),
     setUserName: (email, name) => userRepository.setUserName(email, name),
 }
 
-// El SSO de @mastra/auth-google emite la cookie de sesión sin consultar
-// authorizeUser, así que el allowlist se aplica acá, antes de que exista la
-// sesión. De paso completa el nombre desde el perfil de Google la primera vez;
-// nunca pisa un nombre ya elegido (p. ej. vía set-my-name-tool).
+// Acceso invite-only: la identidad la verifica quien emite el token (el BFF
+// de mostro-web, contra Google), pero pertenecer a la app es existir en users.
+// De paso completa el nombre desde el perfil la primera vez; nunca pisa un
+// nombre ya elegido (p. ej. via set-my-name-tool).
 export async function assertInvitedAndSyncName(
     user: { email?: string; emailVerified?: boolean; name?: string },
-    deps: GoogleAuthGateDeps = defaultDeps,
+    deps: InviteGateDeps = defaultDeps,
 ): Promise<void> {
     if (!user.email || user.emailVerified === false) {
         throw new Error('google account has no verified email')
@@ -32,7 +32,7 @@ export async function assertInvitedAndSyncName(
         } catch (err) {
             // Cosmético: nunca bloquear el login de un invitado por no poder
             // sincronizar el nombre desde el perfil de Google.
-            appLogger.warn('[google-auth-gate] failed to sync name from google profile', { err })
+            appLogger.warn('[invite-gate] failed to sync name from google profile', { err })
         }
     }
 }

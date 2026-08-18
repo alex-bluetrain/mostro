@@ -64,11 +64,15 @@ Detalles:
 - Si el código no matchea ningún invite válido (vencido, ya usado, inexistente), no se quema nada: el bot responde con el mensaje genérico de invitación inválida.
 - Si el canje sí matchea pero falla la provisión del user (p. ej. Mongo caído), el código **ya quedó quemado** por el `findOneAndUpdate` atómico; el bot le avisa al invitado que pida un link nuevo (mensaje de error de activación) y un admin tiene que generarle otra invitación.
 
-## Acceso web: Google SSO
+## Acceso web: JWT firmado por mostro-web
 
-`createGoogleAuth()` (`src/mastra/lib/google-auth.ts`) monta `MastraAuthGoogle` sobre el server de Mastra. La autorización es `authorizeUser`: email verificado por Google **y presente en `users`** — la misma condición que el bot, sin listas aparte. Sin `GOOGLE_SSO_CLIENT_ID`/`GOOGLE_SSO_CLIENT_SECRET` el auth queda deshabilitado con un warning (útil en dev).
+El login con Google vive **afuera**, en mostro-web: ahí Auth.js verifica la identidad y su BFF firma un JWT corto (HS256, ~5 min) con el email como claim. Mostro no habla con Google ni tiene login propio; sólo recibe ese bearer.
 
-**Ojo, hay dos integraciones de Google en el proyecto y no comparten credenciales.** Las `GOOGLE_SSO_*` de acá son el login web. El envío de correos a proveedores usa `GMAIL_MAILER_*`, otro cliente OAuth (puede vivir en el mismo proyecto de Google Cloud). Quien se loguea nunca ve un pedido de acceso a Gmail: el consentimiento es por los scopes de cada solicitud, y el login solo pide `openid email profile`. El detalle está en el README.
+`createJwtAuth()` (`src/mastra/lib/jwt-auth.ts`) monta `MastraJwtAuth` con `MOSTRO_JWT_SECRET`, el secreto compartido que es el trust anchor entre los dos servicios. La firma prueba *quién* es, no *si puede entrar*: eso lo decide `authorizeUser` con `assertInvitedAndSyncName`, que exige que el email exista en `users` — la misma condición que el bot, sin listas aparte. Es la pieza que importa, porque mostro-web hoy le da sesión a cualquier cuenta de Google; el allowlist corta acá. Sin `MOSTRO_JWT_SECRET` el provider no se crea y queda un warning.
+
+El `resourceId` de la memoria se mapea al email, igual que el bot, así que un usuario ve la misma conversación desde Telegram y desde la web.
+
+**Ojo, hay dos integraciones de Google en el proyecto y no comparten credenciales.** El login web usa las credenciales OAuth de mostro-web (`AUTH_GOOGLE_*`, en ese repo). El envío de correos a proveedores usa `GMAIL_MAILER_*`, otro cliente OAuth (puede vivir en el mismo proyecto de Google Cloud). Quien se loguea nunca ve un pedido de acceso a Gmail: el consentimiento es por los scopes de cada solicitud, y el login solo pide `openid email profile`. El detalle está en el README.
 
 **Nota:** El acceso web solo funciona **después de canjear el invite** por Telegram. El invite no pre-crea el user; la redención es el momento donde se crea el user, se vincula el Telegram, y a partir de ese punto el email queda autorizado para la web.
 
@@ -92,12 +96,12 @@ Solo las de identidad. Las del envío de correos (`GMAIL_MAILER_*`, `*_EMAIL_TO`
 | `ADMIN_EMAIL`                | sí*       | Email del admin a seedear. Sin ella, nadie queda autorizado.           |
 | `ADMIN_NAME`                 | no        | Nombre del admin. Solo se aplica al crear el user.                     |
 | `ADMIN_TELEGRAM_ID`          | no        | Vincula el Telegram del admin sin pasar por un invite.                 |
-| `GOOGLE_SSO_CLIENT_ID`       | no        | OAuth client (tipo "Web application"). Sin él, auth web deshabilitado. |
-| `GOOGLE_SSO_CLIENT_SECRET`   | no        | Idem.                                                                  |
-| `GOOGLE_SSO_REDIRECT_URI`    | no        | `https://<NGROK_DOMAIN>/api/auth/sso/callback`                         |
-| `GOOGLE_SSO_COOKIE_PASSWORD` | no        | 32+ chars, firma la cookie de sesión.                                  |
+| `MOSTRO_JWT_SECRET`          | no†       | 32+ chars. Secreto compartido con el BFF de mostro-web, que firma el JWT de cada request. Sin él, acceso web deshabilitado. |
+| `STUDIO_API_KEY`             | no†       | 32+ chars. Token de admin para Studio (ver `docs/studio-prod.md`).      |
 
 \* Opcional para el schema de zod, pero en la práctica obligatoria: sin admin no hay quien invite. Ojo: ninguna de estas variables puede estar presente **con valor vacío** — zod valida `min(...)` y rompe el boot.
+
+† Individualmente opcionales, pero **al menos una** tiene que estar: sin ningún provider el server quedaría abierto, así que `createServerAuth()` corta el boot.
 
 ## Limitaciones conocidas
 

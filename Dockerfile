@@ -68,6 +68,6 @@ USER node
 # `exec` reemplaza al shell por infisical (PID 1), que reenvía las señales de
 # Docker al proceso de node que levanta.
 CMD ["sh", "-c", "set -e; \
-  INFISICAL_TOKEN=$(infisical login --method=gcp-id-token --silent --plain); \
-  export INFISICAL_TOKEN; \
-  exec infisical run --projectId \"$INFISICAL_PROJECT_ID\" --env prod -- node index.mjs"]
+    INFISICAL_TOKEN=$(infisical login --method=gcp-id-token --silent --plain); \
+    export INFISICAL_TOKEN; \
+    exec infisical run --projectId \"$INFISICAL_PROJECT_ID\" --env prod --path /mostro -- node index.mjs"]

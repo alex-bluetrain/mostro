@@ -1,7 +1,7 @@
 # Studio contra producción
 
 Cómo entrar a Mastra Studio en el servidor de producción
-(`https://<PROD_DOMAIN>`), el problema de licenciamiento que existía con Google SSO, y
+(`https://<PROD_DOMAIN>`), el problema de licenciamiento que existía con auth de terceros, y
 la solución implementada.
 
 **TL;DR**: entrá a `https://<PROD_DOMAIN>/` y logueate con la `STUDIO_API_KEY` como
@@ -9,9 +9,9 @@ password (el email se ignora).
 
 Dos piezas lo hacen posible:
 
-1. **SimpleAuth en prod** (activado por la env var `STUDIO_API_KEY`): la UI de Studio con un
-   provider de terceros (`@mastra/auth-google`) está gateada por licencia Enterprise Edition, y
-   `SimpleAuth` está **exento** de ese gate. Dev sigue usando Google SSO.
+1. **SimpleAuth** (activado por la env var `STUDIO_API_KEY`): la UI de login de Studio con un
+   provider de terceros está gateada por licencia Enterprise Edition, y `SimpleAuth` está
+   **exento** de ese gate.
 2. **Studio servido desde el mismo origen que la API** (`mastra build --studio`): la cookie de
    sesión es `SameSite=Lax` y el browser no la manda cross-site, así que Studio local apuntando
    a prod quedaba en loop de login.
@@ -33,40 +33,50 @@ if (implementsInterface(auth, "getCurrentUser") && isLicensedOrCloud) {
 
 El usuario del request **solo se resuelve** si se cumple alguna de estas:
 
-| Condición | Con MastraAuthGoogle en prod |
+| Condición | Con un provider de SSO en prod |
 |---|---|
 | `hasLicense` — licencia EE válida | ❌ no tenemos |
 | `isCloud` — deploy en Mastra Cloud | ❌ VM propia |
 | `isSimple` — provider es `SimpleAuth` | ✅ **la solución implementada** |
 | `isDev` — `NODE_ENV != production` | ❌ en prod no |
 
-Con `MastraAuthGoogle` en prod, capabilities devolvía `{"enabled":true,"login":null}` aunque el
+Con un provider de SSO en prod, capabilities devolvía `{"enabled":true,"login":null}` aunque el
 Bearer fuera válido, y Studio mostraba "no login method configured". Es intencional: la doc
 oficial (`docs-studio-auth.md` en `@mastra/core`) dice que Studio Auth con providers de
 terceros en producción requiere licencia EE — **pero funciona gratis en dev y con SimpleAuth**.
 `SimpleAuth` lleva el marker `isSimpleAuth = true` justamente para eximirlo del gate.
 
-## 2. La solución: SimpleAuth en prod, Google SSO en dev
+El gate cubre sólo el **login UI**: `hasSSO` requiere que el provider implemente `getLoginUrl`, y
+`hasCredentials` que implemente `signIn`. `MastraJwtAuth` no implementa ninguno de los dos —
+valida un bearer y nada más — así que componerlo no toca la licencia.
 
-El provider se elige por entorno en `src/mastra/lib/server-auth.ts`:
+## 2. La solución: JWT del BFF + SimpleAuth para Studio
 
-- **`STUDIO_API_KEY` seteada** (prod, vía Infisical) → `SimpleAuth` con un único token que
-  mapea a un usuario admin estático. Min 32 chars. `SimpleAuth` acepta un mapa de tokens y
-  soporta varios usuarios; declaramos uno solo porque el único consumidor hoy es Studio. Si en
-  algún momento sumás entradas, ojo con dos cosas: `authorizeUser()` acepta cualquier token del
-  mapa para todo (no hay permisos por ruta ni por rol) y el mapa se arma en el constructor, así
-  que dar de alta o revocar a alguien implica reiniciar el server.
-- **No seteada** (dev local) → `MastraAuthGoogle` con el invite gate de siempre
-  (`createGoogleAuth()`), donde el gate EE no aplica porque `isDev` es true.
-- Sin ninguna config → server sin auth (solo posible en dev).
+`createServerAuth()` (`src/mastra/lib/server-auth.ts`) arma un `CompositeAuth` con dos entradas,
+ambas por bearer token y ninguna gateada por licencia:
+
+- **`MastraJwtAuth`** (`MOSTRO_JWT_SECRET`) → los usuarios finales, que entran por mostro-web. El
+  BFF verifica el email contra Google y firma un JWT corto; acá sólo se valida la firma. Que la
+  firma sea válida no alcanza: `authorizeUser` exige que el email exista en `users`, así que el
+  acceso sigue siendo por invitación aunque mostro-web le dé sesión a cualquier cuenta de Google.
+- **`SimpleAuth`** (`STUDIO_API_KEY`, prod vía Infisical) → Studio, con un único token que mapea a
+  un admin estático. Min 32 chars. `SimpleAuth` soporta varios usuarios; declaramos uno solo
+  porque el único consumidor hoy es Studio. Si sumás entradas, ojo con dos cosas:
+  `authorizeUser()` acepta cualquier token del mapa para todo (no hay permisos por ruta ni por
+  rol) y el mapa se arma en el constructor, así que dar de alta o revocar implica reiniciar.
+
+`CompositeAuth` prueba los providers en orden y gana el primero que autentica; el JWT va primero
+porque es el camino de todos los requests de usuario. Con un solo secret configurado se usa ese
+provider directo, sin componer. Sin ninguno, el boot **falla**: un server sin auth es un bug de
+config que conviene que duela en el arranque y no en el primer request.
 
 La regex pública del webhook de Telegram (`TELEGRAM_CHANNEL_WEBHOOK`, exportada desde
-`google-auth.ts`) se pasa a **ambos** providers: ese endpoint tiene su propia protección vía
-`TELEGRAM_WEBHOOK_SECRET_TOKEN` y debe quedar fuera del middleware de auth o el bot deja de
-recibir updates.
+`jwt-auth.ts`) se pasa a **ambos** providers: `CompositeAuth` une los `public` de todos, y ese
+endpoint tiene su propia protección vía `TELEGRAM_WEBHOOK_SECRET_TOKEN` — si el middleware de
+auth lo tapara, el bot deja de recibir updates.
 
-> **Importante**: con SimpleAuth activo en prod, los Bearer ID tokens de Google ya **no** son
-> aceptados por la API. El único credential válido es `STUDIO_API_KEY`.
+> **Importante**: los Bearer ID tokens de Google ya **no** son aceptados por la API. Los
+> credentials válidos son el JWT que firma el BFF y la `STUDIO_API_KEY`.
 
 ## 3. Cómo conectarse a prod
 
@@ -131,8 +141,9 @@ asumidos:
   secret token).
 - **La key viaja por HTTPS** (Caddy con cert de Let's Encrypt) y queda en una cookie `HttpOnly`,
   invisible a JavaScript.
-- **Es un único credential compartido**, sin usuarios ni revocación individual: quien la tiene,
-  tiene acceso total. Para un proyecto personal alcanza; para multi-usuario haría falta SSO real.
+- **La `STUDIO_API_KEY` es un único credential compartido**, sin usuarios ni revocación
+  individual: quien la tiene, tiene acceso total. Es la llave de admin, no la de los usuarios —
+  esos entran por mostro-web con su Google, cada uno con su identidad y sujeto al allowlist.
 - **La imagen crece ~11 MB** por los assets del frontend.
 
 ## 6. Alternativas descartadas (y por qué)
@@ -140,12 +151,13 @@ asumidos:
 | Camino | Por qué no |
 |---|---|
 | Licencia EE | Camino oficial para SSO de terceros en prod, pero con costo no justificado para un proyecto personal |
-| `CompositeAuth` (SimpleAuth + Google) | Pasa el gate técnicamente, pero "destraba" el SSO de terceros en prod sin licencia — el gris de licensing que queremos evitar |
+| `CompositeAuth` con un provider de SSO | Pasa el gate técnicamente, pero "destraba" el login UI de terceros en prod sin licencia — el gris de licensing que queremos evitar. Componer con JWT no cae en esto: no aporta login UI (ver §2) |
 | `MASTRA_DEV=true` en prod | Esquiva el gate de licencia — violación directa del licenciamiento EE |
 | Parchear la cookie a `SameSite=None` | Requiere string-patchear un interno de `@mastra/core` (rompe en silencio si cambia el formato) y resigna la protección CSRF que da `Lax` |
 | `auth_header` por URL / headers en `localStorage` | Funcionaban, pero la key viaja por historial del browser y queda en claro en `localStorage`; el panel de Settings además está detrás del propio auth gate |
 | SSH tunnel | El puerto 4111 no está expuesto al host de la VM (solo a la red de docker-compose) |
 | Bearer de Google + `auth_header` | El token era aceptado por la API, pero capabilities no resolvía el user por el gate EE — Studio inutilizable |
+| Google SSO como provider de la API | Reemplazado por el JWT que firma el BFF de mostro-web: el login con Google ahora pasa por la web y Mostro sólo verifica firma + allowlist |
 
 ## 7. Referencias
 
