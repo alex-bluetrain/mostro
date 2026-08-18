@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/alex-bluetrain/mostro/compare/v1.5.0...v1.6.0) (2026-08-18)
+
+
+### Features
+
+* aceptar el JWT que firma el BFF de mostro-web en lugar de Google SSO ([ff11663](https://github.com/alex-bluetrain/mostro/commit/ff11663992d983dabea104cb80c490e7b5ba6de9))
+
 ## [1.5.0](https://github.com/alex-bluetrain/mostro/compare/v1.4.1...v1.5.0) (2026-08-17)
 
 
