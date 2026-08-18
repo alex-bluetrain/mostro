@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/alex-bluetrain/mostro/compare/v1.6.0...v1.7.0) (2026-08-18)
+
+
+### Features
+
+* exponer el chat de agentes para la web con thread por canal ([e10b845](https://github.com/alex-bluetrain/mostro/commit/e10b845c3e7c85ce7969975770e800cdc5a5afa1))
+
 ## [1.6.0](https://github.com/alex-bluetrain/mostro/compare/v1.5.0...v1.6.0) (2026-08-18)
 
 
