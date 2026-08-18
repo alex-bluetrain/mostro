@@ -9,7 +9,8 @@ La identidad canónica de una persona es su **email de Google** (lowercase). Tod
 ```
 email (canónico, colección users)
 ├── telegramId     identidad vinculada — se setea al canjear un invite (o por seed)
-└── resourceId     dueño de la memoria del agente — email en threads nuevos de DM
+├── resourceId     dueño de la memoria del agente — email en threads nuevos de DM
+└── threadId       conversación — `<email>:web` en la web, UUID en Telegram
 ```
 
 La colección `users` en Mongo (`src/mastra/lib/users.ts`):
@@ -70,7 +71,7 @@ El login con Google vive **afuera**, en mostro-web: ahí Auth.js verifica la ide
 
 `createJwtAuth()` (`src/mastra/lib/jwt-auth.ts`) monta `MastraJwtAuth` con `MOSTRO_JWT_SECRET`, el secreto compartido que es el trust anchor entre los dos servicios. La firma prueba *quién* es, no *si puede entrar*: eso lo decide `authorizeUser` con `assertInvitedAndSyncName`, que exige que el email exista en `users` — la misma condición que el bot, sin listas aparte. Es la pieza que importa, porque mostro-web hoy le da sesión a cualquier cuenta de Google; el allowlist corta acá. Sin `MOSTRO_JWT_SECRET` el provider no se crea y queda un warning.
 
-El `resourceId` de la memoria se mapea al email, igual que el bot, así que un usuario ve la misma conversación desde Telegram y desde la web.
+El `resourceId` de la memoria se mapea al email, igual que el bot (`mapUserToResourceId` en el provider), así que la memoria de recurso —quién es, qué pidió— es común a los dos canales. El historial literal no: cada canal tiene su thread (ver abajo).
 
 **Ojo, hay dos integraciones de Google en el proyecto y no comparten credenciales.** El login web usa las credenciales OAuth de mostro-web (`AUTH_GOOGLE_*`, en ese repo). El envío de correos a proveedores usa `GMAIL_MAILER_*`, otro cliente OAuth (puede vivir en el mismo proyecto de Google Cloud). Quien se loguea nunca ve un pedido de acceso a Gmail: el consentimiento es por los scopes de cada solicitud, y el login solo pide `openid email profile`. El detalle está en el README.
 
@@ -86,6 +87,24 @@ Quién es "dueño" de la memoria de cada conversación:
 - **`resolveResourceId`** (en el supervisor): en threads **nuevos** de DM resuelve el `telegramId` del remitente al email canónico. Corre solo al crear el thread; los threads existentes conservan su dueño. Consecuencia: la memoria queda a nombre del email y una futura web comparte memoria con el bot sin migración.
 - **Sub-agentes**: Mastra deriva el resourceId hijo como `{resourceId}-{agentKey}` (ej. `ana@gmail.com-diapersAgent`), con thread nuevo por delegación. Es comportamiento del framework, documentado y estable.
 - **Des-derivado**: las tools que corren dentro de un sub-agente ven el id sufijado, pero necesitan al user (p. ej. para `requestedBy`). `stripSubAgentSuffix` (`users.ts`) recorta el sufijo comparando contra la lista de keys registradas en `lib/sub-agent-keys.ts` — no contra una convención de naming. El `satisfies Record<SubAgentKey, Agent>` del supervisor obliga en compilación a que la lista y el registro no se desincronicen. Un sufijo desconocido no se recorta: la búsqueda de user falla visible en vez de manglar el id en silencio.
+
+## Memoria: threadIds
+
+Cada canal resuelve su thread distinto, y la asimetría es deliberada.
+
+**Web: `<email>:web`, derivado en el backend.** El threadId elige qué memoria se lee, así que no puede venir del browser: quien lo mande se lleva la conversación de otro. `webThreadMiddleware` (`lib/web-thread.ts`) corre como middleware de la ruta de chat, después del auth y sobre el mismo `RequestContext`: lee el email que el auth ya dejó en `MASTRA_RESOURCE_ID_KEY` y escribe `MASTRA_THREAD_ID_KEY` con `channelThreadId(email, 'web')`. Sin email en contexto corta con 401.
+
+Sostiene la garantía que las dos claves son **reservadas** en Mastra: `mergeRequestContext` descarta las que vengan del body (`isReservedRequestContextKey`), y en la ejecución del agente el `RequestContext` gana sobre los args. Mandar `threadId`, `resourceId` o `requestContext` propios en el request no cambia nada — el mensaje cae igual en el thread del dueño del token. Está verificado contra el server, no sólo por lectura del bundle.
+
+**Telegram: UUID de Mastra, con lookup por metadata.** `resolveTelegramThread` busca el thread cuyo `channel_externalThreadId` sea `telegram:<id>`. Se evaluó unificar con `<email>:telegram` por simetría y se descartó:
+
+- **El `null` es un gate, no un miss.** Los 5 steps de notificación se saltean cuando devuelve `null`, que es exactamente el caso del user que nunca linkeó Telegram. Un id computado siempre existe, así que ese chequeo habría que reponerlo en los 5 lugares — y el lookup que se quería evitar vuelve igual, pero disperso.
+- **Telegram ya tiene identidad de thread propia**: el chat. Derivar el id del email tira información que el canal da gratis. En la web no existe esa alternativa: el email del JWT es la única identidad disponible, por eso ahí sí se deriva.
+- **Grupos.** Hoy es sólo DM, pero sin sufijo de chat un grupo mezclaría con el DM y se fragmentaría en un thread por participante. El esquema actual ya los soporta sin trabajo; el determinístico pediría cirugía (`thread.isDM` y dos reglas en vez de una).
+
+Queda sin verificar de dónde saca el adapter el `chat_id` de salida: si viniera del registro del user y no de la metadata del thread, el determinístico sería viable en DM y la decisión se puede reabrir.
+
+La convención de ids vive en `lib/channel-thread-id.ts` — un solo lugar, aunque hoy sólo la web la use para escribir.
 
 ## Variables de entorno
 

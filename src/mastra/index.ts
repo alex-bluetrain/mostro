@@ -1,4 +1,5 @@
 import { Mastra } from '@mastra/core/mastra';
+import { chatRoute } from '@mastra/ai-sdk';
 import { MongoDBStore } from '@mastra/mongodb';
 import { DuckDBStore } from "@mastra/duckdb";
 import { MastraCompositeStore } from '@mastra/core/storage';
@@ -25,6 +26,7 @@ import { diapersPollWorkflow } from './workflows/diapers-poll/diapers-poll.workf
 import { medsPollWorkflow } from './workflows/meds-poll/meds-poll.workflow';
 import { refundsPollWorkflow } from './workflows/refunds-poll/refunds-poll.workflow';
 import { inboxClassifierAgent } from './agents/inbox-classifier-agent';
+import { webThreadMiddleware } from './lib/web-thread';
 
 const port = appConfig.PORT;
 const ngrokOrigin = appConfig.NGROK_DOMAIN ? `https://${appConfig.NGROK_DOMAIN}` : undefined;
@@ -63,6 +65,17 @@ export const mastra = new Mastra({
                 credentials: true,
             }
             : undefined,
+        // Exposes every agent in AI SDK format for the web client (Assistant UI),
+        // which reaches it through mostro-web's BFF with a signed JWT.
+        apiRoutes: [
+            {
+                ...chatRoute({
+                    path: '/chat/:agentId',
+                    version: 'v6',
+                }),
+                middleware: webThreadMiddleware,
+            },
+        ],
     },
     workflows: {
         weatherWorkflow, diapersWorkflow, medsWorkflow, refundsWorkflow,
