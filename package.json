@@ -24,6 +24,7 @@
     "@axiomhq/pino": "^2.0.0",
     "@chat-adapter/telegram": "^4.38.0",
     "@googleapis/gmail": "^17.0.0",
+    "@mastra/ai-sdk": "^1.8.0",
     "@mastra/auth": "^1.1.2",
     "@mastra/core": "^1.59.0",
     "@mastra/duckdb": "^1.6.1",
