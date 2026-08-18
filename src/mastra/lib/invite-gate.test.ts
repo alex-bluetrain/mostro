@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { assertInvitedAndSyncName, type GoogleAuthGateDeps } from './google-auth-gate';
+import { assertInvitedAndSyncName, type InviteGateDeps } from './invite-gate';
 
-function makeDeps(overrides: Partial<GoogleAuthGateDeps> = {}): GoogleAuthGateDeps {
+function makeDeps(overrides: Partial<InviteGateDeps> = {}): InviteGateDeps {
   return {
     findByEmail: vi.fn().mockResolvedValue({ name: 'Ana' }),
     setUserName: vi.fn().mockResolvedValue(true),

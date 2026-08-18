@@ -10,12 +10,11 @@ const envSchema = z.object({
     ADMIN_TELEGRAM_ID: z.string().min(1).optional(),
     ADMIN_NAME: z.string().min(1).optional(),
     ADMIN_EMAIL: z.string().min(3).optional(),
-    GOOGLE_SSO_CLIENT_ID: z.string().min(1).optional(),
-    GOOGLE_SSO_CLIENT_SECRET: z.string().min(1).optional(),
-    GOOGLE_SSO_REDIRECT_URI: z.string().min(1).optional(),
-    GOOGLE_SSO_COOKIE_PASSWORD: z.string().min(32).optional(),
-    // Si está seteada, el server usa SimpleAuth (exento del gate EE de Studio)
-    // en lugar de Google SSO. Pensada para prod: habilita Studio local → prod.
+    // Secreto compartido con el BFF de mostro-web, que firma un JWT por request
+    // con el email verificado por Google. Es el trust anchor entre los dos.
+    MOSTRO_JWT_SECRET: z.string().min(32).optional(),
+    // Habilita SimpleAuth para Studio (ademas del JWT del BFF). Pensada para
+    // prod: permite apuntar Studio local contra prod con un token de admin.
     STUDIO_API_KEY: z.string().min(32).optional(),
     // Templates JSON de reglas de clasificación (minificados). Solo se usan como
     // bootstrap: si el dominio ya tiene puntero activo en Mongo, se ignoran.

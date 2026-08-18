@@ -12,7 +12,7 @@ Mostro uses a **supervisor/delegation architecture**: a central supervisor agent
 
 - **Supervisor pattern** — single entry point that delegates to domain-specific agents based on intent
 - **Invite-only access** — canonical user identity keyed by Google email; unknown Telegram senders are silently ignored, admins invite people via one-time deep links (see [docs/identity.md](docs/identity.md))
-- **Google SSO for the web** — the Mastra server authorizes logins against the same users collection as the bot
+- **JWT auth for the web** — mostro-web verifies the user with Google and signs a per-request JWT; the server authorizes it against the same users collection as the bot
 - **Suspend/resume workflows** — long-running order flows that halt at a step until a matching reply is found in Mostro's own mailbox
 - **Mailbox polling** — a scheduled workflow per domain reads Mostro's Gmail inbox every 15 minutes, matches replies to the suspended step of the run they belong to, and resumes it — see [Mailbox Polling](#mailbox-polling) below
 - **Outbound email** — orders reach suppliers as real emails sent from Mostro's own Gmail account, so replies land in its inbox; a send that fails leaves the order un-placed and retryable rather than silently marked as sent
@@ -119,7 +119,8 @@ to read replies and apply labels. Without the new scope the poller gets a 403 ev
 ### One project, two OAuth clients
 
 Sending mail and logging in are separate integrations with separate credentials
-(`GMAIL_MAILER_*` and `GOOGLE_SSO_*`), but they can live in one Google Cloud project.
+(`GMAIL_MAILER_*` here, `AUTH_GOOGLE_*` in mostro-web), but they can live in one Google Cloud
+project.
 
 Users logging in are never asked for Gmail access. Consent is granted per authorization request,
 not per project: the login asks for `openid email profile`, while `gmail.send` is requested once,
@@ -168,23 +169,24 @@ if you ever open the login to people outside the household.
 
    `ADMIN_EMAIL` seeds the first authorized user on boot — without it nobody can talk to the bot or log into the web. See [docs/identity.md](docs/identity.md) for how identity and invites work. Note: optional variables must be absent, not empty — an empty value fails zod validation and aborts the boot.
 
-   Optional — Google SSO for the web (Studio and future frontends):
+   Web access (min 32 chars) — shared secret with mostro-web's BFF, which signs a short-lived
+   JWT carrying the Google-verified email. A valid signature is not enough: the email must exist
+   in `users`, so access stays invite-only. Google's OAuth client lives in mostro-web, not here:
 
    ```env
-   GOOGLE_SSO_CLIENT_ID=
-   GOOGLE_SSO_CLIENT_SECRET=
-   GOOGLE_SSO_REDIRECT_URI=
-   GOOGLE_SSO_COOKIE_PASSWORD=
+   MOSTRO_JWT_SECRET=
    ```
 
-   Optional — API-key auth instead of Google SSO (min 32 chars). When set, the server uses
-   `SimpleAuth` — exempt from Studio's EE license gate — so a local Studio can connect to
-   production. Used in prod (via Infisical); leave unset in dev to keep Google SSO. See
+   Admin access to Studio (min 32 chars) — enables `SimpleAuth`, which is exempt from Studio's EE
+   license gate, so a local Studio can connect to production. Used in prod (via Infisical). See
    [docs/studio-prod.md](docs/studio-prod.md):
 
    ```env
    STUDIO_API_KEY=
    ```
+
+   Both are individually optional, but **at least one must be set**: with no auth provider the
+   server would be wide open, so the boot fails instead.
 
    Optional — bootstrap for the classification rules, one minified JSON per domain. On boot the
    server publishes them as the initial snapshot **only for domains that have no active pointer
@@ -215,7 +217,7 @@ if you ever open the login to people outside the household.
 
    1. Create a Google Cloud project — the same one can also host the web login's OAuth client.
    2. Enable the Gmail API.
-   3. Create an OAuth client of type "Web application", **separate from the SSO one**, with a
+   3. Create an OAuth client of type "Web application", **separate from the login one**, with a
       redirect to `http://127.0.0.1:53682/oauth2callback`. Google matches redirect URIs literally,
       so scheme, host, port and trailing slash must be exactly that — in particular `127.0.0.1`
       and not `localhost`, which on Windows resolves to IPv6 first while the script listens on
@@ -338,9 +340,9 @@ production has no `.env` — the file above is for local development.
 Studio is served by the production server itself at the root of the production domain
 (`https://<PROD_DOMAIN>/`) — log in with any email and the `STUDIO_API_KEY` as the password.
 
-Two things make that work. Production authenticates with `SimpleAuth` (an API key via
-`STUDIO_API_KEY`) instead of Google SSO, because Studio's UI with third-party auth providers in
-production is gated behind a Mastra Enterprise Edition license — `SimpleAuth` is exempt. And the
+Two things make that work. Studio authenticates with `SimpleAuth` (an API key via
+`STUDIO_API_KEY`), because Studio's login UI with third-party auth providers in production is
+gated behind a Mastra Enterprise Edition license — `SimpleAuth` is exempt. And the
 image is built with `mastra build --studio`, so Studio and the API share one origin: the session
 cookie is `SameSite=Lax`, which browsers refuse to send cross-site. See
 [docs/studio-prod.md](docs/studio-prod.md) for the full story.
