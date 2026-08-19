@@ -27,6 +27,7 @@ import { medsPollWorkflow } from './workflows/meds-poll/meds-poll.workflow';
 import { refundsPollWorkflow } from './workflows/refunds-poll/refunds-poll.workflow';
 import { inboxClassifierAgent } from './agents/inbox-classifier-agent';
 import { webThreadMiddleware } from './lib/web-thread';
+import { meRoute } from './routes/me.route';
 
 const port = appConfig.PORT;
 const ngrokOrigin = appConfig.NGROK_DOMAIN ? `https://${appConfig.NGROK_DOMAIN}` : undefined;
@@ -75,6 +76,7 @@ export const mastra = new Mastra({
                 }),
                 middleware: webThreadMiddleware,
             },
+            meRoute,
         ],
     },
     workflows: {
