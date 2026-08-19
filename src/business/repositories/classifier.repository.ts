@@ -1,5 +1,5 @@
 import { Classifier } from '../models/classifier.model';
-import { ClassifierSnapshot, type ClassifierDomain } from '../models/classifier-snapshot.model';
+import { ClassifierSnapshot, type ClassifierDomain, type IClassifierSnapshot } from '../models/classifier-snapshot.model';
 import type { ClassificationRules } from '@lib/mail-classifier/classification-rules.type';
 
 export class ClassifierRepository {
@@ -26,6 +26,37 @@ export class ClassifierRepository {
   // para decidir si hay que seedear el dominio o dejarlo intacto.
   async hasActivePointer(domain: ClassifierDomain): Promise<boolean> {
     return (await Classifier.exists({ domain })) !== null;
+  }
+
+  // Versión activa por dominio. La pantalla de admin necesita marcar cuál está en uso
+  // sin traer las reglas de cada snapshot.
+  async listActiveVersions(): Promise<Record<string, number>> {
+    const pointers = await Classifier.find().lean();
+    return Object.fromEntries(pointers.map(p => [p.domain, p.version]));
+  }
+
+  // Metadata de las versiones de un dominio, más nueva primero. Sin las reglas:
+  // son pesadas y la lista sólo muestra el historial.
+  async listSnapshots(domain: ClassifierDomain): Promise<Omit<IClassifierSnapshot, 'classification_rules'>[]> {
+    return ClassifierSnapshot.find({ domain })
+      .select('-classification_rules')
+      .sort({ version: -1 })
+      .lean<Omit<IClassifierSnapshot, 'classification_rules'>[]>();
+  }
+
+  async findSnapshot(domain: ClassifierDomain, version: number): Promise<IClassifierSnapshot | null> {
+    return ClassifierSnapshot.findOne({ domain, version }).lean<IClassifierSnapshot | null>();
+  }
+
+  // Rollback / roll-forward: mover el puntero a una versión que ya existe. Devuelve
+  // false si el snapshot no existe, para que el caller responda 404 en vez de dejar
+  // el puntero apuntando al vacío.
+  async activateVersion(domain: ClassifierDomain, version: number): Promise<boolean> {
+    const exists = await ClassifierSnapshot.exists({ domain, version });
+    if (!exists) return false;
+
+    await Classifier.updateOne({ domain }, { $set: { version } }, { upsert: true });
+    return true;
   }
 
   // Inserta un snapshot nuevo (versión = max + 1) y mueve el puntero. Los snapshots son
