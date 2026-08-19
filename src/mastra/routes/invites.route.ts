@@ -1,19 +1,9 @@
 import { registerApiRoute } from '@mastra/core/server'
 import { MASTRA_RESOURCE_ID_KEY } from '@mastra/core/request-context'
-import { getUserByResourceId } from '@business/identity'
 import { inviteRepository } from '@business/repositories'
 import { createInvite, inviteLink, inviteStatus } from '@lib/invites'
 import { nowUnix } from '@lib/unix-time'
-import type { IUser } from '@business/models/user.model'
-
-// El auth provider garantiza que quien llega es un usuario invitado, pero no
-// que sea admin: eso se decide acá, con el user real, no con lo que diga el
-// cliente. mostro-web usa el rol para esconder la pantalla; la puerta es esta.
-async function requireAdmin(resourceId: unknown): Promise<IUser | null> {
-    if (typeof resourceId !== 'string' || !resourceId) return null
-    const user = await getUserByResourceId(resourceId)
-    return user?.role === 'admin' ? user : null
-}
+import { requireAdmin } from '@lib/require-admin'
 
 export const listInvitesRoute = registerApiRoute('/invites', {
     method: 'GET',

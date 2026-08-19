@@ -30,6 +30,12 @@ import { webThreadMiddleware } from './lib/web-thread';
 import { meRoute } from './routes/me.route';
 import { workflowsOverviewRoute } from './routes/workflows-overview.route';
 import { createInviteRoute, listInvitesRoute } from './routes/invites.route';
+import {
+    listClassifierRulesRoute,
+    getClassifierSnapshotRoute,
+    publishClassifierSnapshotRoute,
+    activateClassifierVersionRoute,
+} from './routes/classifier-rules.route';
 
 const port = appConfig.PORT;
 const ngrokOrigin = appConfig.NGROK_DOMAIN ? `https://${appConfig.NGROK_DOMAIN}` : undefined;
@@ -82,6 +88,10 @@ export const mastra = new Mastra({
             workflowsOverviewRoute,
             listInvitesRoute,
             createInviteRoute,
+            listClassifierRulesRoute,
+            activateClassifierVersionRoute,
+            getClassifierSnapshotRoute,
+            publishClassifierSnapshotRoute,
         ],
     },
     workflows: {
