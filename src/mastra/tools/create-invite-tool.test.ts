@@ -30,6 +30,13 @@ describe('createInviteTool', () => {
     vi.mocked(inviteRepository.create).mockResolvedValue(invite as any);
   });
 
+  it('rejects callers whose identity cannot be resolved', async () => {
+    vi.mocked(getUserByResourceId).mockResolvedValue(null);
+    const result = await run({ email: 'new@gmail.com' });
+    expect(result.ok).toBe(false);
+    expect(inviteRepository.create).not.toHaveBeenCalled();
+  });
+
   it('rejects non-admin callers', async () => {
     vi.mocked(getUserByResourceId).mockResolvedValue({ ...admin, role: 'member' });
     const result = await run({ email: 'new@gmail.com' });

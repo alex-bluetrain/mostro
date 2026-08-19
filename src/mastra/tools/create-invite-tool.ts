@@ -1,7 +1,6 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { appConfig } from '@config/app.config'
-import { inviteRepository, userRepository } from '@business/repositories'
+import { createInvite } from '@lib/invites'
 import { getUserByResourceId } from '@business/identity'
 
 export const createInviteTool = createTool({
@@ -22,18 +21,9 @@ export const createInviteTool = createTool({
             return { ok: false, error: 'caller identity not available' }
         }
         const caller = await getUserByResourceId(resourceId)
-        if (!caller || caller.role !== 'admin') {
+        if (!caller) {
             return { ok: false, error: 'only admins can create invites' }
         }
-        const existing = await userRepository.findByEmail(input.email)
-        if (existing?.telegramId) {
-            return { ok: false, error: 'that email already belongs to an active user' }
-        }
-        const invite = await inviteRepository.create({ createdBy: caller.email, email: input.email })
-        return {
-            ok: true,
-            link: `https://t.me/${appConfig.TELEGRAM_BOT_USERNAME}?start=${invite.code}`,
-            expiresAt: invite.expiresAt,
-        }
+        return createInvite(caller, input.email)
     },
 })
