@@ -1,6 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
-import { subscriberRepository } from '@business/repositories'
+import { userRepository } from '@business/repositories'
 import { resolveTelegramThread } from '@lib/resolve-telegram-thread'
 import { nowUnix } from '@lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
@@ -11,7 +11,7 @@ export const notifyRefundConfirmationStep = createStep({
     outputSchema: z.object({}),
     stateSchema: refundsStateSchema,
     execute: async ({ state, setState, mastra }) => {
-        const emails = await subscriberRepository.list()
+        const emails = await userRepository.listNotificationEmails()
 
         const supervisor = mastra?.getAgent('mostroSupervisor')
         let sent = 0

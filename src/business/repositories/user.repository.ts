@@ -50,6 +50,21 @@ export class UserRepository {
     return result;
   }
 
+  // Preferencias de aviso: el opt-in vive en el user, así que suscribirse no
+  // crea nada nuevo, sólo prende un flag sobre una identidad ya invitada.
+  async setNotifications(email: string, enabled: boolean): Promise<boolean> {
+    const result = await User.updateOne(
+      { email: email.toLowerCase() },
+      { $set: { 'preferences.notifications': enabled } }
+    );
+    return result.matchedCount > 0;
+  }
+
+  async listNotificationEmails(): Promise<string[]> {
+    const docs = await User.find({ 'preferences.notifications': true }, { email: 1 }).lean();
+    return docs.map(({ email }) => email);
+  }
+
   async setUserName(email: string, name: string): Promise<boolean> {
     const result = await User.updateOne(
       { email: email.toLowerCase() },

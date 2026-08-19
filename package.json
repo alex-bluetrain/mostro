@@ -18,7 +18,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "gmail:auth": "node --env-file=.env scripts/gmail-authorize.mjs",
-    "seed:classifier": "node --env-file=.env --import tsx scripts/seed-classifier.ts"
+    "seed:classifier": "node --env-file=.env --import tsx scripts/seed-classifier.ts",
+    "migrate:subscribers": "node --env-file=.env --import tsx scripts/migrate-subscribers.ts"
   },
   "dependencies": {
     "@axiomhq/pino": "^2.0.0",

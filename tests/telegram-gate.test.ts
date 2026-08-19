@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createTelegramGate, type TelegramGateDeps } from '@lib/telegram-gate'
 import type { IUser } from '@business'
 
-const member: IUser = { email: 'ana@gmail.com', telegramId: '111', name: 'Ana', role: 'member', addedAt: 1 }
+const member: IUser = { email: 'ana@gmail.com', telegramId: '111', name: 'Ana', role: 'member', addedAt: 1, preferences: { notifications: false } }
 
 function makeDeps(overrides: Partial<TelegramGateDeps> = {}): TelegramGateDeps {
     return {
