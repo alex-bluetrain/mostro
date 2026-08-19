@@ -19,7 +19,8 @@
     "test:watch": "vitest",
     "gmail:auth": "node --env-file=.env scripts/gmail-authorize.mjs",
     "seed:classifier": "node --env-file=.env --import tsx scripts/seed-classifier.ts",
-    "migrate:subscribers": "node --env-file=.env --import tsx scripts/migrate-subscribers.ts"
+    "migrate:subscribers": "node --env-file=.env --import tsx scripts/migrate-subscribers.ts",
+    "generate:openui-prompt": "node --import tsx scripts/generate-openui-prompt.ts"
   },
   "dependencies": {
     "@axiomhq/pino": "^2.0.0",
@@ -44,11 +45,14 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@openuidev/react-lang": "^0.2.11",
+    "@openuidev/react-ui": "^0.13.6",
     "@types/email-reply-parser": "^1.4.2",
     "@types/mailparser": "^3.4.6",
     "@types/node": "^26.1.0",
     "mailparser": "^3.7.4",
     "mastra": "^1.25.0",
+    "react": "^19.2.8",
     "tsx": "^4.23.1",
     "typescript": "^6.0.3",
     "vite-tsconfig-paths": "^6.1.1",

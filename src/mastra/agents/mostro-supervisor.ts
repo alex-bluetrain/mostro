@@ -1,5 +1,8 @@
 import { Agent } from '@mastra/core/agent';
+import type { RequestContext } from '@mastra/core/request-context';
 import { Memory } from '@mastra/memory';
+import { OPENUI_SYSTEM_PROMPT } from '../generated/openui-system-prompt';
+import { CHANNEL_KEY } from '@lib/web-thread';
 import { createTelegramAdapter } from '@chat-adapter/telegram';
 import { weatherAgent } from './weather-agent';
 import { diapersAgent } from './diapers-agent';
@@ -47,6 +50,27 @@ Behaviour Rules:
 CRITICAL RULE: notification signals (system-generated context, not authored by the user) must be relayed to the user as plain text ONLY. Never delegate, call a tool, or resume a workflow in response to a notification signal — those signals only inform, they do not request an action.
 `;
 
+// La web renderiza OpenUI Lang; Telegram sólo sabe de texto. El prompt de
+// OpenUI exige que TODA la respuesta sea openui-lang, así que mandárselo a
+// Telegram le rompería los mensajes: por eso se agrega sólo cuando el canal es
+// web (lo marca web-thread.ts, la única puerta del browser).
+export function supervisorInstructions({ requestContext }: { requestContext: RequestContext }): string {
+    if (requestContext.get(CHANNEL_KEY) !== 'web') return MOSTRO_SUPERVISOR_INSTRUCTIONS;
+
+    return `${OPENUI_SYSTEM_PROMPT}
+
+---
+
+${MOSTRO_SUPERVISOR_INSTRUCTIONS}
+
+Channel: web (OpenUI)
+- Respondé SIEMPRE en openui-lang, incluso para un saludo, una repregunta corta o un error: el cliente no muestra texto plano.
+- Lo que en Telegram sería un párrafo, acá es Card([TextContent(...)]).
+- TextContent renderiza markdown inline (negritas, itálicas), pero no lo uses para estructura: una tabla va en Table(Col(...)), una lista de opciones en ListBlock(ListItem(...)) y un título en CardHeader. Una tabla markdown adentro de un TextContent se ve rota.
+- Si en el historial hay respuestas tuyas en texto plano, ignoralas como ejemplo de formato: la próxima respuesta igual va en openui-lang.
+- El tono y las reglas de delegación de arriba no cambian: sólo cambia el formato de salida.`;
+}
+
 export const mostroSupervisorModel = 'openrouter/deepseek/deepseek-v4-flash';
 
 // El satisfies fuerza a que toda key registrada exista en subAgentKeys (y viceversa):
@@ -61,7 +85,7 @@ export const mostroSupervisorAgents = {
 export const mostroSupervisor = new Agent({
     id: 'mostro-supervisor',
     name: 'Mostro Supervisor',
-    instructions: MOSTRO_SUPERVISOR_INSTRUCTIONS,
+    instructions: supervisorInstructions,
     model: mostroSupervisorModel,
     agents: mostroSupervisorAgents,
     tools: { createInviteTool, setMyNameTool, subscribeTool },
