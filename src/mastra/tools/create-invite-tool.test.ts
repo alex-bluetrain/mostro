@@ -15,7 +15,7 @@ import { createInviteTool } from './create-invite-tool';
 import { inviteRepository, userRepository } from '@business/repositories';
 import { getUserByResourceId } from '@business/identity';
 
-const admin = { email: 'admin@gmail.com', name: 'Admin', role: 'admin' as const, addedAt: 1 };
+const admin = { email: 'admin@gmail.com', name: 'Admin', role: 'admin' as const, addedAt: 1, preferences: { notifications: false } };
 const invite = { code: 'abc123', email: 'new@gmail.com', createdBy: 'admin@gmail.com', createdAt: 1, expiresAt: 999 };
 
 function run(input: { email: string }, resourceId = 'admin@gmail.com') {

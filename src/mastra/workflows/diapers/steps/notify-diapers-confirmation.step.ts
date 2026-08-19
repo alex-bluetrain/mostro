@@ -1,6 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
-import { subscriberRepository } from '@business/repositories'
+import { userRepository } from '@business/repositories'
 import { resolveTelegramThread } from '@lib/resolve-telegram-thread'
 import { formatUnixDate, nowUnix } from '@lib/unix-time'
 import { diapersStateSchema } from '../schemas/diapers-state.schema'
@@ -12,7 +12,7 @@ export const notifyDiapersConfirmation = createStep({
     outputSchema: notifyUsersOutputSchema,
     stateSchema: diapersStateSchema,
     execute: async ({ state, setState, mastra }) => {
-        const emails = await subscriberRepository.list()
+        const emails = await userRepository.listNotificationEmails()
 
         const supervisor = mastra?.getAgent('mostroSupervisor')
         let sent = 0
