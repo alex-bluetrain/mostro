@@ -130,6 +130,51 @@ const refundsScenarios: RefundsScenario[] = [
     },
 ]
 
+// ── Reloj simulado ──────────────────────────────────────────────────────────
+// Los steps toman timestamps con nowUnix() (que usa Date.now), así que cada
+// paso se corre con Date.now apuntando al momento simulado: la solicitud cae
+// entre el 1 y el 5 del mes y los pasos siguientes días después, como en la
+// realidad. Pseudo-random determinista por run: re-correr el seed da las
+// mismas fechas.
+
+const DAY = 86_400
+
+const realDateNow = Date.now.bind(Date)
+
+async function atTime<T>(unixSeconds: number, fn: () => Promise<T>): Promise<T> {
+    Date.now = () => unixSeconds * 1000
+    try {
+        return await fn()
+    } finally {
+        Date.now = realDateNow
+    }
+}
+
+// mulberry32: seeds consecutivos (mes a mes) dan salidas bien mezcladas,
+// a diferencia de un LCG simple donde el primer valor queda correlacionado.
+function seededRandom(seed: number): () => number {
+    return () => {
+        seed = (seed + 0x6d2b79f5) | 0
+        let t = seed
+        t = Math.imul(t ^ (t >>> 15), t | 1)
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    }
+}
+
+type Timeline = { requestedAt: number; ackAt: number; confirmAt: number; depositAt: number }
+
+function buildTimeline(domain: Domain, year: number, month: number): Timeline {
+    const rand = seededRandom(year * 1000 + month * 10 + DOMAINS.indexOf(domain))
+    const day = 1 + Math.floor(rand() * 5) // 1..5
+    const hour = 9 + Math.floor(rand() * 9) // 9..17
+    const requestedAt = Math.floor(Date.UTC(year, month - 1, day, hour, Math.floor(rand() * 60)) / 1000)
+    const ackAt = requestedAt + Math.floor((1 + rand() * 2) * DAY) // +1-3 días
+    const confirmAt = ackAt + Math.floor((2 + rand() * 3) * DAY) // +2-5 días
+    const depositAt = confirmAt + Math.floor((7 + rand() * 8) * DAY) // +7-15 días
+    return { requestedAt, ackAt, confirmAt, depositAt }
+}
+
 // ── Infra ───────────────────────────────────────────────────────────────────
 
 function fail(message: string): never {
@@ -224,13 +269,15 @@ async function seedDiapers(mastra: Mastra): Promise<void> {
             console.info(`[seed-runs] ${label}: ya completado, salteado`)
             continue
         }
-        const started = await startDiapers(mastra, {
+        const t = buildTimeline('diapers', s.year, s.month)
+        const started = await atTime(t.requestedAt, () => startDiapers(mastra, {
             size: s.size, year: s.year, month: s.month, requestedBy: s.requestedBy,
-        })
+        }))
         if (!reportStart(label, started)) continue
 
         if (s.confirm) {
-            const confirmed = await confirmDiapersDate(mastra, { ...s.confirm, year: s.year, month: s.month })
+            const confirmed = await atTime(t.confirmAt, () =>
+                confirmDiapersDate(mastra, { ...s.confirm!, year: s.year, month: s.month }))
             if (!reportStep(label, 'confirm', confirmed)) continue
         }
         console.info(`[seed-runs] ${label}: ok`)
@@ -244,17 +291,19 @@ async function seedMeds(mastra: Mastra): Promise<void> {
             console.info(`[seed-runs] ${label}: ya completado, salteado`)
             continue
         }
-        const started = await startMedsOrder(mastra, {
+        const t = buildTimeline('meds', s.year, s.month)
+        const started = await atTime(t.requestedAt, () => startMedsOrder(mastra, {
             medications: s.medications, year: s.year, month: s.month, requestedBy: s.requestedBy,
-        })
+        }))
         if (!reportStart(label, started)) continue
 
         if (s.ack) {
-            const acked = await acknowledgeMedsOrder(mastra, s.year, s.month)
+            const acked = await atTime(t.ackAt, () => acknowledgeMedsOrder(mastra, s.year, s.month))
             if (!reportStep(label, 'ack', acked)) continue
         }
         if (s.confirm) {
-            const confirmed = await confirmMedsDelivery(mastra, { ...s.confirm, year: s.year, month: s.month })
+            const confirmed = await atTime(t.confirmAt, () =>
+                confirmMedsDelivery(mastra, { ...s.confirm!, year: s.year, month: s.month }))
             if (!reportStep(label, 'confirm', confirmed)) continue
         }
         console.info(`[seed-runs] ${label}: ok`)
@@ -268,21 +317,24 @@ async function seedRefunds(mastra: Mastra): Promise<void> {
             console.info(`[seed-runs] ${label}: ya completado, salteado`)
             continue
         }
-        const started = await startRefundRequest(mastra, {
+        const t = buildTimeline('refunds', s.year, s.month)
+        const started = await atTime(t.requestedAt, () => startRefundRequest(mastra, {
             amount: s.amount, reason: s.reason, year: s.year, month: s.month, requestedBy: s.requestedBy,
-        })
+        }))
         if (!reportStart(label, started)) continue
 
         if (s.ack) {
-            const acked = await acknowledgeRefund(mastra, s.year, s.month)
+            const acked = await atTime(t.ackAt, () => acknowledgeRefund(mastra, s.year, s.month))
             if (!reportStep(label, 'ack', acked)) continue
         }
         if (s.confirm) {
-            const confirmed = await confirmRefund(mastra, { ...s.confirm, year: s.year, month: s.month })
+            const confirmed = await atTime(t.confirmAt, () =>
+                confirmRefund(mastra, { ...s.confirm!, year: s.year, month: s.month }))
             if (!reportStep(label, 'confirm', confirmed)) continue
         }
         if (s.deposit) {
-            const deposited = await receiveDeposit(mastra, { ...s.deposit, year: s.year, month: s.month })
+            const deposited = await atTime(t.depositAt, () =>
+                receiveDeposit(mastra, { ...s.deposit!, year: s.year, month: s.month }))
             if (!reportStep(label, 'deposit', deposited)) continue
         }
         console.info(`[seed-runs] ${label}: ok`)
