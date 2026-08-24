@@ -12,6 +12,9 @@ export interface IUser {
   name: string;
   role: 'admin' | 'member';
   telegramId?: string;
+  // Canal secundario, opcional: se vincula desde Telegram con linkDiscordTool.
+  // El alta y las notificaciones siguen yendo por telegramId.
+  discordId?: string;
   addedAt: number;
   preferences: IUserPreferences;
 }
@@ -28,6 +31,7 @@ const userSchema = new Schema<IUser>({
   name: { type: String, default: '' },
   role: { type: String, enum: ['admin', 'member'], required: true },
   telegramId: { type: String, unique: true, sparse: true },
+  discordId: { type: String, unique: true, sparse: true },
   addedAt: { type: Number, required: true },
   preferences: { type: userPreferencesSchema, default: () => ({}) },
 });

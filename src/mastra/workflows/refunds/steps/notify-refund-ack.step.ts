@@ -27,7 +27,7 @@ export const notifyRefundAckStep = createStep({
                         source: 'refunds',
                         kind: 'refund-acknowledged',
                         priority: 'medium',
-                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: el reembolso fue recibido por el procesador de pagos.`,
+                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual, sin delegar ni usar tools: el reembolso fue recibido por el procesador de pagos.`,
                         payload: {
                             amount: state.amount,
                         },

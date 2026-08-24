@@ -10,7 +10,11 @@ export class UserRepository {
     return User.findOne({ telegramId });
   }
 
-  async upsertUser(user: Omit<IUser, 'telegramId'>): Promise<IUser> {
+  async findByDiscordId(discordId: string): Promise<IUser | null> {
+    return User.findOne({ discordId });
+  }
+
+  async upsertUser(user: Omit<IUser, 'telegramId' | 'discordId'>): Promise<IUser> {
     const email = user.email.toLowerCase();
     const result = await User.findOneAndUpdate(
       { email },
@@ -25,6 +29,17 @@ export class UserRepository {
     const result = await User.updateOne(
       { email: email.toLowerCase() },
       { $set: { telegramId } }
+    );
+    return result.matchedCount > 0;
+  }
+
+  // Vincula un canal secundario a una identidad que ya existe. El índice unique
+  // sparse impide reclamar un discordId ya tomado: el duplicado sale como
+  // E11000 y lo traduce la tool, porque el id lo tipea el usuario.
+  async linkDiscordId(email: string, discordId: string): Promise<boolean> {
+    const result = await User.updateOne(
+      { email: email.toLowerCase() },
+      { $set: { discordId } }
     );
     return result.matchedCount > 0;
   }

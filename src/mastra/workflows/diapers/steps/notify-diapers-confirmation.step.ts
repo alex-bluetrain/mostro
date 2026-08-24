@@ -28,7 +28,7 @@ export const notifyDiapersConfirmation = createStep({
                         source: 'diapers',
                         kind: 'diapers-confirmation',
                         priority: 'high',
-                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: los pañales (talle ${state.size ?? 'sin especificar'}) llegan el ${state.deliveryDate != null ? formatUnixDate(state.deliveryDate) : 'fecha a confirmar'}.`,
+                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual, sin delegar ni usar tools: los pañales (talle ${state.size ?? 'sin especificar'}) llegan el ${state.deliveryDate != null ? formatUnixDate(state.deliveryDate) : 'fecha a confirmar'}.`,
                         payload: {
                             size: state.size,
                             quantity: state.quantity,
