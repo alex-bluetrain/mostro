@@ -6,33 +6,26 @@ import { CHANNEL_KEY } from '@lib/web-thread';
 import { createTelegramAdapter } from '@chat-adapter/telegram';
 import { createDiscordAdapter } from '@chat-adapter/discord';
 import { appConfig } from '../config/app.config';
-import { refundsAgent } from './refunds-agent';
 import { ToolSearchProcessor } from '@mastra/core/processors';
 import { createChannelGate } from '@lib/channel-gate';
 import { createResolveResourceId } from '@lib/resolve-resource-id';
 import { isRequestAdmin } from '@lib/request-identity';
-import type { SubAgentKey } from '@lib/sub-agent-keys';
 import { setMyNameTool } from '@tools/set-my-name-tool';
 import { subscribeTool } from '@tools/subscribe-tool';
 import { toolRegistry } from '@tools/registry';
 import { supervisorSkillsResolver } from '../skills/skills-resolver';
 
-export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, a supervisor agent that coordinates specialized agents to help the user.
+export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, an assistant that helps the family coordinate recurring orders and updates about the patient.
 
-Available resources:
-- refundsAgent: Handles the refund flow for an order (status, requesting a refund). This flow is shared across ALL users, not private to one person, and scoped by month.
-
-Delegation strategy:
-1. For anything about refunds (status, requesting): delegate to refundsAgent.
-2. For notification subscriptions ("avisame cuando...", "quiero que me avisen"), handle it yourself with subscribeTool — never delegate it. See Notifications below.
-3. For anything about diapers (status, ordering): handle it yourself — load the diapers skill and follow it.
-4. For anything about medications or prescriptions (status, ordering): handle it yourself — load the meds skill and follow it.
-5. For weather questions or activity planning based on weather: handle it yourself — load the weather skill and search for the weather tool.
-6. For anything else, check your skills/tool catalog first (search_tools); if nothing matches, respond directly if you can, or let the user know it's not supported yet.
+How to handle requests:
+1. For notification subscriptions ("avisame cuando...", "quiero que me avisen"), use subscribeTool. See Notifications below.
+2. For diapers, medications/prescriptions or refunds (status, ordering/requesting): load the matching skill (diapers / meds / refunds) and follow it. These are shared monthly flows, not private to one person.
+3. For weather questions or activity planning based on weather: load the weather skill and search for the weather tool.
+4. For anything else, check your skills/tool catalog first (search_tools); if nothing matches, respond directly if you can, or let the user know it's not supported yet.
 
 Notifications:
 - There is ONE subscription per person, covering every update about the patient (diaper deliveries, medication orders and refunds). It is not per-topic: you cannot subscribe someone to only one of them.
-- When a user asks to be notified about anything in these flows, call subscribeTool yourself. Never delegate this to a sub-agent — they have no tool for it.
+- When a user asks to be notified about anything in these flows, call subscribeTool directly — no skill or search needed.
 - When you confirm it, make the scope explicit: from now on they get every update about the patient, not just the topic they asked about.
 - Subscribing twice is harmless (it is idempotent), so if someone asks again just confirm they are already subscribed.
 
@@ -78,18 +71,11 @@ export const discordEnabled = Boolean(
     appConfig.DISCORD_BOT_TOKEN && appConfig.DISCORD_APPLICATION_ID && appConfig.DISCORD_PUBLIC_KEY
 );
 
-// El satisfies fuerza a que toda key registrada exista en subAgentKeys (y viceversa):
-// users.ts depende de esa lista para des-derivar los resourceIds de sub-agentes.
-export const mostroSupervisorAgents = {
-    refundsAgent,
-} satisfies Record<SubAgentKey, Agent>;
-
 export const mostroSupervisor = new Agent({
     id: 'mostro-supervisor',
-    name: 'Mostro Supervisor',
+    name: 'Mostro',
     instructions: supervisorInstructions,
     model: mostroSupervisorModel,
-    agents: mostroSupervisorAgents,
     // Solo las tools core quedan pineadas: subscribe (regla crítica de
     // notificaciones) y setMyName. El resto vive en el catálogo y se descubre
     // vía search_tools (ver tools/registry.ts).
