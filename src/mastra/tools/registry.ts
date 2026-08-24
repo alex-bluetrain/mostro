@@ -1,5 +1,6 @@
 import { createInviteTool } from './create-invite-tool'
 import { linkDiscordTool } from './link-discord-tool'
+import { weatherTool } from './weather-tool'
 
 // Catálogo central de tools descubribles vía ToolSearchProcessor. Estas tools
 // NO viven en el prompt del agente: el modelo las encuentra con search_tools y
@@ -11,4 +12,5 @@ import { linkDiscordTool } from './link-discord-tool'
 export const toolRegistry = {
     createInviteTool,
     linkDiscordTool,
+    weatherTool,
 }

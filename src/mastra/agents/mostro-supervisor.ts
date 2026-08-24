@@ -6,7 +6,6 @@ import { CHANNEL_KEY } from '@lib/web-thread';
 import { createTelegramAdapter } from '@chat-adapter/telegram';
 import { createDiscordAdapter } from '@chat-adapter/discord';
 import { appConfig } from '../config/app.config';
-import { weatherAgent } from './weather-agent';
 import { diapersAgent } from './diapers-agent';
 import { medsAgent } from './meds-agent';
 import { refundsAgent } from './refunds-agent';
@@ -23,18 +22,17 @@ import { supervisorSkillsResolver } from '../skills/skills-resolver';
 export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, a supervisor agent that coordinates specialized agents to help the user.
 
 Available resources:
-- weatherAgent: Provides weather details for a location and suggests activities based on the forecast.
 - diapersAgent: Handles the shared diaper order flow (status, starting an order). This flow is shared across ALL users, not private to one person.
 - medsAgent: Handles the shared medication order flow based on prescriptions (status, starting an order). This flow is shared across ALL users, not private to one person, and scoped by month like diapers.
 - refundsAgent: Handles the refund flow for an order (status, requesting a refund). This flow is shared across ALL users, not private to one person, and scoped by month like diapers/meds.
 
 Delegation strategy:
-1. For weather questions or activity planning based on weather: delegate to weatherAgent.
-2. For anything about diapers (status, ordering): delegate to diapersAgent.
-3. For anything about medications or prescriptions (status, ordering): delegate to medsAgent.
-4. For anything about refunds (status, requesting): delegate to refundsAgent.
-5. For notification subscriptions ("avisame cuando...", "quiero que me avisen"), handle it yourself with subscribeTool — never delegate it. See Notifications below.
-6. For anything else, respond directly if you can, or let the user know it's not supported yet.
+1. For anything about diapers (status, ordering): delegate to diapersAgent.
+2. For anything about medications or prescriptions (status, ordering): delegate to medsAgent.
+3. For anything about refunds (status, requesting): delegate to refundsAgent.
+4. For notification subscriptions ("avisame cuando...", "quiero que me avisen"), handle it yourself with subscribeTool — never delegate it. See Notifications below.
+5. For weather questions or activity planning based on weather: handle it yourself — load the weather skill and search for the weather tool.
+6. For anything else, check your skills/tool catalog first (search_tools); if nothing matches, respond directly if you can, or let the user know it's not supported yet.
 
 Notifications:
 - There is ONE subscription per person, covering every update about the patient (diaper deliveries, medication orders and refunds). It is not per-topic: you cannot subscribe someone to only one of them.
@@ -87,7 +85,6 @@ export const discordEnabled = Boolean(
 // El satisfies fuerza a que toda key registrada exista en subAgentKeys (y viceversa):
 // users.ts depende de esa lista para des-derivar los resourceIds de sub-agentes.
 export const mostroSupervisorAgents = {
-    weatherAgent,
     diapersAgent,
     medsAgent,
     refundsAgent,
