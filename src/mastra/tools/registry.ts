@@ -3,6 +3,8 @@ import { linkDiscordTool } from './link-discord-tool'
 import { weatherTool } from './weather-tool'
 import { getDiapersStatusTool } from './diapers-get-status-tool'
 import { requestDiapersTool } from './diapers-request-tool'
+import { getMedsStatusTool } from './meds-get-status-tool'
+import { requestMedsTool } from './meds-request-tool'
 
 // Catálogo central de tools descubribles vía ToolSearchProcessor. Estas tools
 // NO viven en el prompt del agente: el modelo las encuentra con search_tools y
@@ -17,4 +19,6 @@ export const toolRegistry = {
     weatherTool,
     getDiapersStatusTool,
     requestDiapersTool,
+    getMedsStatusTool,
+    requestMedsTool,
 }

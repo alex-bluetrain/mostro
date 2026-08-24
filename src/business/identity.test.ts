@@ -19,7 +19,7 @@ describe('emailFromResourceId', () => {
   });
 
   it('strips a registered sub-agent suffix', () => {
-    expect(emailFromResourceId('ana@gmail.com-medsAgent')).toBe('ana@gmail.com');
+    expect(emailFromResourceId('ana@gmail.com-refundsAgent')).toBe('ana@gmail.com');
   });
 
   it('does not strip unknown suffixes', () => {
@@ -34,7 +34,7 @@ describe('emailFromResourceId', () => {
 describe('getUserByResourceId', () => {
   it('looks up by email', async () => {
     vi.mocked(userRepository.findByEmail).mockResolvedValue(user as any);
-    const result = await getUserByResourceId('ana@gmail.com-medsAgent');
+    const result = await getUserByResourceId('ana@gmail.com-refundsAgent');
     expect(userRepository.findByEmail).toHaveBeenCalledWith('ana@gmail.com');
     expect(result).toEqual(user);
   });
@@ -49,7 +49,7 @@ describe('getUserByResourceId', () => {
 describe('setUserNameByResourceId', () => {
   it('sets the name by email', async () => {
     vi.mocked(userRepository.setUserName).mockResolvedValue(true);
-    const ok = await setUserNameByResourceId('ana@gmail.com-medsAgent', 'Ana');
+    const ok = await setUserNameByResourceId('ana@gmail.com-refundsAgent', 'Ana');
     expect(userRepository.setUserName).toHaveBeenCalledWith('ana@gmail.com', 'Ana');
     expect(ok).toBe(true);
   });
