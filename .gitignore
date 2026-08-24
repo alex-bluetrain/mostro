@@ -21,3 +21,4 @@ client_secret*.json
 
 # Reglas reales del clasificador (contienen texto de mails del proveedor)
 secrets/
+docs/*.txt
