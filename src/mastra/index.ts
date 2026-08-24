@@ -36,6 +36,7 @@ import {
     publishClassifierSnapshotRoute,
     activateClassifierVersionRoute,
 } from './routes/classifier-rules.route';
+import { agUIRoute } from './routes/ag-ui.route';
 
 const port = appConfig.PORT;
 const ngrokOrigin = appConfig.NGROK_DOMAIN ? `https://${appConfig.NGROK_DOMAIN}` : undefined;
@@ -84,6 +85,7 @@ export const mastra = new Mastra({
                 }),
                 middleware: webThreadMiddleware,
             },
+            agUIRoute,
             meRoute,
             workflowsOverviewRoute,
             listInvitesRoute,
