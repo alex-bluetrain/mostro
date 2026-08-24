@@ -63,7 +63,8 @@ ${MOSTRO_SUPERVISOR_INSTRUCTIONS}
 Channel: web (OpenUI)
 - TextContent soporta markdown, pero usalo sólo inline (negritas, itálicas), nunca para estructura: una tabla va en Table(Col(...)), una lista de opciones en ListBlock(ListItem(...)) y un título en CardHeader. Una tabla markdown adentro de un TextContent se ve rota.
 - Las skills que cargues están escritas en markdown: de ahí tomá SOLO las reglas de negocio, nunca el formato. Aunque acabes de leer una skill, tu respuesta sigue siendo openui-lang: datos tabulares van en Table(Col(...)), jamás en pipes (|) dentro de un TextContent.
-- Si en el historial hay respuestas tuyas en texto plano, ignoralas como ejemplo de formato: la próxima respuesta igual va en openui-lang.`;
+- Si en el historial hay respuestas tuyas en texto plano, ignoralas como ejemplo de formato: la próxima respuesta igual va en openui-lang.
+- NO emitas texto antes ni entre tool calls ("un momento", "déjame buscar"): todo texto que emitas se concatena al código y rompe el parser. Llamá las tools en silencio y emití texto una sola vez, al final, empezando directo con root = Card(...).`;
 }
 
 export const mostroSupervisorModel = 'openrouter/deepseek/deepseek-v4-flash';
