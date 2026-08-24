@@ -4,7 +4,6 @@ import { MongoDBStore } from '@mastra/mongodb';
 import { DuckDBStore } from "@mastra/duckdb";
 import { MastraCompositeStore } from '@mastra/core/storage';
 import { Observability, MastraStorageExporter, MastraPlatformExporter, SensitiveDataFilter } from '@mastra/observability';
-import { diapersAgent } from './agents/diapers-agent';
 import { medsAgent } from './agents/meds-agent';
 import { refundsAgent } from './agents/refunds-agent';
 import { mostroSupervisor } from './agents/mostro-supervisor';
@@ -99,7 +98,7 @@ export const mastra = new Mastra({
         weatherWorkflow, diapersWorkflow, medsWorkflow, refundsWorkflow,
         diapersPollWorkflow, medsPollWorkflow, refundsPollWorkflow,
     },
-    agents: { diapersAgent, medsAgent, refundsAgent, mostroSupervisor, inboxClassifier: inboxClassifierAgent },
+    agents: { medsAgent, refundsAgent, mostroSupervisor, inboxClassifier: inboxClassifierAgent },
     // Los scorers de weather quedan registrados para correrlos a mano desde el
     // playground, pero ya no van atados a un agente: el weather agent se
     // colapsó en el supervisor y atarlos ahí puntuaría cada mensaje (de

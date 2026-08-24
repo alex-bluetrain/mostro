@@ -1,6 +1,8 @@
 import { createInviteTool } from './create-invite-tool'
 import { linkDiscordTool } from './link-discord-tool'
 import { weatherTool } from './weather-tool'
+import { getDiapersStatusTool } from './diapers-get-status-tool'
+import { requestDiapersTool } from './diapers-request-tool'
 
 // Catálogo central de tools descubribles vía ToolSearchProcessor. Estas tools
 // NO viven en el prompt del agente: el modelo las encuentra con search_tools y
@@ -13,4 +15,6 @@ export const toolRegistry = {
     createInviteTool,
     linkDiscordTool,
     weatherTool,
+    getDiapersStatusTool,
+    requestDiapersTool,
 }
