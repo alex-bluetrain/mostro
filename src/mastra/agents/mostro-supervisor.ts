@@ -10,13 +10,15 @@ import { weatherAgent } from './weather-agent';
 import { diapersAgent } from './diapers-agent';
 import { medsAgent } from './meds-agent';
 import { refundsAgent } from './refunds-agent';
+import { ToolSearchProcessor } from '@mastra/core/processors';
 import { createChannelGate } from '@lib/channel-gate';
 import { createResolveResourceId } from '@lib/resolve-resource-id';
+import { isRequestAdmin } from '@lib/request-identity';
 import type { SubAgentKey } from '@lib/sub-agent-keys';
-import { createInviteTool } from '@tools/create-invite-tool';
 import { setMyNameTool } from '@tools/set-my-name-tool';
 import { subscribeTool } from '@tools/subscribe-tool';
-import { linkDiscordTool } from '@tools/link-discord-tool';
+import { toolRegistry } from '@tools/registry';
+import { supervisorSkillsResolver } from '../skills/skills-resolver';
 
 export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, a supervisor agent that coordinates specialized agents to help the user.
 
@@ -42,9 +44,8 @@ Notifications:
 
 User management:
 - New users receive a fixed welcome message outside your pipeline that may ask for their name. If a user introduces themselves or states their name, save it with setMyNameTool.
-- If an admin asks to invite someone, you only need the invitee's Google email (ask for it if missing; never ask for their name — it is taken from their Google profile later). Then use createInviteTool and give back the resulting link to forward. If the tool returns "only admins can create invites", explain that only admins can invite people. Remind the admin to send the link privately to the invitee (whoever opens it becomes that person).
+- You can invite new users and link Discord accounts, but those capabilities are not pinned: search for them (search_tools / skills) when someone asks to invite a person or to chat via Discord. If the search finds nothing, the capability is not available for this user — decline gracefully without inventing an alternative.
 - If a user asks to change their name, use setMyNameTool.
-- If a user wants to talk to you on Discord, use linkDiscordTool with their numeric Discord user ID. Telegram remains their main channel: linking Discord only adds a way to chat, and notifications still arrive on Telegram. If they don't know their ID, tell them to enable Developer Mode in Discord (Settings > Advanced) and then right-click their own name > Copy User ID. If the tool returns 'already-taken', that ID is linked to another account, so ask them to double-check they copied their own.
 - If a shared-order agent reports that an order was not registered because the user's name is missing (reason 'requester_unidentified'), ask the user for their name, save it with setMyNameTool, then delegate the order again.
 - If a shared-order agent reports that a send failed (reason 'send_failed'), the order was NOT placed. Do not retry it and do not re-delegate it to try again — just relay the agent's message to the user as-is; they can ask again later.
 
@@ -98,7 +99,26 @@ export const mostroSupervisor = new Agent({
     instructions: supervisorInstructions,
     model: mostroSupervisorModel,
     agents: mostroSupervisorAgents,
-    tools: { createInviteTool, setMyNameTool, subscribeTool, linkDiscordTool },
+    // Solo las tools core quedan pineadas: subscribe (regla crítica de
+    // notificaciones) y setMyName. El resto vive en el catálogo y se descubre
+    // vía search_tools (ver tools/registry.ts).
+    tools: { setMyNameTool, subscribeTool },
+    skills: supervisorSkillsResolver,
+    inputProcessors: [
+        new ToolSearchProcessor({
+            tools: toolRegistry,
+            // autoLoad colapsa search→load→use en search→use: una llamada
+            // menos por descubrimiento. topK bajo porque cada match se activa.
+            search: { topK: 3, minScore: 0.15, autoLoad: true },
+            // Permisos en código, no en prosa: una tool que el filtro oculta
+            // ni aparece en los resultados de búsqueda. El lookup de usuario
+            // se cachea por RequestContext (el hook corre por candidato).
+            filter: async ({ toolName, requestContext }) => {
+                if (toolName === 'create-invite') return isRequestAdmin(requestContext);
+                return true;
+            },
+        }),
+    ],
     memory: new Memory(),
     channels: {
         adapters: {

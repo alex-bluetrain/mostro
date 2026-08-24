@@ -1,0 +1,14 @@
+import { createInviteTool } from './create-invite-tool'
+import { linkDiscordTool } from './link-discord-tool'
+
+// Catálogo central de tools descubribles vía ToolSearchProcessor. Estas tools
+// NO viven en el prompt del agente: el modelo las encuentra con search_tools y
+// se cargan bajo demanda, así el costo de contexto no crece con el catálogo.
+//
+// Tool nueva = una entrada acá (+ su skill si necesita instrucciones). Las
+// tools core del supervisor (subscribe, setMyName) quedan pineadas en el
+// agente: el camino crítico nunca depende de la búsqueda.
+export const toolRegistry = {
+    createInviteTool,
+    linkDiscordTool,
+}
