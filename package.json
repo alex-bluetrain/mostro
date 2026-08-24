@@ -19,6 +19,7 @@
     "test:watch": "vitest",
     "gmail:auth": "node --env-file=.env scripts/gmail-authorize.mjs",
     "seed:classifier": "node --env-file=.env --import tsx scripts/seed-classifier.ts",
+    "seed:runs": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/seed-workflow-runs.ts",
     "migrate:subscribers": "node --env-file=.env --import tsx scripts/migrate-subscribers.ts",
     "generate:openui-prompt": "node --import tsx scripts/generate-openui-prompt.ts"
   },
