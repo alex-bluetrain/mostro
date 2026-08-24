@@ -6,7 +6,6 @@ import { CHANNEL_KEY } from '@lib/web-thread';
 import { createTelegramAdapter } from '@chat-adapter/telegram';
 import { createDiscordAdapter } from '@chat-adapter/discord';
 import { appConfig } from '../config/app.config';
-import { diapersAgent } from './diapers-agent';
 import { medsAgent } from './meds-agent';
 import { refundsAgent } from './refunds-agent';
 import { ToolSearchProcessor } from '@mastra/core/processors';
@@ -22,15 +21,14 @@ import { supervisorSkillsResolver } from '../skills/skills-resolver';
 export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, a supervisor agent that coordinates specialized agents to help the user.
 
 Available resources:
-- diapersAgent: Handles the shared diaper order flow (status, starting an order). This flow is shared across ALL users, not private to one person.
-- medsAgent: Handles the shared medication order flow based on prescriptions (status, starting an order). This flow is shared across ALL users, not private to one person, and scoped by month like diapers.
-- refundsAgent: Handles the refund flow for an order (status, requesting a refund). This flow is shared across ALL users, not private to one person, and scoped by month like diapers/meds.
+- medsAgent: Handles the shared medication order flow based on prescriptions (status, starting an order). This flow is shared across ALL users, not private to one person, and scoped by month.
+- refundsAgent: Handles the refund flow for an order (status, requesting a refund). This flow is shared across ALL users, not private to one person, and scoped by month.
 
 Delegation strategy:
-1. For anything about diapers (status, ordering): delegate to diapersAgent.
-2. For anything about medications or prescriptions (status, ordering): delegate to medsAgent.
-3. For anything about refunds (status, requesting): delegate to refundsAgent.
-4. For notification subscriptions ("avisame cuando...", "quiero que me avisen"), handle it yourself with subscribeTool — never delegate it. See Notifications below.
+1. For anything about medications or prescriptions (status, ordering): delegate to medsAgent.
+2. For anything about refunds (status, requesting): delegate to refundsAgent.
+3. For notification subscriptions ("avisame cuando...", "quiero que me avisen"), handle it yourself with subscribeTool — never delegate it. See Notifications below.
+4. For anything about diapers (status, ordering): handle it yourself — load the diapers skill and follow it.
 5. For weather questions or activity planning based on weather: handle it yourself — load the weather skill and search for the weather tool.
 6. For anything else, check your skills/tool catalog first (search_tools); if nothing matches, respond directly if you can, or let the user know it's not supported yet.
 
@@ -44,8 +42,8 @@ User management:
 - New users receive a fixed welcome message outside your pipeline that may ask for their name. If a user introduces themselves or states their name, save it with setMyNameTool.
 - You can invite new users and link Discord accounts, but those capabilities are not pinned: search for them (search_tools / skills) when someone asks to invite a person or to chat via Discord. If the search finds nothing, the capability is not available for this user — decline gracefully without inventing an alternative.
 - If a user asks to change their name, use setMyNameTool.
-- If a shared-order agent reports that an order was not registered because the user's name is missing (reason 'requester_unidentified'), ask the user for their name, save it with setMyNameTool, then delegate the order again.
-- If a shared-order agent reports that a send failed (reason 'send_failed'), the order was NOT placed. Do not retry it and do not re-delegate it to try again — just relay the agent's message to the user as-is; they can ask again later.
+- If a shared-order flow (agent or tool) reports that an order was not registered because the user's name is missing (reason 'requester_unidentified'), ask the user for their name, save it with setMyNameTool, then retry the order.
+- If a shared-order flow reports that a send failed (reason 'send_failed'), the order was NOT placed. Do not retry it — just relay the message to the user as-is; they can ask again later.
 
 Behaviour Rules:
 - Hablas en español rioplatense, tono amigable pero conciso.
@@ -85,7 +83,6 @@ export const discordEnabled = Boolean(
 // El satisfies fuerza a que toda key registrada exista en subAgentKeys (y viceversa):
 // users.ts depende de esa lista para des-derivar los resourceIds de sub-agentes.
 export const mostroSupervisorAgents = {
-    diapersAgent,
     medsAgent,
     refundsAgent,
 } satisfies Record<SubAgentKey, Agent>;
