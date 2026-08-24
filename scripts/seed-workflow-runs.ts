@@ -43,14 +43,25 @@ type DiapersScenario = {
     confirm?: { deliveryDate: string; deliveryAddress: string; quantity: number }
 }
 
+// Un año completo: 2025-08 → 2026-07 (el mes actual, 2026-08, tiene el pedido
+// real y no se toca). La mayoría completos, con algunos estados intermedios.
+const ADDRESS = 'Calle Falsa 123'
+
 const diapersScenarios: DiapersScenario[] = [
+    { year: 2025, month: 8, size: 'M', requestedBy: 'Ana', confirm: { deliveryDate: '2025-08-11', deliveryAddress: ADDRESS, quantity: 60 } },
+    { year: 2025, month: 9, size: 'M', requestedBy: 'Alex', confirm: { deliveryDate: '2025-09-09', deliveryAddress: ADDRESS, quantity: 60 } },
+    { year: 2025, month: 10, size: 'M', requestedBy: 'Ana', confirm: { deliveryDate: '2025-10-14', deliveryAddress: ADDRESS, quantity: 70 } },
+    { year: 2025, month: 11, size: 'G', requestedBy: 'Ana', confirm: { deliveryDate: '2025-11-12', deliveryAddress: ADDRESS, quantity: 70 } },
+    { year: 2025, month: 12, size: 'G', requestedBy: 'Alex', confirm: { deliveryDate: '2025-12-10', deliveryAddress: ADDRESS, quantity: 90 } },
+    { year: 2026, month: 1, size: 'G', requestedBy: 'Ana', confirm: { deliveryDate: '2026-01-13', deliveryAddress: ADDRESS, quantity: 80 } },
+    { year: 2026, month: 2, size: 'G', requestedBy: 'Alex', confirm: { deliveryDate: '2026-02-11', deliveryAddress: ADDRESS, quantity: 80 } },
+    { year: 2026, month: 3, size: 'G', requestedBy: 'Ana', confirm: { deliveryDate: '2026-03-12', deliveryAddress: ADDRESS, quantity: 100 } },
+    { year: 2026, month: 4, size: 'XG', requestedBy: 'Alex', confirm: { deliveryDate: '2026-04-14', deliveryAddress: ADDRESS, quantity: 90 } },
     // Suspendido esperando al proveedor (diapers_requested)
     { year: 2026, month: 5, size: 'M', requestedBy: 'Ana' },
     // Completo: confirmado + notificado (diapers_notification_sent)
-    {
-        year: 2026, month: 6, size: 'G', requestedBy: 'Alex',
-        confirm: { deliveryDate: '2026-06-12', deliveryAddress: 'Calle Falsa 123', quantity: 80 },
-    },
+    { year: 2026, month: 6, size: 'G', requestedBy: 'Alex', confirm: { deliveryDate: '2026-06-12', deliveryAddress: ADDRESS, quantity: 80 } },
+    { year: 2026, month: 7, size: 'XG', requestedBy: 'Ana', confirm: { deliveryDate: '2026-07-15', deliveryAddress: ADDRESS, quantity: 110 } },
 ]
 
 type MedsScenario = {
@@ -63,15 +74,21 @@ type MedsScenario = {
 }
 
 const medsScenarios: MedsScenario[] = [
+    { year: 2025, month: 8, medications: ['Enalapril 10', 'Aspirina 100'], requestedBy: 'Ana', ack: true, confirm: { deliveryDate: '2025-08-08', deliveryAddress: ADDRESS } },
+    { year: 2025, month: 9, medications: ['Enalapril 10', 'Aspirina 100'], requestedBy: 'Alex', ack: true, confirm: { deliveryDate: '2025-09-10', deliveryAddress: ADDRESS } },
+    { year: 2025, month: 10, medications: ['Enalapril 10', 'Omeprazol 20'], requestedBy: 'Ana', ack: true, confirm: { deliveryDate: '2025-10-09', deliveryAddress: ADDRESS } },
+    { year: 2025, month: 11, medications: ['Enalapril 10', 'Omeprazol 20'], requestedBy: 'Ana', ack: true, confirm: { deliveryDate: '2025-11-11', deliveryAddress: ADDRESS } },
+    { year: 2025, month: 12, medications: ['Enalapril 10', 'Ibuprofeno 600'], requestedBy: 'Alex', ack: true, confirm: { deliveryDate: '2025-12-11', deliveryAddress: ADDRESS } },
+    { year: 2026, month: 1, medications: ['Enalapril 10', 'Aspirina 100'], requestedBy: 'Ana', ack: true, confirm: { deliveryDate: '2026-01-09', deliveryAddress: ADDRESS } },
+    { year: 2026, month: 2, medications: ['Enalapril 10', 'Aspirina 100'], requestedBy: 'Alex', ack: true, confirm: { deliveryDate: '2026-02-10', deliveryAddress: ADDRESS } },
+    { year: 2026, month: 3, medications: ['Enalapril 10', 'Levotiroxina 50'], requestedBy: 'Ana', ack: true, confirm: { deliveryDate: '2026-03-11', deliveryAddress: ADDRESS } },
+    { year: 2026, month: 4, medications: ['Enalapril 10', 'Levotiroxina 50'], requestedBy: 'Alex', ack: true, confirm: { deliveryDate: '2026-04-09', deliveryAddress: ADDRESS } },
     // Suspendido esperando acuse (meds_requested)
     { year: 2026, month: 5, medications: ['Ibuprofeno 600'], requestedBy: 'Ana' },
     // Acusado, esperando confirmación de entrega (ack_notified)
     { year: 2026, month: 6, medications: ['Amoxicilina 500'], requestedBy: 'Alex', ack: true },
     // Completo (meds_notification_sent)
-    {
-        year: 2026, month: 7, medications: ['Paracetamol 1g'], requestedBy: 'Ana', ack: true,
-        confirm: { deliveryDate: '2026-07-10', deliveryAddress: 'Calle Falsa 123' },
-    },
+    { year: 2026, month: 7, medications: ['Paracetamol 1g'], requestedBy: 'Ana', ack: true, confirm: { deliveryDate: '2026-07-10', deliveryAddress: ADDRESS } },
 ]
 
 type RefundsScenario = {
@@ -88,6 +105,14 @@ type RefundsScenario = {
 // `reason` siempre presente: si falta, Mongo persiste null y el state schema
 // (`reason: z.string().optional()`) rechaza el estado al validar el resume.
 const refundsScenarios: RefundsScenario[] = [
+    { year: 2025, month: 8, amount: 12000, reason: 'Consulta médica', requestedBy: 'Ana', ack: true, confirm: { refundReference: 'REF-2025-0801' }, deposit: { depositAmount: 12000, depositDate: '2025-08-22' } },
+    { year: 2025, month: 9, amount: 8500, reason: 'Farmacia', requestedBy: 'Alex', ack: true, confirm: { refundReference: 'REF-2025-0901' }, deposit: { depositAmount: 8500, depositDate: '2025-09-19' } },
+    { year: 2025, month: 10, amount: 25000, reason: 'Estudios de laboratorio', requestedBy: 'Ana', ack: true, confirm: { refundReference: 'REF-2025-1001' }, deposit: { depositAmount: 25000, depositDate: '2025-10-24' } },
+    { year: 2025, month: 11, amount: 14000, reason: 'Sesión de kinesiología', requestedBy: 'Ana', ack: true, confirm: { refundReference: 'REF-2025-1101' }, deposit: { depositAmount: 14000, depositDate: '2025-11-21' } },
+    { year: 2025, month: 12, amount: 32000, reason: 'Consulta con especialista', requestedBy: 'Alex', ack: true, confirm: { refundReference: 'REF-2025-1201' }, deposit: { depositAmount: 32000, depositDate: '2025-12-23' } },
+    { year: 2026, month: 1, amount: 9500, reason: 'Farmacia', requestedBy: 'Ana', ack: true, confirm: { refundReference: 'REF-2026-0101' }, deposit: { depositAmount: 9500, depositDate: '2026-01-23' } },
+    { year: 2026, month: 2, amount: 21000, reason: 'Estudios de imagen', requestedBy: 'Alex', ack: true, confirm: { refundReference: 'REF-2026-0201' }, deposit: { depositAmount: 21000, depositDate: '2026-02-20' } },
+    { year: 2026, month: 3, amount: 16500, reason: 'Consulta médica', requestedBy: 'Ana', ack: true, confirm: { refundReference: 'REF-2026-0301' }, deposit: { depositAmount: 16500, depositDate: '2026-03-20' } },
     // Suspendido esperando acuse (refund_requested)
     { year: 2026, month: 4, amount: 15000, reason: 'Consulta médica', requestedBy: 'Ana' },
     // Acusado (ack_notified)
