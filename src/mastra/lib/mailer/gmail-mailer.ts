@@ -12,6 +12,12 @@ export async function sendEmail({
     subject: string
     text: string
 }): Promise<void> {
+    // Flag de dev para el seed de runs: avanza los workflows sin mandar mails reales.
+    if (process.env.MAILER_DRY_RUN === 'true') {
+        console.info(`[mailer] DRY RUN — no se envía: "${subject}" → ${to}`)
+        return
+    }
+
     const raw = buildRawMessage({ from: appConfig.GMAIL_MAILER_SENDER, to, subject, text })
 
     try {
