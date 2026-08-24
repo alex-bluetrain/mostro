@@ -7,6 +7,12 @@ const envSchema = z.object({
     TELEGRAM_BOT_USERNAME: z.string().min(1),
     TELEGRAM_BOT_TOKEN: z.string().min(1),
     TELEGRAM_WEBHOOK_SECRET_TOKEN: z.string().min(1),
+    // Canal secundario opcional. Las tres van juntas o no va ninguna: el
+    // adapter lanza en el constructor si le falta alguna, así que sin las tres
+    // ni se registra (ver mostro-supervisor.ts).
+    DISCORD_BOT_TOKEN: z.string().min(1).optional(),
+    DISCORD_APPLICATION_ID: z.string().min(1).optional(),
+    DISCORD_PUBLIC_KEY: z.string().min(1).optional(),
     ADMIN_TELEGRAM_ID: z.string().min(1).optional(),
     ADMIN_NAME: z.string().min(1).optional(),
     ADMIN_EMAIL: z.string().min(3).optional(),

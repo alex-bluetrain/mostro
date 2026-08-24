@@ -28,7 +28,7 @@ export const notifyMedsConfirmationStep = createStep({
                         source: 'meds',
                         kind: 'delivery-confirmed',
                         priority: 'high',
-                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: los medicamentos (${(state.medications ?? []).join(', ') || 'sin especificar'}) llegan el ${state.deliveryDate != null ? formatUnixDate(state.deliveryDate) : 'fecha a confirmar'}.`,
+                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual, sin delegar ni usar tools: los medicamentos (${(state.medications ?? []).join(', ') || 'sin especificar'}) llegan el ${state.deliveryDate != null ? formatUnixDate(state.deliveryDate) : 'fecha a confirmar'}.`,
                         payload: {
                             medications: state.medications,
                             deliveryDate: state.deliveryDate,
