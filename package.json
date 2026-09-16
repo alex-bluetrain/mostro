@@ -28,7 +28,7 @@
     "@ag-ui/mastra": "^1.1.2",
     "@axiomhq/pino": "^2.0.0",
     "@chat-adapter/discord": "4.38.0",
-    "@chat-adapter/telegram": "^4.39.0",
+    "@chat-adapter/telegram": "4.38.0",
     "@googleapis/gmail": "^17.0.0",
     "@mastra/ai-sdk": "^1.10.0",
     "@mastra/auth": "^1.1.2",
