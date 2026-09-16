@@ -13,8 +13,12 @@ describe('supervisorInstructions', () => {
     // El prompt de OpenUI exige que toda la respuesta sea openui-lang. Si se
     // filtra a Telegram, el bot deja de mandar texto y queda inutilizable: este
     // test es la red que evita esa regresión.
-    it('deja las instrucciones de Telegram intactas', () => {
-        expect(supervisorInstructions(contextFor())).toBe(MOSTRO_SUPERVISOR_INSTRUCTIONS)
+    it('deja las instrucciones de Telegram intactas (con fecha antepuesta)', () => {
+        const instructions = supervisorInstructions(contextFor())
+
+        expect(instructions).toContain(MOSTRO_SUPERVISOR_INSTRUCTIONS)
+        expect(instructions).toMatch(/^Today is \d{4}-\d{2}-\d{2}/)
+        expect(instructions).not.toMatch(/openui-lang/)
     })
 
     it('no filtra openui-lang a canales que no son web', () => {

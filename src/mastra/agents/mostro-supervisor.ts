@@ -51,12 +51,22 @@ CRITICAL RULE: when a notification signal arrives (system-generated context, not
 // ambiguo. No repitas ahí reglas que el prompt generado ya trae (que la
 // respuesta entera es openui-lang, o la lista de componentes): se regeneran
 // solas con `pnpm generate:openui-prompt`.
+// Los subagentes por dominio (meds/diapers/refunds) inyectaban la fecha para
+// scopear pedidos por mes. Al migrarlos a skills eso se perdió: el supervisor
+// necesita saber el día de hoy para resolver "el pedido de marzo" o "este mes".
+function todayHeader(): string {
+    const now = new Date();
+    return `Today is ${now.toISOString().slice(0, 10)} (YYYY-MM-DD). The current month scope is ${now.toISOString().slice(0, 7)} (YYYY-MM). Use this month unless the user names a different one.`;
+}
+
 export function supervisorInstructions({ requestContext }: { requestContext: RequestContext }): string {
-    if (requestContext.get(CHANNEL_KEY) !== 'web') return MOSTRO_SUPERVISOR_INSTRUCTIONS;
+    if (requestContext.get(CHANNEL_KEY) !== 'web') return `${todayHeader()}\n\n${MOSTRO_SUPERVISOR_INSTRUCTIONS}`;
 
     return `${OPENUI_SYSTEM_PROMPT}
 
 ---
+
+${todayHeader()}
 
 ${MOSTRO_SUPERVISOR_INSTRUCTIONS}
 

@@ -1,0 +1,55 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: mostro-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  mostro:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    container_name: mostro
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    # Los secretos vienen del .env.local (sin Infisical). MONGODB_URI se
+    # sobreescribe abajo porque desde el container Mongo es `mongo`, no localhost.
+    env_file:
+      - .env.local
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/?directConnection=true
+    ports:
+      - "4111:4111"
+    volumes:
+      - mostro-data:/data
+
+  mostro-web:
+    build:
+      context: ../mostro-web
+      dockerfile: Dockerfile
+    container_name: mostro-web
+    restart: unless-stopped
+    depends_on:
+      - mostro
+    env_file:
+      - ../mostro-web/.env.local
+    environment:
+      # En la red de compose la API es `mostro`, no localhost.
+      MASTRA_URL: http://mostro:4111
+    ports:
+      - "3000:3000"
+
+volumes:
+  mongo-data:
+  mostro-data:
