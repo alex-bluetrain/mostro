@@ -6,10 +6,11 @@ import { channelThreadId } from './channel-thread-id'
 // aceptan el handler pelado.
 type MiddlewareHandler = Extract<Middleware, { handler: unknown }>['handler']
 
-// El threadId no puede venir del browser: quien lo mande elige qué memoria
-// lee. Lo derivamos del resourceId que el auth ya resolvió desde la firma del
-// JWT, en un middleware de ruta —corre después del middleware de auth y sobre
-// el mismo RequestContext, así que el email ya está puesto.
+// Marca de canal para el prompt dinámico del supervisor. La ponemos acá, en la
+// única puerta por la que entra el browser: si algún día hay otro canal, no
+// hereda OpenUI por accidente —tiene que pedirlo explícitamente.
+export const CHANNEL_KEY = 'mostro.channel'
+
 export const webThreadMiddleware: MiddlewareHandler = async (c, next) => {
     const requestContext = c.get('requestContext')
     const resourceId = requestContext?.get(MASTRA_RESOURCE_ID_KEY)
@@ -19,5 +20,6 @@ export const webThreadMiddleware: MiddlewareHandler = async (c, next) => {
     }
 
     requestContext.set(MASTRA_THREAD_ID_KEY, channelThreadId(resourceId, 'web'))
+    requestContext.set(CHANNEL_KEY, 'web')
     await next()
 }

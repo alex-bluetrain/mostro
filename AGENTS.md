@@ -1,5 +1,9 @@
 # AGENTS.md
 
+## CRITICAL: Communication style
+
+Respond in 2 lines max, high-level, no filler. Only expand when explicitly asked. This is inviolable.
+
 ## CRITICAL: Load `mastra` skill first
 
 Load the `mastra` skill BEFORE any Mastra work. Never rely on cached knowledge — APIs change between versions.

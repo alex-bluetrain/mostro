@@ -1,6 +1,6 @@
 import { createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
-import { subscriberRepository } from '@business/repositories'
+import { userRepository } from '@business/repositories'
 import { resolveTelegramThread } from '@lib/resolve-telegram-thread'
 import { formatUnixDate, nowUnix } from '@lib/unix-time'
 import { refundsStateSchema } from '../schemas/refunds-state.schema'
@@ -12,7 +12,7 @@ export const notifyDepositStep = createStep({
     outputSchema: notifyDepositOutputSchema,
     stateSchema: refundsStateSchema,
     execute: async ({ state, setState, mastra }) => {
-        const emails = await subscriberRepository.list()
+        const emails = await userRepository.listNotificationEmails()
 
         const supervisor = mastra?.getAgent('mostroSupervisor')
         let sent = 0
@@ -28,7 +28,7 @@ export const notifyDepositStep = createStep({
                         source: 'refunds',
                         kind: 'deposit-confirmed',
                         priority: 'high',
-                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual en texto plano, sin delegar ni usar tools: el reembolso se depositó (${state.depositAmount ?? 'sin especificar'}) el ${state.depositDate != null ? formatUnixDate(state.depositDate) : 'fecha sin especificar'}.`,
+                        summary: `[AVISO DEL SISTEMA — NO es un mensaje del usuario, NO requiere acción] Reenviá este aviso tal cual, sin delegar ni usar tools: el reembolso se depositó (${state.depositAmount ?? 'sin especificar'}) el ${state.depositDate != null ? formatUnixDate(state.depositDate) : 'fecha sin especificar'}.`,
                         payload: {
                             depositAmount: state.depositAmount,
                             depositDate: state.depositDate,

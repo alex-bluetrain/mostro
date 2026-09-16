@@ -17,7 +17,7 @@ const invite: IInvite = {
   expiresAt: 2000,
 };
 
-const newUser: IUser = { email: 'new@gmail.com', name: '', role: 'member', telegramId: '42', addedAt: 1500 };
+const newUser: IUser = { email: 'new@gmail.com', name: '', role: 'member', telegramId: '42', addedAt: 1500, preferences: { notifications: false } };
 
 function makeDeps(overrides: Partial<TelegramStartDeps> = {}): TelegramStartDeps {
   return {
