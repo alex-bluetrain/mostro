@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/alex-bluetrain/mostro/compare/v1.7.0...v1.8.0) (2026-09-16)
+
+
+### Features
+
+* capacidades dinámicas del supervisor (catálogo de tools + skills) y superficie HTTP para la web ([#12](https://github.com/alex-bluetrain/mostro/issues/12)) ([e0520cd](https://github.com/alex-bluetrain/mostro/commit/e0520cdfad1540cf6610ea3f13e4b0b775e166ea))
+
 ## [1.7.0](https://github.com/alex-bluetrain/mostro/compare/v1.6.0...v1.7.0) (2026-08-18)
 
 
