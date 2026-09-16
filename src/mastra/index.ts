@@ -34,7 +34,6 @@ import {
 } from './routes/classifier-rules.route';
 import { agUIRoute } from './routes/ag-ui.route';
 
-const port = appConfig.PORT;
 const ngrokOrigin = appConfig.NGROK_DOMAIN ? `https://${appConfig.NGROK_DOMAIN}` : undefined;
 
 // Connect to MongoDB
@@ -43,8 +42,9 @@ await mongoose.connect(appConfig.MONGODB_URI, {
 });
 
 // ngrok es solo para dev local: en producción (VM + Caddy) no hay authtoken.
+// El túnel expone mostro-web (el login vive ahí), no este backend.
 if (appConfig.NGROK_AUTHTOKEN) {
-    await startNgrokTunnel(port);
+    await startNgrokTunnel();
 }
 
 // Seed admin user
