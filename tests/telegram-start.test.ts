@@ -8,9 +8,9 @@ import {
 } from '@lib/telegram-start'
 import type { IUser, IInvite } from '@business'
 
-const member: IUser = { email: 'ana@gmail.com', telegramId: '111', name: 'Ana', role: 'member', addedAt: 1 }
+const member: IUser = { email: 'ana@gmail.com', telegramId: '111', name: 'Ana', role: 'member', addedAt: 1, preferences: { notifications: false } }
 const validInvite: IInvite = { code: 'abc123XYZ_-9', email: 'nueva@gmail.com', name: 'Nueva', createdBy: 'admin@gmail.com', createdAt: 1, expiresAt: 2, usedBy: '222' }
-const newUser: IUser = { email: 'nueva@gmail.com', telegramId: '222', name: '', role: 'member', addedAt: 3 }
+const newUser: IUser = { email: 'nueva@gmail.com', telegramId: '222', name: '', role: 'member', addedAt: 3, preferences: { notifications: false } }
 
 function makeDeps(overrides: Partial<TelegramStartDeps> = {}): TelegramStartDeps {
     return {

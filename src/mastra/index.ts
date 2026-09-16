@@ -4,10 +4,6 @@ import { MongoDBStore } from '@mastra/mongodb';
 import { DuckDBStore } from "@mastra/duckdb";
 import { MastraCompositeStore } from '@mastra/core/storage';
 import { Observability, MastraStorageExporter, MastraPlatformExporter, SensitiveDataFilter } from '@mastra/observability';
-import { weatherAgent } from './agents/weather-agent';
-import { diapersAgent } from './agents/diapers-agent';
-import { medsAgent } from './agents/meds-agent';
-import { refundsAgent } from './agents/refunds-agent';
 import { mostroSupervisor } from './agents/mostro-supervisor';
 import { createTelegramStartHandler } from './lib/telegram-start';
 import { toolCallAppropriatenessScorer, completenessScorer, translationScorer } from './scorers/weather-scorer';
@@ -27,8 +23,17 @@ import { medsPollWorkflow } from './workflows/meds-poll/meds-poll.workflow';
 import { refundsPollWorkflow } from './workflows/refunds-poll/refunds-poll.workflow';
 import { inboxClassifierAgent } from './agents/inbox-classifier-agent';
 import { webThreadMiddleware } from './lib/web-thread';
+import { meRoute } from './routes/me.route';
+import { workflowsOverviewRoute } from './routes/workflows-overview.route';
+import { createInviteRoute, listInvitesRoute } from './routes/invites.route';
+import {
+    listClassifierRulesRoute,
+    getClassifierSnapshotRoute,
+    publishClassifierSnapshotRoute,
+    activateClassifierVersionRoute,
+} from './routes/classifier-rules.route';
+import { agUIRoute } from './routes/ag-ui.route';
 
-const port = appConfig.PORT;
 const ngrokOrigin = appConfig.NGROK_DOMAIN ? `https://${appConfig.NGROK_DOMAIN}` : undefined;
 
 // Connect to MongoDB
@@ -37,8 +42,9 @@ await mongoose.connect(appConfig.MONGODB_URI, {
 });
 
 // ngrok es solo para dev local: en producción (VM + Caddy) no hay authtoken.
+// El túnel expone mostro-web (el login vive ahí), no este backend.
 if (appConfig.NGROK_AUTHTOKEN) {
-    await startNgrokTunnel(port);
+    await startNgrokTunnel();
 }
 
 // Seed admin user
@@ -75,13 +81,26 @@ export const mastra = new Mastra({
                 }),
                 middleware: webThreadMiddleware,
             },
+            agUIRoute,
+            meRoute,
+            workflowsOverviewRoute,
+            listInvitesRoute,
+            createInviteRoute,
+            listClassifierRulesRoute,
+            activateClassifierVersionRoute,
+            getClassifierSnapshotRoute,
+            publishClassifierSnapshotRoute,
         ],
     },
     workflows: {
         weatherWorkflow, diapersWorkflow, medsWorkflow, refundsWorkflow,
         diapersPollWorkflow, medsPollWorkflow, refundsPollWorkflow,
     },
-    agents: { weatherAgent, diapersAgent, medsAgent, refundsAgent, mostroSupervisor, inboxClassifier: inboxClassifierAgent },
+    agents: { mostroSupervisor, inboxClassifier: inboxClassifierAgent },
+    // Los scorers de weather quedan registrados para correrlos a mano desde el
+    // playground, pero ya no van atados a un agente: el weather agent se
+    // colapsó en el supervisor y atarlos ahí puntuaría cada mensaje (de
+    // cualquier dominio) contra expectativas de clima.
     scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer },
     storage: new MastraCompositeStore({
         id: 'composite-storage',

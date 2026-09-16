@@ -1,5 +1,12 @@
 import z from "zod";
 
+// Normaliza valores "presentes pero vacíos" a undefined. Cubre el caso de
+// docker-compose env_file, que no saca las comillas: `FOO=''` -> `''`.
+function emptyToUndefined(value: string): string | undefined {
+    const trimmed = value.trim().replace(/^['"]|['"]$/g, '');
+    return trimmed.length === 0 ? undefined : trimmed;
+}
+
 const envSchema = z.object({
     MONGODB_URI: z.string().min(2),
     MONGODB_DB_NAME: z.string().min(1),
@@ -7,6 +14,12 @@ const envSchema = z.object({
     TELEGRAM_BOT_USERNAME: z.string().min(1),
     TELEGRAM_BOT_TOKEN: z.string().min(1),
     TELEGRAM_WEBHOOK_SECRET_TOKEN: z.string().min(1),
+    // Canal secundario opcional. Las tres van juntas o no va ninguna: el
+    // adapter lanza en el constructor si le falta alguna, así que sin las tres
+    // ni se registra (ver mostro-supervisor.ts).
+    DISCORD_BOT_TOKEN: z.string().min(1).optional(),
+    DISCORD_APPLICATION_ID: z.string().min(1).optional(),
+    DISCORD_PUBLIC_KEY: z.string().min(1).optional(),
     ADMIN_TELEGRAM_ID: z.string().min(1).optional(),
     ADMIN_NAME: z.string().min(1).optional(),
     ADMIN_EMAIL: z.string().min(3).optional(),
@@ -36,8 +49,19 @@ const envSchema = z.object({
     DIAPERS_EMAIL_TO: z.string().min(3),
     MEDS_EMAIL_TO: z.string().min(3),
     REFUNDS_EMAIL_TO: z.string().min(3),
-    NGROK_AUTHTOKEN: z.string().optional(),
-    NGROK_DOMAIN: z.string().optional(),
+    // Docker Compose no interpreta comillas en env_file: `NGROK_AUTHTOKEN=''`
+    // llega como el string literal `''` (truthy) y dispara ngrok con un token
+    // inválido. Normalizamos a undefined cualquier valor vacío/whitespace/comillas.
+    NGROK_AUTHTOKEN: z.string().transform(emptyToUndefined).optional(),
+    NGROK_DOMAIN: z.string().transform(emptyToUndefined).optional(),
+    // A dónde apunta el túnel. El login (SSO de Google) lo maneja mostro-web, así
+    // que el túnel expone la webapp, no el backend. En Docker es `mostro-web:3000`
+    // por el hostname de compose; en dev local sería `localhost:3000`.
+    NGROK_FORWARD_ADDR: z
+        .string()
+        .transform(emptyToUndefined)
+        .optional()
+        .default('mostro-web:3000'),
     PORT: z.coerce.number().default(4111),
     DUCKDB_PATH: z.string().min(1).default('mastra.duckdb'),
 });

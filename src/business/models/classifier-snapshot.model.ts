@@ -1,7 +1,9 @@
 import { Schema, model } from 'mongoose';
 import type { ClassificationRules } from '@lib/mail-classifier/classification-rules.type';
 
-export type ClassifierDomain = 'diapers' | 'meds' | 'refunds';
+export const CLASSIFIER_DOMAINS = ['diapers', 'meds', 'refunds'] as const;
+
+export type ClassifierDomain = (typeof CLASSIFIER_DOMAINS)[number];
 
 // Snapshot inmutable y versionado de las reglas de clasificación de un dominio.
 // Nunca se edita ni se borra: publicar cambios = insertar una versión nueva y
@@ -15,7 +17,7 @@ export interface IClassifierSnapshot {
 }
 
 const classifierSnapshotSchema = new Schema<IClassifierSnapshot>({
-  domain: { type: String, enum: ['diapers', 'meds', 'refunds'], required: true },
+  domain: { type: String, enum: CLASSIFIER_DOMAINS, required: true },
   version: { type: Number, required: true },
   author: { type: String, required: true },
   changelog: { type: String, required: true },

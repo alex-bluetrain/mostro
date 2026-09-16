@@ -24,6 +24,11 @@ export class InviteRepository {
     return invite.toObject() as IInvite;
   }
 
+  // Newest first: the admin screen reads it as a log of who was invited when.
+  async list(): Promise<IInvite[]> {
+    return Invite.find().sort({ createdAt: -1 }).lean<IInvite[]>();
+  }
+
   // Atomic redeem: matches only unused, unexpired invites and marks them used
   // in the same operation (of two concurrent redemptions, one wins, the other gets null).
   async redeem(code: string, telegramId: string): Promise<IInvite | null> {

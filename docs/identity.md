@@ -9,9 +9,12 @@ La identidad canónica de una persona es su **email de Google** (lowercase). Tod
 ```
 email (canónico, colección users)
 ├── telegramId     identidad vinculada — se setea al canjear un invite (o por seed)
+├── discordId      identidad vinculada, opcional — se setea con linkDiscordTool
 ├── resourceId     dueño de la memoria del agente — email en threads nuevos de DM
-└── threadId       conversación — `<email>:web` en la web, UUID en Telegram
+└── threadId       conversación — `<email>:web` en la web, UUID en Telegram/Discord
 ```
+
+**Telegram es el canal de alta y el de notificaciones**: todo user tiene `telegramId`. Discord es un canal secundario que se suma sobre una identidad que ya existe — no se puede entrar por ahí de cero.
 
 La colección `users` en Mongo (`src/mastra/lib/users.ts`):
 
@@ -21,6 +24,7 @@ La colección `users` en Mongo (`src/mastra/lib/users.ts`):
 | `name`       | string                | Editable vía `setMyNameTool`.                    |
 | `role`       | `'admin' \| 'member'` | Solo admins invitan.                             |
 | `telegramId` | string (opcional)     | Índice único sparse: un telegram, un solo user.  |
+| `discordId`  | string (opcional)     | Índice único sparse. Canal secundario, vía `linkDiscordTool`. |
 | `addedAt`    | number (unix)         |                                                  |
 
 **Estar en `users` = estar autorizado**, para el bot de Telegram y para la web por igual. No hay allowlists paralelas.
@@ -29,14 +33,24 @@ La colección `users` en Mongo (`src/mastra/lib/users.ts`):
 
 `ensureAdminSeed()` corre en cada arranque (`index.ts`): crea los índices únicos de forma idempotente y, si `ADMIN_EMAIL` está seteado, upserta al admin con `role: 'admin'`. `ADMIN_TELEGRAM_ID` se re-aplica en cada boot; `ADMIN_NAME` solo se usa al crear (`$setOnInsert` — cambiarlo después en `.env` es un no-op). Sin `ADMIN_EMAIL` el seed se saltea con un warning y nadie queda autorizado.
 
-## Acceso por Telegram: el gate
+## Acceso por chat: el gate
 
-`createTelegramGate()` (`src/mastra/lib/telegram-gate.ts`) corre **antes** de que el mensaje llegue al agente, en los tres caminos de entrada del canal (`onDirectMessage`, `onMention`, `onSubscribedMessage`). Un desconocido no gasta tokens ni toca memoria:
+`createChannelGate()` (`src/mastra/lib/channel-gate.ts`) corre **antes** de que el mensaje llegue al agente, en los tres caminos de entrada del canal (`onDirectMessage`, `onMention`, `onSubscribedMessage`). Un desconocido no gasta tokens ni toca memoria:
 
 1. Si el `telegramId` del remitente matchea un user → pasa al agente.
 2. Si no, solo se considera un mensaje `/start <código>` (deep link de invite). Cualquier otra cosa se ignora **en silencio**.
 3. El canje es atómico (`findOneAndUpdate`: sin usar + vigente → marcado usado); de dos canjes concurrentes uno gana y el otro recibe null.
 4. El canje vincula el `telegramId` al user del invite y recién ahí el mensaje pasa al agente.
+
+El gate es multi-canal: la plataforma sale de `thread.adapter.name` y `findChannelUser` (`lib/channel-user.ts`) la traduce al lookup que corresponde (`telegramId` o `discordId`). Los espacios de ids no se cruzan — un `telegramId` válido no abre la puerta en Discord — y una plataforma sin identidad mapeada se rechaza por default, así que enchufar un adapter nuevo sin mapear su identidad no deja entrar a nadie.
+
+## Discord: canal secundario
+
+No hay onboarding por Discord: el alta y las notificaciones siguen siendo por Telegram. Un user ya dado de alta pide vincularlo desde el chat y el supervisor llama a `linkDiscordTool`, que escribe `discordId` sobre el email del `resourceId` (nunca sobre uno que diga el modelo). El índice único sparse rechaza un id ya tomado por otra cuenta; la tool lo traduce a `already-taken` en vez de romper, porque el número lo tipea una persona.
+
+El canal es **opt-in por entorno**: `createDiscordAdapter()` lanza en el constructor si le faltan credenciales, así que sin `DISCORD_BOT_TOKEN` + `DISCORD_APPLICATION_ID` + `DISCORD_PUBLIC_KEY` el adapter ni se registra.
+
+Discord recibe texto plano, igual que Telegram: el prompt de OpenUI se agrega sólo cuando `CHANNEL_KEY` es `web`, y eso lo marca únicamente `web-thread.ts`.
 
 ## Invitaciones
 
@@ -84,7 +98,7 @@ Excepción: el webhook del canal Telegram (`/api/agents/*/channels/telegram/webh
 Quién es "dueño" de la memoria de cada conversación:
 
 - **Default de channels**: `telegram:<userId>`. Sigue siendo el fallback (grupos, y fail-safe si el resolver no encuentra al user).
-- **`resolveResourceId`** (en el supervisor): en threads **nuevos** de DM resuelve el `telegramId` del remitente al email canónico. Corre solo al crear el thread; los threads existentes conservan su dueño. Consecuencia: la memoria queda a nombre del email y una futura web comparte memoria con el bot sin migración.
+- **`resolveResourceId`** (en el supervisor): en threads **nuevos** de DM resuelve la identidad del remitente al email canónico, usando el `platform` que le pasa Mastra para elegir el lookup. Corre solo al crear el thread; los threads existentes conservan su dueño. Consecuencia: la memoria queda a nombre del email, y la web, Telegram y Discord comparten memoria de recurso sin migración — la misma persona escribiendo por dos canales aterriza en un solo `resourceId`.
 - **Sub-agentes**: Mastra deriva el resourceId hijo como `{resourceId}-{agentKey}` (ej. `ana@gmail.com-diapersAgent`), con thread nuevo por delegación. Es comportamiento del framework, documentado y estable.
 - **Des-derivado**: las tools que corren dentro de un sub-agente ven el id sufijado, pero necesitan al user (p. ej. para `requestedBy`). `stripSubAgentSuffix` (`users.ts`) recorta el sufijo comparando contra la lista de keys registradas en `lib/sub-agent-keys.ts` — no contra una convención de naming. El `satisfies Record<SubAgentKey, Agent>` del supervisor obliga en compilación a que la lista y el registro no se desincronicen. Un sufijo desconocido no se recorta: la búsqueda de user falla visible en vez de manglar el id en silencio.
 
@@ -92,7 +106,7 @@ Quién es "dueño" de la memoria de cada conversación:
 
 Cada canal resuelve su thread distinto, y la asimetría es deliberada.
 
-**Web: `<email>:web`, derivado en el backend.** El threadId elige qué memoria se lee, así que no puede venir del browser: quien lo mande se lleva la conversación de otro. `webThreadMiddleware` (`lib/web-thread.ts`) corre como middleware de la ruta de chat, después del auth y sobre el mismo `RequestContext`: lee el email que el auth ya dejó en `MASTRA_RESOURCE_ID_KEY` y escribe `MASTRA_THREAD_ID_KEY` con `channelThreadId(email, 'web')`. Sin email en contexto corta con 401.
+**Web: `<email>:web`, derivado en el backend.** El threadId elige qué memoria se lee, así que no puede venir del browser: quien lo mande se lleva la conversación de otro. `webThreadMiddleware` (`lib/web-thread.ts`) corre como middleware de las dos rutas que atiende el browser —`/chat/:agentId` (AI SDK) y `/agents/mostro-supervisor/openui` (AG-UI/OpenUI)—, después del auth y sobre el mismo `RequestContext`: lee el email que el auth ya dejó en `MASTRA_RESOURCE_ID_KEY` y escribe `MASTRA_THREAD_ID_KEY` con `channelThreadId(email, 'web')`. Sin email en contexto corta con 401.
 
 Sostiene la garantía que las dos claves son **reservadas** en Mastra: `mergeRequestContext` descarta las que vengan del body (`isReservedRequestContextKey`), y en la ejecución del agente el `RequestContext` gana sobre los args. Mandar `threadId`, `resourceId` o `requestContext` propios en el request no cambia nada — el mensaje cae igual en el thread del dueño del token. Está verificado contra el server, no sólo por lectura del bundle.
 
@@ -115,12 +129,17 @@ Solo las de identidad. Las del envío de correos (`GMAIL_MAILER_*`, `*_EMAIL_TO`
 | `ADMIN_EMAIL`                | sí*       | Email del admin a seedear. Sin ella, nadie queda autorizado.           |
 | `ADMIN_NAME`                 | no        | Nombre del admin. Solo se aplica al crear el user.                     |
 | `ADMIN_TELEGRAM_ID`          | no        | Vincula el Telegram del admin sin pasar por un invite.                 |
+| `DISCORD_BOT_TOKEN`          | no‡       | Token del bot. Habilita el canal de Discord.                           |
+| `DISCORD_APPLICATION_ID`     | no‡       | Application ID de Discord.                                             |
+| `DISCORD_PUBLIC_KEY`         | no‡       | Verifica la firma del webhook de Discord.                              |
 | `MOSTRO_JWT_SECRET`          | no†       | 32+ chars. Secreto compartido con el BFF de mostro-web, que firma el JWT de cada request. Sin él, acceso web deshabilitado. |
 | `STUDIO_API_KEY`             | no†       | 32+ chars. Token de admin para Studio (ver `docs/studio-prod.md`).      |
 
 \* Opcional para el schema de zod, pero en la práctica obligatoria: sin admin no hay quien invite. Ojo: ninguna de estas variables puede estar presente **con valor vacío** — zod valida `min(...)` y rompe el boot.
 
 † Individualmente opcionales, pero **al menos una** tiene que estar: sin ningún provider el server quedaría abierto, así que `createServerAuth()` corta el boot.
+
+‡ Las tres van juntas o no va ninguna: con las tres se registra el canal de Discord, sin ellas no existe. Con algunas sí y otras no, el adapter lanza en el constructor.
 
 ## Limitaciones conocidas
 

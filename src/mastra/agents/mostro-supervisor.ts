@@ -1,70 +1,113 @@
 import { Agent } from '@mastra/core/agent';
+import type { RequestContext } from '@mastra/core/request-context';
 import { Memory } from '@mastra/memory';
+import { OPENUI_SYSTEM_PROMPT } from '../generated/openui-system-prompt';
+import { CHANNEL_KEY } from '@lib/web-thread';
 import { createTelegramAdapter } from '@chat-adapter/telegram';
-import { weatherAgent } from './weather-agent';
-import { diapersAgent } from './diapers-agent';
-import { medsAgent } from './meds-agent';
-import { refundsAgent } from './refunds-agent';
-import { createTelegramGate } from '@lib/telegram-gate';
+import { createDiscordAdapter } from '@chat-adapter/discord';
+import { appConfig } from '../config/app.config';
+import { ToolSearchProcessor } from '@mastra/core/processors';
+import { createChannelGate } from '@lib/channel-gate';
 import { createResolveResourceId } from '@lib/resolve-resource-id';
-import type { SubAgentKey } from '@lib/sub-agent-keys';
-import { createInviteTool } from '@tools/create-invite-tool';
+import { isRequestAdmin } from '@lib/request-identity';
 import { setMyNameTool } from '@tools/set-my-name-tool';
 import { subscribeTool } from '@tools/subscribe-tool';
+import { toolRegistry } from '@tools/registry';
+import { supervisorSkillsResolver } from '../skills/skills-resolver';
 
-export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, a supervisor agent that coordinates specialized agents to help the user.
+export const MOSTRO_SUPERVISOR_INSTRUCTIONS = `You are Mostro, an assistant that helps the family coordinate recurring orders and updates about the patient.
 
-Available resources:
-- weatherAgent: Provides weather details for a location and suggests activities based on the forecast.
-- diapersAgent: Handles the shared diaper order flow (status, starting an order). This flow is shared across ALL users, not private to one person.
-- medsAgent: Handles the shared medication order flow based on prescriptions (status, starting an order). This flow is shared across ALL users, not private to one person, and scoped by month like diapers.
-- refundsAgent: Handles the refund flow for an order (status, requesting a refund). This flow is shared across ALL users, not private to one person, and scoped by month like diapers/meds.
-
-Delegation strategy:
-1. For weather questions or activity planning based on weather: delegate to weatherAgent.
-2. For anything about diapers (status, ordering): delegate to diapersAgent.
-3. For anything about medications or prescriptions (status, ordering): delegate to medsAgent.
-4. For anything about refunds (status, requesting): delegate to refundsAgent.
-5. For notification subscriptions ("avisame cuando...", "quiero que me avisen"), handle it yourself with subscribeTool — never delegate it. See Notifications below.
-6. For anything else, respond directly if you can, or let the user know it's not supported yet.
+How to handle requests:
+1. For notification subscriptions ("avisame cuando...", "quiero que me avisen"), use subscribeTool. See Notifications below.
+2. For diapers, medications/prescriptions or refunds (status, ordering/requesting): load the matching skill (diapers / meds / refunds) and follow it. These are shared monthly flows, not private to one person.
+3. For weather questions or activity planning based on weather: load the weather skill and search for the weather tool.
+4. For anything else, check your skills/tool catalog first (search_tools); if nothing matches, respond directly if you can, or let the user know it's not supported yet.
 
 Notifications:
 - There is ONE subscription per person, covering every update about the patient (diaper deliveries, medication orders and refunds). It is not per-topic: you cannot subscribe someone to only one of them.
-- When a user asks to be notified about anything in these flows, call subscribeTool yourself. Never delegate this to a sub-agent — they have no tool for it.
+- When a user asks to be notified about anything in these flows, call subscribeTool directly — no skill or search needed.
 - When you confirm it, make the scope explicit: from now on they get every update about the patient, not just the topic they asked about.
 - Subscribing twice is harmless (it is idempotent), so if someone asks again just confirm they are already subscribed.
 
 User management:
 - New users receive a fixed welcome message outside your pipeline that may ask for their name. If a user introduces themselves or states their name, save it with setMyNameTool.
-- If an admin asks to invite someone, you only need the invitee's Google email (ask for it if missing; never ask for their name — it is taken from their Google profile later). Then use createInviteTool and give back the resulting link to forward. If the tool returns "only admins can create invites", explain that only admins can invite people. Remind the admin to send the link privately to the invitee (whoever opens it becomes that person).
+- You can invite new users and link Discord accounts, but those capabilities are not pinned: search for them (search_tools / skills) when someone asks to invite a person or to chat via Discord. If the search finds nothing, the capability is not available for this user — decline gracefully without inventing an alternative.
 - If a user asks to change their name, use setMyNameTool.
-- If a shared-order agent reports that an order was not registered because the user's name is missing (reason 'requester_unidentified'), ask the user for their name, save it with setMyNameTool, then delegate the order again.
-- If a shared-order agent reports that a send failed (reason 'send_failed'), the order was NOT placed. Do not retry it and do not re-delegate it to try again — just relay the agent's message to the user as-is; they can ask again later.
+- If a shared-order flow (agent or tool) reports that an order was not registered because the user's name is missing (reason 'requester_unidentified'), ask the user for their name, save it with setMyNameTool, then retry the order.
+- If a shared-order flow reports that a send failed (reason 'send_failed'), the order was NOT placed. Do not retry it — just relay the message to the user as-is; they can ask again later.
 
 Behaviour Rules:
 - Hablas en español rioplatense, tono amigable pero conciso.
 
-CRITICAL RULE: notification signals (system-generated context, not authored by the user) must be relayed to the user as plain text ONLY. Never delegate, call a tool, or resume a workflow in response to a notification signal — those signals only inform, they do not request an action.
+CRITICAL RULE: when a notification signal arrives (system-generated context, not authored by the user), limit yourself to relaying its content to the user. Never delegate, call a tool, or resume a workflow in response to a notification signal — those signals only inform, they do not request an action.
 `;
+
+// La web renderiza OpenUI Lang; Telegram sólo sabe de texto. El prompt de
+// OpenUI exige que TODA la respuesta sea openui-lang, así que mandárselo a
+// Telegram le rompería los mensajes: por eso se agrega sólo cuando el canal es
+// web (lo marca web-thread.ts, la única puerta del browser).
+//
+// El bloque "Channel: web" de abajo sólo cubre lo que OPENUI_SYSTEM_PROMPT deja
+// ambiguo. No repitas ahí reglas que el prompt generado ya trae (que la
+// respuesta entera es openui-lang, o la lista de componentes): se regeneran
+// solas con `pnpm generate:openui-prompt`.
+// Los subagentes por dominio (meds/diapers/refunds) inyectaban la fecha para
+// scopear pedidos por mes. Al migrarlos a skills eso se perdió: el supervisor
+// necesita saber el día de hoy para resolver "el pedido de marzo" o "este mes".
+function todayHeader(): string {
+    const now = new Date();
+    return `Today is ${now.toISOString().slice(0, 10)} (YYYY-MM-DD). The current month scope is ${now.toISOString().slice(0, 7)} (YYYY-MM). Use this month unless the user names a different one.`;
+}
+
+export function supervisorInstructions({ requestContext }: { requestContext: RequestContext }): string {
+    if (requestContext.get(CHANNEL_KEY) !== 'web') return `${todayHeader()}\n\n${MOSTRO_SUPERVISOR_INSTRUCTIONS}`;
+
+    return `${OPENUI_SYSTEM_PROMPT}
+
+---
+
+${todayHeader()}
+
+${MOSTRO_SUPERVISOR_INSTRUCTIONS}
+
+Channel: web (OpenUI)
+- TextContent soporta markdown, pero usalo sólo inline (negritas, itálicas), nunca para estructura: una tabla va en Table(Col(...)), una lista de opciones en ListBlock(ListItem(...)) y un título en CardHeader. Una tabla markdown adentro de un TextContent se ve rota.
+- Las skills que cargues están escritas en markdown: de ahí tomá SOLO las reglas de negocio, nunca el formato. Aunque acabes de leer una skill, tu respuesta sigue siendo openui-lang: datos tabulares van en Table(Col(...)), jamás en pipes (|) dentro de un TextContent.
+- Si en el historial hay respuestas tuyas en texto plano, ignoralas como ejemplo de formato: la próxima respuesta igual va en openui-lang.
+- NO emitas texto antes ni entre tool calls ("un momento", "déjame buscar"): todo texto que emitas se concatena al código y rompe el parser. Llamá las tools en silencio y emití texto una sola vez, al final, empezando directo con root = Card(...).`;
+}
 
 export const mostroSupervisorModel = 'openrouter/deepseek/deepseek-v4-flash';
 
-// El satisfies fuerza a que toda key registrada exista en subAgentKeys (y viceversa):
-// users.ts depende de esa lista para des-derivar los resourceIds de sub-agentes.
-export const mostroSupervisorAgents = {
-    weatherAgent,
-    diapersAgent,
-    medsAgent,
-    refundsAgent,
-} satisfies Record<SubAgentKey, Agent>;
+export const discordEnabled = Boolean(
+    appConfig.DISCORD_BOT_TOKEN && appConfig.DISCORD_APPLICATION_ID && appConfig.DISCORD_PUBLIC_KEY
+);
 
 export const mostroSupervisor = new Agent({
     id: 'mostro-supervisor',
-    name: 'Mostro Supervisor',
-    instructions: MOSTRO_SUPERVISOR_INSTRUCTIONS,
+    name: 'Mostro',
+    instructions: supervisorInstructions,
     model: mostroSupervisorModel,
-    agents: mostroSupervisorAgents,
-    tools: { createInviteTool, setMyNameTool, subscribeTool },
+    // Solo las tools core quedan pineadas: subscribe (regla crítica de
+    // notificaciones) y setMyName. El resto vive en el catálogo y se descubre
+    // vía search_tools (ver tools/registry.ts).
+    tools: { setMyNameTool, subscribeTool },
+    skills: supervisorSkillsResolver,
+    inputProcessors: [
+        new ToolSearchProcessor({
+            tools: toolRegistry,
+            // autoLoad colapsa search→load→use en search→use: una llamada
+            // menos por descubrimiento. topK bajo porque cada match se activa.
+            search: { topK: 3, minScore: 0.15, autoLoad: true },
+            // Permisos en código, no en prosa: una tool que el filtro oculta
+            // ni aparece en los resultados de búsqueda. El lookup de usuario
+            // se cachea por RequestContext (el hook corre por candidato).
+            filter: async ({ toolName, requestContext }) => {
+                if (toolName === 'create-invite') return isRequestAdmin(requestContext);
+                return true;
+            },
+        }),
+    ],
     memory: new Memory(),
     channels: {
         adapters: {
@@ -73,17 +116,31 @@ export const mostroSupervisor = new Agent({
                 streaming: true,
                 toolDisplay: 'hidden', // supress tool calls messages
             },
+            // Canal secundario y opcional: mismo trato que Telegram (texto
+            // plano, sin openui-lang) porque CHANNEL_KEY sólo lo marca
+            // web-thread.ts. createDiscordAdapter() lanza si faltan las
+            // credenciales, así que sin ellas el canal directamente no existe.
+            ...(discordEnabled
+                ? {
+                      discord: {
+                          adapter: createDiscordAdapter(),
+                          streaming: true,
+                          toolDisplay: 'hidden' as const,
+                      },
+                  }
+                : {}),
         },
         // Memoria canónica: todo thread queda a nombre del email del usuario
-        // (nunca telegram:<id>). Corre solo al crear un thread; si el autor no
-        // resuelve a un usuario, lanza (ver resolve-resource-id.ts).
+        // (nunca telegram:<id> ni discord:<id>), así los dos canales comparten
+        // memoria. Corre solo al crear un thread; si el autor no resuelve a un
+        // usuario, lanza (ver resolve-resource-id.ts).
         resolveResourceId: createResolveResourceId(),
         // La compuerta de acceso debe cubrir los tres caminos de entrada (DM, mención, suscripción)
         // para rechazar remitentes desconocidos en todas partes.
         handlers: {
-            onDirectMessage: createTelegramGate(),
-            onMention: createTelegramGate(),
-            onSubscribedMessage: createTelegramGate(),
+            onDirectMessage: createChannelGate(),
+            onMention: createChannelGate(),
+            onSubscribedMessage: createChannelGate(),
         },
     },
 });

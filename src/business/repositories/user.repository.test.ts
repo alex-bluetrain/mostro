@@ -52,6 +52,35 @@ describe('UserRepository', () => {
     );
   });
 
+  it('setNotifications flips the embedded preference and reports whether a user matched', async () => {
+    vi.mocked(User.updateOne).mockResolvedValue({ matchedCount: 1 } as any);
+
+    const result = await userRepository.setNotifications('Ana@Gmail.com', true);
+
+    expect(result).toBe(true);
+    expect(User.updateOne).toHaveBeenCalledWith(
+      { email: 'ana@gmail.com' },
+      { $set: { 'preferences.notifications': true } }
+    );
+  });
+
+  it('setNotifications returns false when the email is not a user', async () => {
+    vi.mocked(User.updateOne).mockResolvedValue({ matchedCount: 0 } as any);
+
+    expect(await userRepository.setNotifications('ghost@gmail.com', true)).toBe(false);
+  });
+
+  it('listNotificationEmails only returns opted-in users', async () => {
+    vi.mocked(User.find).mockReturnValue({
+      lean: () => Promise.resolve([{ email: 'ana@gmail.com' }, { email: 'juan@gmail.com' }]),
+    } as any);
+
+    const result = await userRepository.listNotificationEmails();
+
+    expect(result).toEqual(['ana@gmail.com', 'juan@gmail.com']);
+    expect(User.find).toHaveBeenCalledWith({ 'preferences.notifications': true }, { email: 1 });
+  });
+
   it('upsertFromInviteRedeem does not clobber an existing user (setOnInsert only)', async () => {
     const existingUser = { email: 'ana@gmail.com', name: 'Ana', role: 'admin' as const, telegramId: '99', addedAt: 5 };
     vi.mocked(User.findOneAndUpdate).mockResolvedValue(existingUser as any);

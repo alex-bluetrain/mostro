@@ -73,8 +73,3 @@ export const translationScorer = createScorer({
     return `Translation scoring: nonEnglish=${r.nonEnglish ?? false}, translated=${r.translated ?? false}, confidence=${r.confidence ?? 0}. Score=${score}. ${r.explanation ?? ''}`;
   });
 
-export const scorers = {
-  toolCallAppropriatenessScorer,
-  completenessScorer,
-  translationScorer,
-};

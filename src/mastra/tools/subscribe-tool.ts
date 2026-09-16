@@ -1,6 +1,6 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { subscriberRepository } from '@business/repositories'
+import { userRepository } from '@business/repositories'
 import { emailFromResourceId } from '@business/identity'
 
 export const subscribeTool = createTool({
@@ -16,7 +16,9 @@ export const subscribeTool = createTool({
             return { subscribed: false }
         }
 
-        await subscriberRepository.add(email)
-        return { subscribed: true }
+        // Prende la preferencia sobre un user existente: si el email no está
+        // invitado no hay a quién suscribir, y decirle que sí sería mentira.
+        const updated = await userRepository.setNotifications(email, true)
+        return { subscribed: updated }
     },
 })
