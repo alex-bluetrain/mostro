@@ -35,6 +35,9 @@ import {
 import { agUIRoute } from './routes/ag-ui.route';
 
 const ngrokOrigin = appConfig.NGROK_DOMAIN ? `https://${appConfig.NGROK_DOMAIN}` : undefined;
+const corsOrigins = [ngrokOrigin, ...appConfig.DEV_CORS_ORIGINS].filter(
+    (origin): origin is string => Boolean(origin)
+);
 
 // Connect to MongoDB
 await mongoose.connect(appConfig.MONGODB_URI, {
@@ -65,9 +68,9 @@ await ensureClassifierSeed();
 export const mastra = new Mastra({
     server: {
         auth: createServerAuth(),
-        cors: ngrokOrigin
+        cors: corsOrigins.length
             ? {
-                origin: ngrokOrigin,
+                origin: corsOrigins,
                 credentials: true,
             }
             : undefined,
