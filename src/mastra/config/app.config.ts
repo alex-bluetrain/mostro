@@ -65,11 +65,22 @@ const envSchema = z.object({
     // A dónde apunta el túnel. El login (SSO de Google) lo maneja mostro-web, así
     // que el túnel expone la webapp, no el backend. En Docker es `mostro-web:3000`
     // por el hostname de compose; en dev local sería `localhost:3000`.
-    NGROK_FORWARD_ADDR: z
+    NGROK_FORWARD_ADDR: z.string().transform(emptyToUndefined).optional(),
+    // Orígenes CORS extra para dev local, separados por coma. El backend ya
+    // permite el dominio de ngrok; esto habilita, por ejemplo, la Expo web en
+    // http://localhost:8097 sin tocar código. Vacío en prod.
+    DEV_CORS_ORIGINS: z
         .string()
         .transform(emptyToUndefined)
         .optional()
-        .default('mostro-web:3000'),
+        .transform((value) =>
+            value
+                ? value
+                    .split(',')
+                    .map((origin) => origin.trim())
+                    .filter((origin) => origin.length > 0)
+                : []
+        ),
     PORT: z.coerce.number().default(4111),
     DUCKDB_PATH: z.string().min(1).default('mastra.duckdb'),
 });
