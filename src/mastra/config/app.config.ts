@@ -29,6 +29,14 @@ const envSchema = z.object({
     // Habilita SimpleAuth para Studio (ademas del JWT del BFF). Pensada para
     // prod: permite apuntar Studio local contra prod con un token de admin.
     STUDIO_API_KEY: z.string().min(32).optional(),
+    // Habilita MastraAuthGoogle en modo Bearer: clientes (Expo Android/web con
+    // PKCE) mandan el id_token de Google en el header Authorization y mostro lo
+    // verifica contra JWKS. Opt-in como STUDIO_API_KEY; sin esto el provider ni
+    // se registra. GOOGLE_CLIENT_SECRET + GOOGLE_COOKIE_PASSWORD son solo para
+    // la fase 2 (SSO/cookie), que este plan no activa.
+    GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+    GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+    GOOGLE_COOKIE_PASSWORD: z.string().min(32).optional(),
     // Templates JSON de reglas de clasificación (minificados). Solo se usan como
     // bootstrap: si el dominio ya tiene puntero activo en Mongo, se ignoran.
     CLASSIFIER_RULES_DIAPERS: z.string().optional(),
