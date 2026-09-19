@@ -29,6 +29,8 @@ services:
       - .env.local
     environment:
       MONGODB_URI: mongodb://mongo:27017/?directConnection=true
+      # El túnel expone la webapp (el login vive ahí), que en compose es `mostro-web:3000`.
+      NGROK_FORWARD_ADDR: mostro-web:3000
     ports:
       - "4111:4111"
     volumes:
