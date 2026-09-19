@@ -32,6 +32,7 @@
     "@googleapis/gmail": "^17.0.0",
     "@mastra/ai-sdk": "^1.10.0",
     "@mastra/auth": "^1.1.2",
+    "@mastra/auth-google": "^0.1.2",
     "@mastra/core": "^1.63.0",
     "@mastra/duckdb": "^1.6.3",
     "@mastra/editor": "^0.14.1",
