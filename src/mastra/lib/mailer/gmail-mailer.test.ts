@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
-const { send, setCredentials } = vi.hoisted(() => ({
+const { send, setCredentials, logError } = vi.hoisted(() => ({
   send: vi.fn(),
   setCredentials: vi.fn(),
+  logError: vi.fn(),
 }))
 
 vi.mock('@googleapis/gmail', () => ({
@@ -12,6 +13,10 @@ vi.mock('@googleapis/gmail', () => ({
     },
   },
   gmail: () => ({ users: { messages: { send } } }),
+}))
+
+vi.mock('../app-logger', () => ({
+  appLogger: { error: logError, info: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }))
 
 import { sendEmail } from './gmail-mailer'
@@ -100,5 +105,9 @@ describe('sendEmail', () => {
 
     await expect(sendEmail(message)).rejects.toThrow(/pnpm run gmail:auth/)
     expect(send).toHaveBeenCalledTimes(1)
+    expect(logError).toHaveBeenCalledWith(
+      expect.stringContaining('refresh token'),
+      expect.objectContaining({ event: 'gmail_auth_expired' }),
+    )
   })
 })
