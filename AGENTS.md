@@ -1,5 +1,11 @@
 # AGENTS.md
 
+## CRITICAL: Never block the session
+
+- **NEVER use `sleep` as a wait step.** It hangs the session and is explicitly blocked. To wait on a process, use the process tools that wait natively (e.g. `get_process_output` with `wait`, or a tool's own timeout).
+- **NEVER write potentially infinite loops.** Any polling/wait loop MUST have a bounded number of iterations. No `while [ cond ]; do ... done` without a hard iteration cap.
+- **If a tool returns "not allowed" / "blocked", STOP using that pattern immediately.** Do not retry it in a different disguise — change approach.
+
 ## CRITICAL: Communication style
 
 Respond in 2 lines max, high-level, no filler. Only expand when explicitly asked. This is inviolable.

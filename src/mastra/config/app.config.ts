@@ -29,6 +29,14 @@ const envSchema = z.object({
     // Habilita SimpleAuth para Studio (ademas del JWT del BFF). Pensada para
     // prod: permite apuntar Studio local contra prod con un token de admin.
     STUDIO_API_KEY: z.string().min(32).optional(),
+    // Habilita MastraAuthGoogle en modo Bearer: clientes (Expo Android/web con
+    // PKCE) mandan el id_token de Google en el header Authorization y mostro lo
+    // verifica contra JWKS. Opt-in como STUDIO_API_KEY; sin esto el provider ni
+    // se registra. GOOGLE_CLIENT_SECRET + GOOGLE_COOKIE_PASSWORD son solo para
+    // la fase 2 (SSO/cookie), que este plan no activa.
+    GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+    GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+    GOOGLE_COOKIE_PASSWORD: z.string().min(32).optional(),
     // Templates JSON de reglas de clasificación (minificados). Solo se usan como
     // bootstrap: si el dominio ya tiene puntero activo en Mongo, se ignoran.
     CLASSIFIER_RULES_DIAPERS: z.string().optional(),
@@ -57,11 +65,22 @@ const envSchema = z.object({
     // A dónde apunta el túnel. El login (SSO de Google) lo maneja mostro-web, así
     // que el túnel expone la webapp, no el backend. En Docker es `mostro-web:3000`
     // por el hostname de compose; en dev local sería `localhost:3000`.
-    NGROK_FORWARD_ADDR: z
+    NGROK_FORWARD_ADDR: z.string().transform(emptyToUndefined).optional(),
+    // Orígenes CORS extra para dev local, separados por coma. El backend ya
+    // permite el dominio de ngrok; esto habilita, por ejemplo, la Expo web en
+    // http://localhost:8097 sin tocar código. Vacío en prod.
+    DEV_CORS_ORIGINS: z
         .string()
         .transform(emptyToUndefined)
         .optional()
-        .default('mostro-web:3000'),
+        .transform((value) =>
+            value
+                ? value
+                    .split(',')
+                    .map((origin) => origin.trim())
+                    .filter((origin) => origin.length > 0)
+                : []
+        ),
     PORT: z.coerce.number().default(4111),
     DUCKDB_PATH: z.string().min(1).default('mastra.duckdb'),
 });

@@ -368,6 +368,12 @@ rest of the production secrets.
 Note that `console.*` calls (the `[poll-*]`, `[classifier-seed]` and `[telegram-start]` messages)
 bypass Pino entirely, so they only reach `docker logs`, not Axiom.
 
+## Known limitations / TODO
+
+- **Phase 2: SSO / cookie flow not implemented.** The cookie-based SSO flow (`GOOGLE_SSO_*` env
+  vars) is not wired up. Current auth is Bearer id_token only. SSO would enable persistent web
+  sessions and silent re-auth for the Expo web client.
+
 ## License
 
 Private
