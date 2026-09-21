@@ -1,4 +1,5 @@
 import { appConfig } from '@config/app.config'
+import { appLogger } from '../app-logger'
 import { buildRawMessage } from './mime'
 import { getGmailClient } from './gmail-client'
 import { GMAIL_TIMEOUT_MS, isInvalidGrant, withGmailRetry } from './gmail-retry'
@@ -26,6 +27,12 @@ export async function sendEmail({
         )
     } catch (error) {
         if (isInvalidGrant(error)) {
+            appLogger.error('[mailer] refresh token de Gmail expirado', {
+                event: 'gmail_auth_expired',
+                component: 'MAILER',
+                remediation: 'pnpm run gmail:auth',
+                to,
+            })
             throw new Error(
                 'El refresh token de Gmail ya no es válido: regeneralo con `pnpm run gmail:auth` '
                 + 'y verificá que la app OAuth esté publicada en producción.',
