@@ -17,40 +17,45 @@ services:
   mostro:
     build:
       context: .
-      dockerfile: Dockerfile.local
+      dockerfile: Dockerfile
     container_name: mostro
+    # Override del CMD de la imagen: en local NO corremos `infisical run`. Los
+    # secretos vienen del .env.docker (env_file), así que arrancamos node directo.
+    command: ["node", "index.mjs"]
     restart: unless-stopped
     depends_on:
       mongo:
         condition: service_healthy
-    # Los secretos vienen del .env.local (sin Infisical). MONGODB_URI se
-    # sobreescribe abajo porque desde el container Mongo es `mongo`, no localhost.
+    # Los secretos vienen del .env.docker (sin Infisical). Ese archivo ya trae
+    # MONGODB_URI apuntando al servicio `mongo` y NGROK_FORWARD_ADDR al backend
+    # `mostro:4111`, con los hostnames de la red de compose.
     env_file:
-      - .env.local
-    environment:
-      MONGODB_URI: mongodb://mongo:27017/?directConnection=true
-      # El túnel expone la webapp (el login vive ahí), que en compose es `mostro-web:3000`.
-      NGROK_FORWARD_ADDR: mostro-web:3000
+      - .env.docker
     ports:
       - "4111:4111"
     volumes:
       - mostro-data:/data
 
-  mostro-web:
+  mostro-expo-web:
     build:
-      context: ../mostro-web
+      context: ../mostro-expo
       dockerfile: Dockerfile
-    container_name: mostro-web
+      # Vars publicas inyectadas en el bundle en build time (quedan quemadas).
+      # Para cambiarlas hay que rebuildear la imagen. Los valores vienen del
+      # .env.docker (gitignoreado) via interpolacion de compose.
+      args:
+        EXPO_PUBLIC_MOSTRO_URL: ${EXPO_PUBLIC_MOSTRO_URL}
+        EXPO_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        # Dev-only: habilita el login mock con API key en la pantalla de auth.
+        EXPO_PUBLIC_DEV_LOGIN: ${EXPO_PUBLIC_DEV_LOGIN:-1}
+    container_name: mostro-expo-web
+    # Opt-in: solo arranca con `docker compose --profile web up`. Fuera del loop
+    # diario (que corre la app con `npx expo start`), se usa para verificar el
+    # artefacto web empaquetado (nginx sirviendo el export estatico).
+    profiles: ["web"]
     restart: unless-stopped
-    depends_on:
-      - mostro
-    env_file:
-      - ../mostro-web/.env.local
-    environment:
-      # En la red de compose la API es `mostro`, no localhost.
-      MASTRA_URL: http://mostro:4111
     ports:
-      - "3000:3000"
+      - "8097:80"
 
 volumes:
   mongo-data:
