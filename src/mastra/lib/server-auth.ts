@@ -26,12 +26,22 @@ export function createServerAuth() {
         ? new SimpleAuth({
             tokens: {
                 [appConfig.STUDIO_API_KEY]: {
-                    id: 'admin',
+                    // El id ES el resourceId (ver mapUserToResourceId abajo). Cuando
+                    // hay ADMIN_EMAIL, lo usamos para que el token resuelva al IUser
+                    // real en Mongo (resolveRequestUser sólo busca si contiene '@'):
+                    // así /users/me responde y isRequestAdmin ve el role real, en vez
+                    // del literal 'admin' que no matchea ningún usuario de negocio.
+                    id: appConfig.ADMIN_EMAIL ?? 'admin',
                     name: appConfig.ADMIN_NAME ?? 'Admin',
                     role: 'admin',
                 },
             },
             public: [TELEGRAM_CHANNEL_WEBHOOK],
+            // Sin esto, SimpleAuth autentica pero no puebla MASTRA_RESOURCE_ID_KEY,
+            // y webThreadMiddleware corta con 401. El resource id fija la memoria
+            // del admin (con ADMIN_EMAIL, comparte hilo/memoria con el mismo usuario
+            // logueado por Google; sin él, hilo propio 'admin' separado).
+            mapUserToResourceId: user => user.id,
         })
         : undefined
 
