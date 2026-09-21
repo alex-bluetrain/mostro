@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.9.0](https://github.com/alex-bluetrain/mostro/compare/v1.8.0...v1.9.0) (2026-09-21)
+
+
+### Features
+
+* acepta id_token de Google directo como tercer auth provider ([91e4b43](https://github.com/alex-bluetrain/mostro/commit/91e4b4304ae479184884d78debf0a0eb0bb7e3e7))
+* allow extra dev CORS origins via DEV_CORS_ORIGINS ([bc15cef](https://github.com/alex-bluetrain/mostro/commit/bc15cef93d234e8d483712b2a5d0220528cd2023))
+
+
+### Bug Fixes
+
+* **auth:** SimpleAuth resuelve el admin por email y puebla el resourceId ([157633d](https://github.com/alex-bluetrain/mostro/commit/157633d7a3a99e56718129fc0180704fa3e968c9))
+
 ## [1.8.0](https://github.com/alex-bluetrain/mostro/compare/v1.7.0...v1.8.0) (2026-09-16)
 
 
