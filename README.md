@@ -370,11 +370,6 @@ bypass Pino entirely, so they only reach `docker logs`, not Axiom.
 
 ## Known limitations / TODO
 
-- **Google id_token is decoded, not verified (security).** The bearer auth provider in
-  [`src/mastra/lib/google-auth.ts`](src/mastra/lib/google-auth.ts) trusts the JWT's claims without
-  validating the RS256 signature against Google's public keys, nor checking `aud`/`iss`/`exp`. This
-  is fine for local dev but **must be fixed before production** (use `google-auth-library` to verify
-  the signature and audience). Tracked as a TODO in that file.
 - **Phase 2: SSO / cookie flow not implemented.** The cookie-based SSO flow (`GOOGLE_SSO_*` env
   vars) is not wired up. Current auth is Bearer id_token only. SSO would enable persistent web
   sessions and silent re-auth for the Expo web client.
