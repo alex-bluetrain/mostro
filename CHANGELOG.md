@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/alex-bluetrain/mostro/compare/v1.9.0...v1.10.0) (2026-09-21)
+
+
+### Features
+
+* **mailer:** log estructurado cuando expira el refresh token de Gmail ([826a124](https://github.com/alex-bluetrain/mostro/commit/826a124d5e6f63ee86b39c00f5c666ee2a9cf629))
+
 ## [1.9.0](https://github.com/alex-bluetrain/mostro/compare/v1.8.0...v1.9.0) (2026-09-21)
 
 
