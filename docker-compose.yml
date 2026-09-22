@@ -1,7 +1,7 @@
 services:
   mongo:
     image: mongo:7
-    container_name: mostro-mongo
+    container_name: mostro-server-mongo
     restart: unless-stopped
     ports:
       - "27017:27017"
@@ -14,11 +14,11 @@ services:
       retries: 5
       start_period: 20s
 
-  mostro:
+  mostro-server:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: mostro
+    container_name: mostro-server
     # Override del CMD de la imagen: en local NO corremos `infisical run`. Los
     # secretos vienen del .env.docker (env_file), así que arrancamos node directo.
     command: ["node", "index.mjs"]
@@ -28,7 +28,7 @@ services:
         condition: service_healthy
     # Los secretos vienen del .env.docker (sin Infisical). Ese archivo ya trae
     # MONGODB_URI apuntando al servicio `mongo` y NGROK_FORWARD_ADDR al backend
-    # `mostro:4111`, con los hostnames de la red de compose.
+    # `mostro-server:4111`, con los hostnames de la red de compose.
     env_file:
       - .env.docker
     ports:
@@ -36,19 +36,19 @@ services:
     volumes:
       - mostro-data:/data
 
-  mostro-expo-web:
+  mostro-app-web:
     build:
-      context: ../mostro-expo
+      context: ../mostro-app
       dockerfile: Dockerfile
       # Vars publicas inyectadas en el bundle en build time (quedan quemadas).
       # Para cambiarlas hay que rebuildear la imagen. Los valores vienen del
       # .env.docker (gitignoreado) via interpolacion de compose.
       args:
-        EXPO_PUBLIC_MOSTRO_URL: ${EXPO_PUBLIC_MOSTRO_URL}
+        EXPO_PUBLIC_MOSTRO_SERVER_URL: ${EXPO_PUBLIC_MOSTRO_SERVER_URL}
         EXPO_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
         # Dev-only: habilita el login mock con API key en la pantalla de auth.
         EXPO_PUBLIC_DEV_LOGIN: ${EXPO_PUBLIC_DEV_LOGIN:-1}
-    container_name: mostro-expo-web
+    container_name: mostro-app-web
     # Opt-in: solo arranca con `docker compose --profile web up`. Fuera del loop
     # diario (que corre la app con `npx expo start`), se usa para verificar el
     # artefacto web empaquetado (nginx sirviendo el export estatico).
