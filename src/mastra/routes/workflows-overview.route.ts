@@ -4,11 +4,11 @@ import { readWorkflowsOverview } from '@lib/workflows-overview'
 const DEFAULT_MONTHS = 6
 const MAX_MONTHS = 24
 
-// El dashboard de mostro-web necesita ver, de un saque, en qué anda cada flow mensual.
-// El estado ya vive en los runs de Mastra: esta ruta sólo los junta, no los reinterpreta.
+// The mostro-app dashboard needs to see, at a glance, where each monthly flow stands.
+// The state already lives in Mastra's runs: this route only gathers them, it does not reinterpret them.
 //
-// Es lectura del estado compartido de la casa (el mismo que ve cualquiera por Telegram),
-// así que no filtra por usuario. La invitación ya la validó el auth provider.
+// It reads the household's shared state (the same one anyone sees over Telegram),
+// so it does not filter by user. The invitation was already validated by the auth provider.
 export const workflowsOverviewRoute = registerApiRoute('/workflows/overview', {
     method: 'GET',
     handler: async c => {
