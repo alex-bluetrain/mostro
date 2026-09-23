@@ -51,8 +51,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@openuidev/react-lang": "^0.2.15",
-    "@openuidev/react-ui": "^0.13.10",
+    "@openuidev/react-lang": "^0.3.0",
+    "@openuidev/react-ui": "^0.16.2",
     "@types/email-reply-parser": "^1.4.2",
     "@types/mailparser": "^3.4.6",
     "@types/node": "^26.4.0",
