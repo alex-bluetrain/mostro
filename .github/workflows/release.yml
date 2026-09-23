@@ -1,7 +1,7 @@
 name: Release
 
-# release-please acumula los conventional commits en un "Release PR".
-# Mergearlo crea el tag vX.Y.Z + el GitHub Release, y recién ahí se publica la imagen.
+# release-please accumulates the conventional commits into a "Release PR".
+# Merging it creates the vX.Y.Z tag + the GitHub Release, and only then is the image published.
 on:
   push:
     branches: [main]
@@ -9,7 +9,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  # Para pushear la imagen a ghcr.io con el GITHUB_TOKEN del propio workflow.
+  # To push the image to ghcr.io with the workflow's own GITHUB_TOKEN.
   packages: write
 
 concurrency:
@@ -24,19 +24,19 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      # El token default es secrets.GITHUB_TOKEN: no hace falta declararlo.
-      # Requiere el switch del repo "Allow GitHub Actions to create and approve
-      # pull requests" (Settings > Actions > General); los permissions de arriba
-      # solos no alcanzan.
+      # The default token is secrets.GITHUB_TOKEN: no need to declare it.
+      # Requires the repo switch "Allow GitHub Actions to create and approve
+      # pull requests" (Settings > Actions > General); the permissions above
+      # are not enough on their own.
       - uses: googleapis/release-please-action@v4
         id: release
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # Gatea el publish: nada llega a GHCR con el typecheck o los tests en rojo.
-  # Corre solo al crearse un release — en pushes normales a main los checks
-  # ya corrieron en el PR, no hace falta repetirlos acá.
+  # Gates the publish: nothing reaches GHCR with the typecheck or tests red.
+  # Runs only when a release is created — on normal pushes to main the checks
+  # already ran on the PR, no need to repeat them here.
   checks:
     name: Checks
     needs: release-please
@@ -44,7 +44,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   publish:
-    name: Build + push a GHCR
+    name: Build + push to GHCR
     needs: [release-please, checks]
     if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-latest
@@ -52,8 +52,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # GHCR se autentica con el GITHUB_TOKEN del propio workflow: no hay
-      # credenciales que rotar ni federación que configurar.
+      # GHCR authenticates with the workflow's own GITHUB_TOKEN: no
+      # credentials to rotate and no federation to configure.
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -66,14 +66,14 @@ jobs:
         with:
           context: .
           push: true
-          # vX.Y.Z es el tag inmutable al que se le hace deploy o rollback.
-          # latest existe para el pull del startup script en el primer boot.
+          # vX.Y.Z is the immutable tag that gets deployed or rolled back to.
+          # latest exists for the startup script's pull on first boot.
           tags: |
             ghcr.io/${{ github.repository }}:${{ needs.release-please.outputs.tag_name }}
             ghcr.io/${{ github.repository }}:latest
 
-      - name: Resumen
+      - name: Summary
         run: |
-          echo "Imagen publicada: \`ghcr.io/${{ github.repository }}:${{ needs.release-please.outputs.tag_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Image published: \`ghcr.io/${{ github.repository }}:${{ needs.release-please.outputs.tag_name }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Para deployarla: correr el workflow **Deploy** con version=\`${{ needs.release-please.outputs.tag_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "To deploy it: the **Deploy** workflow runs automatically on release, or run it manually with version=\`${{ needs.release-please.outputs.tag_name }}\`" >> "$GITHUB_STEP_SUMMARY"

@@ -1,7 +1,7 @@
 name: CI
 
-# Sin trigger de push: los checks corren en PRs, y release.yml invoca esto
-# al crearse un release para gatear el push de la imagen a GHCR.
+# No push trigger: checks run on PRs, and release.yml calls this
+# when a release is created to gate the image push to GHCR.
 on:
   pull_request:
   workflow_call:
@@ -11,9 +11,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Corta el paso previo a que un dato sensible llegue a main: dominio de prod,
-  # IP pública, email real o el project ID de GCP. Las reglas están en
-  # .gitleaks.toml. fetch-depth: 0 para que escanee el historial, no solo el diff.
+  # Stops sensitive data from reaching main: prod domain, public IP, real
+  # email, or the GCP project ID. The rules live in .gitleaks.toml.
+  # fetch-depth: 0 so it scans the history, not just the diff.
   secrets:
     name: Gitleaks
     runs-on: ubuntu-latest
@@ -29,7 +29,7 @@ jobs:
           GITLEAKS_CONFIG: .gitleaks.toml
 
   checks:
-    name: Typecheck + tests unitarios
+    name: Typecheck + unit tests
     runs-on: ubuntu-latest
 
     services:
@@ -41,7 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Lee la versión de pnpm del campo `packageManager` de package.json.
+      # Reads the pnpm version from the `packageManager` field in package.json.
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
@@ -53,13 +53,13 @@ jobs:
 
       - run: pnpm typecheck
 
-      # *.integration.test.ts usa LLM real (OPENROUTER_API_KEY) y es flaky: solo unitarios.
-      # El exclude default de vitest se pisa al pasar --exclude, así que node_modules va explícito.
-      # tests/setup-env.ts ya defaultea MONGODB_URI a localhost:27017 (el service container).
+      # *.integration.test.ts uses a real LLM (OPENROUTER_API_KEY) and is flaky: unit tests only.
+      # vitest's default exclude is overridden when passing --exclude, so node_modules is listed explicitly.
+      # tests/setup-env.ts already defaults MONGODB_URI to localhost:27017 (the service container).
       - run: pnpm vitest run --exclude "**/node_modules/**" --exclude "**/*.integration.test.ts"
 
   docker:
-    name: Docker build (sin push)
+    name: Docker build (no push)
     runs-on: ubuntu-latest
 
     steps:
@@ -67,8 +67,8 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      # Sin cache type=gha: exportar el layer del pnpm install (~1.2GB) cuesta
-      # más de lo que ahorra, y `mastra build` se invalida en cada commit igual.
+      # No cache type=gha: exporting the pnpm install layer (~1.2GB) costs
+      # more than it saves, and `mastra build` is invalidated on every commit anyway.
       - uses: docker/build-push-action@v6
         with:
           context: .

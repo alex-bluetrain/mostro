@@ -1,36 +1,42 @@
 name: Deploy
 
-# Solo manual: elegís qué versión corre en prod. Nunca se dispara por push.
+# Auto on a published release; also manual for rollback to any prior tag.
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
-        # Sin default a propósito: el rollback depende de tags inmutables, así que
-        # abrir el form y dar enter no tiene que agarrar el camino no reproducible.
-        description: 'Tag a deployar (ej: v1.2.0). Copialo de la pestaña Releases.'
+        # No default on purpose: rollback relies on immutable tags, so opening the
+        # form and hitting enter must not take the non-reproducible path.
+        description: 'Tag to deploy (e.g. v1.2.0). Copy it from the Releases tab.'
         required: true
         type: string
 
 permissions:
   contents: read
-  # id-token: WIF para el SSH a la VM. packages: leer el manifest en ghcr.io.
+  # id-token: WIF for the SSH into the VM. packages: read the manifest on ghcr.io.
   id-token: write
   packages: read
 
-# Un deploy a la vez. Sin cancel-in-progress: cortar un deploy a mitad deja la VM en estado raro.
+# One deploy at a time. No cancel-in-progress: aborting a deploy mid-run leaves the VM in a weird state.
 concurrency:
   group: deploy-prod
   cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Deploy a prod
+    name: Deploy to prod
     runs-on: ubuntu-latest
 
+    env:
+      # release: tag comes from the event. workflow_dispatch: from the input.
+      VERSION: ${{ github.event.release.tag_name || inputs.version }}
+
     steps:
-      # project_id va por secret para que Actions lo enmascare (`***`) en los
-      # logs: el action lo exporta en CLOUDSDK_*/GCLOUD_PROJECT y este repo es
-      # público. Mismo criterio que VM_NAME y ZONE.
+      # project_id goes through a secret so Actions masks it (`***`) in the
+      # logs: the action exports it in CLOUDSDK_*/GCLOUD_PROJECT and this repo is
+      # public. Same rationale as VM_NAME and ZONE.
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
@@ -39,37 +45,35 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
-      # Falla acá y no a mitad del deploy: si el tag no existe, la VM ni se toca.
-      # manifest inspect consulta el registry sin bajar la imagen.
-      - name: Verificar que el tag existe en GHCR
+      # Fail here and not mid-deploy: if the tag doesn't exist, the VM is never touched.
+      # manifest inspect queries the registry without pulling the image.
+      - name: Verify the tag exists in GHCR
         env:
-          VERSION: ${{ inputs.version }}
           IMAGE: ghcr.io/${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           if ! docker manifest inspect "$IMAGE:$VERSION" >/dev/null 2>&1; then
-            echo "::error::El tag '$VERSION' no existe en $IMAGE."
-            echo "::error::Mirá los tags publicados en https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}"
+            echo "::error::Tag '$VERSION' does not exist in $IMAGE."
+            echo "::error::Check the published tags at https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}"
             exit 1
           fi
-          echo "Tag '$VERSION' encontrado."
+          echo "Tag '$VERSION' found."
 
-      # El .env del directorio de deploy solo lleva IMAGE_TAG: los secrets de la
-      # app los resuelve Infisical dentro del contenedor. Nada sensible viaja por
-      # acá. El path va como secret para que no quede en los logs públicos.
-      - name: Actualizar la VM
+      # The deploy directory's .env only carries IMAGE_TAG: the app secrets are
+      # resolved by Infisical inside the container. Nothing sensitive travels
+      # through here. The path goes through a secret so it stays out of the public logs.
+      - name: Update the VM
         env:
-          VERSION: ${{ inputs.version }}
           VM_NAME: ${{ secrets.GCP_VM_NAME }}
           ZONE: ${{ secrets.GCP_ZONE }}
           DEPLOY_DIR: ${{ secrets.GCP_DEPLOY_DIR }}
         run: |
           set -euo pipefail
-          # Retry: el túnel IAP puede fallar transitoriamente (p.ej. 4010
-          # 'destination read failed'). El comando remoto es idempotente, así
-          # que reintentar es seguro.
+          # Retry: the IAP tunnel can fail transiently (e.g. 4010
+          # 'destination read failed'). The remote command is idempotent, so
+          # retrying is safe.
           for attempt in 1 2 3; do
             if gcloud compute ssh "$VM_NAME" \
               --zone "$ZONE" \
@@ -82,31 +86,31 @@ jobs:
                 sudo docker compose up -d --remove-orphans"; then
               exit 0
             fi
-            echo "SSH falló (intento $attempt/3), reintentando en 10s..."
+            echo "SSH failed (attempt $attempt/3), retrying in 10s..."
             sleep 10
           done
-          echo "::error::No se pudo actualizar la VM tras 3 intentos de SSH."
+          echo "::error::Could not update the VM after 3 SSH attempts."
           exit 1
 
-      - name: Esperar a que la app esté healthy
+      - name: Wait for the app to be healthy
         env:
           VM_NAME: ${{ secrets.GCP_VM_NAME }}
           ZONE: ${{ secrets.GCP_ZONE }}
         run: |
           set -euo pipefail
           for i in $(seq 1 20); do
-            # || echo ssh-failed: un fallo transitorio del túnel IAP no debe
-            # matar el loop (set -e), cuenta como intento y se reintenta.
+            # || echo ssh-failed: a transient IAP tunnel failure must not
+            # kill the loop (set -e); it counts as an attempt and retries.
             STATUS=$(gcloud compute ssh "$VM_NAME" --zone "$ZONE" --tunnel-through-iap --quiet \
               --command "sudo docker inspect -f '{{.State.Health.Status}}' mostro-app-1 2>/dev/null || echo unknown" \
               || echo ssh-failed)
             STATUS=$(echo "$STATUS" | tr -d '\r\n')
-            echo "Intento $i: $STATUS"
+            echo "Attempt $i: $STATUS"
             if [ "$STATUS" = "healthy" ]; then
               echo "Deploy OK." >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             sleep 15
           done
-          echo "::error::La app no llegó a healthy en ~5 min. Revisá: docker compose logs app"
+          echo "::error::The app did not become healthy within ~5 min. Check: docker compose logs app"
           exit 1
