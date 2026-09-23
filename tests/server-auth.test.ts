@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const SECRET = 's'.repeat(32)
 const config: Record<string, string | undefined> = {
     STUDIO_API_KEY: 'k'.repeat(32),
-    MOSTRO_JWT_SECRET: SECRET,
+    GOOGLE_CLIENT_ID: 'client-id',
 }
 
 vi.mock('@config/app.config', () => ({ appConfig: config }))
@@ -14,10 +13,10 @@ const { createServerAuth } = await import('@lib/server-auth')
 describe('createServerAuth', () => {
     beforeEach(() => {
         config.STUDIO_API_KEY = 'k'.repeat(32)
-        config.MOSTRO_JWT_SECRET = SECRET
+        config.GOOGLE_CLIENT_ID = 'client-id'
     })
 
-    it('con ambos secrets combina jwt y studio auth', () => {
+    it('con ambos secrets combina google y studio auth', () => {
         const auth = createServerAuth() as any
         expect(auth.constructor.name).toBe('CompositeAuth')
         // El webhook de Telegram debe seguir publico: CompositeAuth une los
@@ -26,20 +25,14 @@ describe('createServerAuth', () => {
     })
 
     it('solo con STUDIO_API_KEY usa SimpleAuth, exento del gate de licencia EE', () => {
-        config.MOSTRO_JWT_SECRET = undefined
+        config.GOOGLE_CLIENT_ID = undefined
         const auth = createServerAuth() as any
         expect(auth.isSimpleAuth).toBe(true)
     })
 
-    it('solo con MOSTRO_JWT_SECRET usa el provider jwt', () => {
-        config.STUDIO_API_KEY = undefined
-        const auth = createServerAuth() as any
-        expect(auth.name).toBe('jwt')
-    })
-
     it('sin ningun secret falla en el boot en vez de dejar el server abierto', () => {
         config.STUDIO_API_KEY = undefined
-        config.MOSTRO_JWT_SECRET = undefined
+        config.GOOGLE_CLIENT_ID = undefined
         expect(() => createServerAuth()).toThrow(/no auth provider/)
     })
 })

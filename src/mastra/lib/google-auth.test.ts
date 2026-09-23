@@ -47,7 +47,7 @@ describe('createGoogleAuth', () => {
         expect(assertInvitedAndSyncName).not.toHaveBeenCalled()
     })
 
-    it('mapea la memoria al email, igual que telegram y el jwt del bff', () => {
+    it('maps memory to the email, same as telegram', () => {
         const auth = createGoogleAuth()!
         expect(auth.mapUserToResourceId?.({ email: 'ana@gmail.com' } as any)).toBe('ana@gmail.com')
     })

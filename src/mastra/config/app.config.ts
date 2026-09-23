@@ -23,11 +23,8 @@ const envSchema = z.object({
     ADMIN_TELEGRAM_ID: z.string().min(1).optional(),
     ADMIN_NAME: z.string().min(1).optional(),
     ADMIN_EMAIL: z.string().min(3).optional(),
-    // Secreto compartido con el BFF de mostro-web, que firma un JWT por request
-    // con el email verificado por Google. Es el trust anchor entre los dos.
-    MOSTRO_JWT_SECRET: z.string().min(32).optional(),
-    // Habilita SimpleAuth para Studio (ademas del JWT del BFF). Pensada para
-    // prod: permite apuntar Studio local contra prod con un token de admin.
+    // Enables SimpleAuth for Studio. Meant for prod: lets a local Studio point
+    // at prod with an admin token.
     STUDIO_API_KEY: z.string().min(32).optional(),
     // Habilita MastraAuthGoogle en modo Bearer: clientes (Expo Android/web con
     // PKCE) mandan el id_token de Google en el header Authorization y mostro lo
@@ -62,9 +59,9 @@ const envSchema = z.object({
     // inválido. Normalizamos a undefined cualquier valor vacío/whitespace/comillas.
     NGROK_AUTHTOKEN: z.string().transform(emptyToUndefined).optional(),
     NGROK_DOMAIN: z.string().transform(emptyToUndefined).optional(),
-    // A dónde apunta el túnel. El login (SSO de Google) lo maneja mostro-web, así
-    // que el túnel expone la webapp, no el backend. En Docker es `mostro-web:3000`
-    // por el hostname de compose; en dev local sería `localhost:3000`.
+    // Where the tunnel points. Login (Google SSO) is handled by mostro-app, so
+    // the tunnel exposes the webapp, not the backend. In Docker it is
+    // `mostro-app-web:3000` via the compose hostname; in local dev, `localhost:3000`.
     NGROK_FORWARD_ADDR: z.string().transform(emptyToUndefined).optional(),
     // Orígenes CORS extra para dev local, separados por coma. El backend ya
     // permite el dominio de ngrok; esto habilita, por ejemplo, la Expo web en

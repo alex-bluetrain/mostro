@@ -11,10 +11,10 @@ const defaultDeps: InviteGateDeps = {
     setUserName: (email, name) => userRepository.setUserName(email, name),
 }
 
-// Acceso invite-only: la identidad la verifica quien emite el token (el BFF
-// de mostro-web, contra Google), pero pertenecer a la app es existir en users.
-// De paso completa el nombre desde el perfil la primera vez; nunca pisa un
-// nombre ya elegido (p. ej. via set-my-name-tool).
+// Invite-only access: identity is verified by whoever issues the token (Google,
+// against its JWKS), but belonging to the app means existing in users. It also
+// fills in the name from the profile the first time; it never overwrites a name
+// already chosen (e.g. via set-my-name-tool).
 export async function assertInvitedAndSyncName(
     user: { email?: string; emailVerified?: boolean; name?: string },
     deps: InviteGateDeps = defaultDeps,

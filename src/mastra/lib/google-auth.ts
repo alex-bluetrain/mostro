@@ -1,18 +1,18 @@
 import { MastraAuthGoogle } from '@mastra/auth-google'
 import { appConfig } from '@config/app.config'
 import { assertInvitedAndSyncName } from './invite-gate'
-import { TELEGRAM_CHANNEL_WEBHOOK } from './jwt-auth'
+import { TELEGRAM_CHANNEL_WEBHOOK } from './server-auth'
 import { appLogger } from './app-logger'
 
 // Identidad verificada por Google directo: el cliente (Expo Android/web con
 // PKCE, o cualquiera) manda el id_token de Google como Bearer y este provider
 // lo verifica contra JWKS (firma RS256, iss, aud, exp). Sin clientSecret opera
-// solo en modo Bearer: no hay SSO/cookie ni GOOGLE_COOKIE_PASSWORD.
+// Bearer mode only: no SSO/cookie, no GOOGLE_COOKIE_PASSWORD.
 //
-// Que el token sea válido no alcanza para entrar: authorizeUser exige que el
-// email exista en users, mismo invite gate que usa el JWT del BFF. No usamos
-// allowedDomains a propósito: rechazaría cuentas Gmail (sin claim hd) y el gate
-// real es la invitación, no el dominio.
+// A valid token is not enough to get in: authorizeUser requires the email to
+// exist in users, the same invite gate every provider shares. We deliberately
+// skip allowedDomains: it would reject Gmail accounts (no hd claim), and the
+// real gate is the invitation, not the domain.
 export function createGoogleAuth(): MastraAuthGoogle | undefined {
     if (!appConfig.GOOGLE_CLIENT_ID) {
         appLogger.warn('[google-auth] GOOGLE_CLIENT_ID not set, google bearer auth disabled')
@@ -36,8 +36,8 @@ export function createGoogleAuth(): MastraAuthGoogle | undefined {
                 return false
             }
         },
-        // Misma resource id que Telegram y que el JWT del BFF (el email) para que
-        // un usuario vea la misma memoria desde cualquier cliente.
+        // Same resource id as Telegram (the email) so a user sees the same
+        // memory from any client.
         mapUserToResourceId: user => (typeof user?.email === 'string' ? user.email : undefined),
     })
 }

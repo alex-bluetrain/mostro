@@ -3,12 +3,8 @@ node_modules
 dist
 .mastracode
 .mastra
-.env.development
 .env
-.env.local
-.env.dev
-.env.prod
-.env.docker
+.env.*
 *.db
 *.db-*
 *.duckdb

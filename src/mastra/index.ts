@@ -44,8 +44,8 @@ await mongoose.connect(appConfig.MONGODB_URI, {
     dbName: appConfig.MONGODB_DB_NAME,
 });
 
-// ngrok es solo para dev local: en producción (VM + Caddy) no hay authtoken.
-// El túnel expone mostro-web (el login vive ahí), no este backend.
+// ngrok is only for local dev: in production (VM + Caddy) there is no authtoken.
+// The tunnel exposes mostro-app (login lives there), not this backend.
 if (appConfig.NGROK_AUTHTOKEN) {
     await startNgrokTunnel();
 }
@@ -74,8 +74,8 @@ export const mastra = new Mastra({
                 credentials: true,
             }
             : undefined,
-        // Exposes every agent in AI SDK format for the web client (Assistant UI),
-        // which reaches it through mostro-web's BFF with a signed JWT.
+        // Exposes every agent in AI SDK format (Assistant UI protocol). Not used
+        // by mostro-app (which uses the AG-UI/OpenUI route); kept for now.
         apiRoutes: [
             {
                 ...chatRoute({
