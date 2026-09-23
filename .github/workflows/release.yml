@@ -11,6 +11,8 @@ permissions:
   pull-requests: write
   # To push the image to ghcr.io with the workflow's own GITHUB_TOKEN.
   packages: write
+  # id-token: the deploy job (called below) needs WIF to SSH into the VM.
+  id-token: write
 
 concurrency:
   group: release
@@ -76,4 +78,16 @@ jobs:
         run: |
           echo "Image published: \`ghcr.io/${{ github.repository }}:${{ needs.release-please.outputs.tag_name }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "To deploy it: the **Deploy** workflow runs automatically on release, or run it manually with version=\`${{ needs.release-please.outputs.tag_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Deploying it automatically. To roll back, run the **Deploy** workflow manually with a prior version." >> "$GITHUB_STEP_SUMMARY"
+
+  # Auto-deploy: chained here instead of via `on: release: published`, because a
+  # release created with the default GITHUB_TOKEN does not trigger other workflows.
+  # secrets: inherit passes the GCP_* secrets the reusable deploy needs.
+  deploy:
+    name: Deploy
+    needs: [release-please, publish]
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      version: ${{ needs.release-please.outputs.tag_name }}
+    secrets: inherit

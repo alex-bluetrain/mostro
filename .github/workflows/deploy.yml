@@ -1,9 +1,14 @@
 name: Deploy
 
-# Auto on a published release; also manual for rollback to any prior tag.
+# Called by the Release workflow right after the image is published (auto-deploy),
+# and available manually for rollback to any prior tag.
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      version:
+        description: 'Tag to deploy (e.g. v1.2.0).'
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       version:
@@ -30,8 +35,9 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # release: tag comes from the event. workflow_dispatch: from the input.
-      VERSION: ${{ github.event.release.tag_name || inputs.version }}
+      # Both triggers (workflow_call from Release, workflow_dispatch for rollback)
+      # provide the tag through inputs.version.
+      VERSION: ${{ inputs.version }}
 
     steps:
       # project_id goes through a secret so Actions masks it (`***`) in the
